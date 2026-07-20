@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
   Process,
+  Client,
+  User,
   getProcesses,
+  getClients,
   getDepartments,
+  getUsers,
   Department,
   updateProcessStatus,
   updateProcessNotes,
@@ -11,7 +15,7 @@ import {
 import { useRealtime } from '@/hooks/use-realtime'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Search, Filter, Calendar } from 'lucide-react'
+import { Search, Filter, Calendar, Plus } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -28,6 +32,7 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { ProcessCreateDialog } from '@/components/ProcessCreateDialog'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -42,13 +47,23 @@ export default function Processos() {
 
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null)
   const [notesDraft, setNotesDraft] = useState('')
+  const [clients, setClients] = useState<Client[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
   const { toast } = useToast()
 
   const loadData = async () => {
     try {
-      const [p, d] = await Promise.all([getProcesses(), getDepartments()])
+      const [p, d, c, u] = await Promise.all([
+        getProcesses(),
+        getDepartments(),
+        getClients(),
+        getUsers(),
+      ])
       setProcesses(p)
       setDepartments(d)
+      setClients(c)
+      setUsers(u)
     } catch {
       /* intentionally ignored */
     }
@@ -115,6 +130,15 @@ export default function Processos() {
     <div className="space-y-6 animate-fade-in h-full flex flex-col">
       {/* Filters */}
       <Card className="p-4 shadow-sm shrink-0 border-t-4 border-t-primary rounded-t-none">
+        <div className="flex justify-end mb-4">
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="bg-primary hover:bg-primary/90 gap-2"
+          >
+            <Plus size={16} />
+            Novo Processo
+          </Button>
+        </div>
         <form
           onSubmit={handleSemanticSearch}
           className="flex flex-col md:flex-row gap-4 items-end md:items-center"
@@ -306,6 +330,15 @@ export default function Processos() {
           )}
         </SheetContent>
       </Sheet>
+
+      <ProcessCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        clients={clients}
+        departments={departments}
+        users={users}
+        onSuccess={loadData}
+      />
     </div>
   )
 }

@@ -66,6 +66,18 @@ export const deleteClient = (id: string) => pb.collection('clients').delete(id)
 export const getDepartments = () =>
   pb.collection<Department>('departments').getFullList({ sort: 'name' })
 
+export const getUsers = () => pb.collection<User>('users').getFullList({ sort: 'name' })
+
+export const createProcess = (data: {
+  title: string
+  client: string
+  department: string
+  responsible: string
+  due_date: string
+  status: Process['status']
+  notes?: string
+}) => pb.collection('processes').create(data)
+
 export const searchProcesses = async (query: string): Promise<{ items: Process[] }> => {
   return pb.send('/backend/v1/search/processes', {
     method: 'POST',
