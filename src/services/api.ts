@@ -5,6 +5,8 @@ export interface Client {
   name: string
   cnpj: string
   tax_regime: string
+  code: string
+  alias: string
   created: string
 }
 
@@ -52,6 +54,14 @@ export const updateProcessNotes = (id: string, notes: string) =>
   pb.collection('processes').update(id, { notes })
 
 export const getClients = () => pb.collection<Client>('clients').getFullList({ sort: 'name' })
+
+export const createClient = (data: Partial<Omit<Client, 'id' | 'created'>>) =>
+  pb.collection('clients').create(data)
+
+export const updateClient = (id: string, data: Partial<Omit<Client, 'id' | 'created'>>) =>
+  pb.collection('clients').update(id, data)
+
+export const deleteClient = (id: string) => pb.collection('clients').delete(id)
 
 export const getDepartments = () =>
   pb.collection<Department>('departments').getFullList({ sort: 'name' })
