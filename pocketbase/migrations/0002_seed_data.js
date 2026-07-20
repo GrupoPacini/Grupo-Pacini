@@ -1,105 +1,98 @@
 migrate(
   (app) => {
-    const usersCol = app.findCollectionByNameOrId('_pb_users_auth_')
+    const users = app.findCollectionByNameOrId('_pb_users_auth_')
     let user
     try {
       user = app.findAuthRecordByEmail('_pb_users_auth_', 'patricia@grupopacini.com.br')
     } catch (_) {
-      user = new Record(usersCol)
+      user = new Record(users)
       user.setEmail('patricia@grupopacini.com.br')
       user.setPassword('Skip@Pass')
       user.setVerified(true)
-      user.set('name', 'Admin Patricia')
+      user.set('name', 'Admin Pacini')
       app.save(user)
     }
 
-    const deptsCol = app.findCollectionByNameOrId('departments')
-    const dNames = ['Fiscal', 'Contábil', 'Departamento Pessoal', 'Legal']
-    const depts = []
-    for (const name of dNames) {
-      let d
+    const depts = app.findCollectionByNameOrId('departments')
+    const deptNames = ['Fiscal', 'Contábil', 'Departamento Pessoal', 'Legal']
+    const deptRecords = []
+    for (const name of deptNames) {
       try {
-        d = app.findFirstRecordByData('departments', 'name', name)
+        const existing = app.findFirstRecordByData('departments', 'name', name)
+        deptRecords.push(existing)
       } catch (_) {
-        d = new Record(deptsCol)
-        d.set('name', name)
-        app.save(d)
+        const r = new Record(depts)
+        r.set('name', name)
+        app.save(r)
+        deptRecords.push(r)
       }
-      depts.push(d)
     }
 
-    const clientsCol = app.findCollectionByNameOrId('clients')
-    const cData = [
-      { name: 'Empresa Exemplo Alpha', cnpj: '11.111.111/0001-11', tax_regime: 'Simples Nacional' },
-      { name: 'Comércio Beta Ltda', cnpj: '22.222.222/0001-22', tax_regime: 'Lucro Presumido' },
-      { name: 'Serviços Gama S.A.', cnpj: '33.333.333/0001-33', tax_regime: 'Lucro Real' },
+    const clients = app.findCollectionByNameOrId('clients')
+    const clientData = [
+      { name: 'Tech Solutions Ltda', cnpj: '12.345.678/0001-90', tax_regime: 'Simples Nacional' },
+      { name: 'Global Exports S.A.', cnpj: '98.765.432/0001-10', tax_regime: 'Lucro Real' },
+      { name: 'Padaria Do João', cnpj: '11.222.333/0001-44', tax_regime: 'Lucro Presumido' },
     ]
-    const clients = []
-    for (const c of cData) {
-      let rec
+    const clientRecords = []
+    for (const data of clientData) {
       try {
-        rec = app.findFirstRecordByData('clients', 'cnpj', c.cnpj)
+        const existing = app.findFirstRecordByData('clients', 'cnpj', data.cnpj)
+        clientRecords.push(existing)
       } catch (_) {
-        rec = new Record(clientsCol)
-        rec.set('name', c.name)
-        rec.set('cnpj', c.cnpj)
-        rec.set('tax_regime', c.tax_regime)
-        app.save(rec)
+        const r = new Record(clients)
+        r.set('name', data.name)
+        r.set('cnpj', data.cnpj)
+        r.set('tax_regime', data.tax_regime)
+        app.save(r)
+        clientRecords.push(r)
       }
-      clients.push(rec)
     }
 
-    const processesCol = app.findCollectionByNameOrId('processes')
-    try {
-      app.findFirstRecordByData('processes', 'title', 'Fechamento Mensal - Exemplo Alpha')
-    } catch (_) {
-      const today = new Date()
-      const past = new Date(today)
-      past.setDate(past.getDate() - 2)
-      const future = new Date(today)
-      future.setDate(future.getDate() + 5)
-      const farFuture = new Date(today)
-      farFuture.setDate(farFuture.getDate() + 15)
+    const processes = app.findCollectionByNameOrId('processes')
+    if (app.countRecords('processes') === 0) {
+      const d = new Date()
+      const tomorrow = new Date(d)
+      tomorrow.setDate(d.getDate() + 1)
+      const nextWeek = new Date(d)
+      nextWeek.setDate(d.getDate() + 7)
+      const lastWeek = new Date(d)
+      lastWeek.setDate(d.getDate() - 7)
 
-      const p1 = new Record(processesCol)
-      p1.set('title', 'Fechamento Mensal - Exemplo Alpha')
-      p1.set('client', clients[0].id)
-      p1.set('department', depts[1].id)
-      p1.set('status', 'Em Andamento')
-      p1.set('due_date', future.toISOString())
-      p1.set('responsible', user.id)
-      p1.set('notes', 'Aguardando envio dos extratos.')
-      app.save(p1)
+      const processData = [
+        {
+          title: 'Apuração ICMS Mensal',
+          status: 'Pendente',
+          due: tomorrow.toISOString().replace('T', ' '),
+        },
+        {
+          title: 'Folha De Pagamento',
+          status: 'Em Andamento',
+          due: nextWeek.toISOString().replace('T', ' '),
+        },
+        {
+          title: 'Alteração Contratual',
+          status: 'Concluído',
+          due: lastWeek.toISOString().replace('T', ' '),
+        },
+        {
+          title: 'Declaração IRPJ',
+          status: 'Atrasado',
+          due: lastWeek.toISOString().replace('T', ' '),
+        },
+      ]
 
-      const p2 = new Record(processesCol)
-      p2.set('title', 'Apuração ICMS - Beta Ltda')
-      p2.set('client', clients[1].id)
-      p2.set('department', depts[0].id)
-      p2.set('status', 'Atrasado')
-      p2.set('due_date', past.toISOString())
-      p2.set('responsible', user.id)
-      app.save(p2)
-
-      const p3 = new Record(processesCol)
-      p3.set('title', 'Folha de Pagamento - Gama S.A.')
-      p3.set('client', clients[2].id)
-      p3.set('department', depts[2].id)
-      p3.set('status', 'Concluído')
-      p3.set('due_date', farFuture.toISOString())
-      p3.set('responsible', user.id)
-      app.save(p3)
-
-      const p4 = new Record(processesCol)
-      p4.set('title', 'Alteração Contratual')
-      p4.set('client', clients[0].id)
-      p4.set('department', depts[3].id)
-      p4.set('status', 'Pendente')
-      p4.set('due_date', future.toISOString())
-      p4.set('responsible', user.id)
-      app.save(p4)
+      for (let i = 0; i < processData.length; i++) {
+        const p = new Record(processes)
+        p.set('title', processData[i].title)
+        p.set('status', processData[i].status)
+        p.set('due_date', processData[i].due)
+        p.set('client', clientRecords[i % clientRecords.length].id)
+        p.set('department', deptRecords[i % deptRecords.length].id)
+        p.set('responsible', user.id)
+        app.save(p)
+      }
     }
   },
-  (app) => {
-    // Empty down migration
-  },
+  (app) => {},
 )
