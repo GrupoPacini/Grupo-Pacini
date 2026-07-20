@@ -15,7 +15,7 @@ import {
 import { useRealtime } from '@/hooks/use-realtime'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Search, Filter, Calendar, Plus } from 'lucide-react'
+import { Search, Filter, Calendar, Plus, List, LayoutGrid } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -33,6 +33,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ProcessCreateDialog } from '@/components/ProcessCreateDialog'
+import { KanbanBoard } from '@/components/KanbanBoard'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -50,6 +51,7 @@ export default function Processos() {
   const [clients, setClients] = useState<Client[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [createOpen, setCreateOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const { toast } = useToast()
 
   const loadData = async () => {
@@ -100,7 +102,7 @@ export default function Processos() {
     ? processes
     : processes.filter((p) => {
         if (deptFilter !== 'all' && p.department !== deptFilter) return false
-        if (statusFilter !== 'all' && p.status !== statusFilter) return false
+        if (viewMode === 'list' && statusFilter !== 'all' && p.status !== statusFilter) return false
         return true
       })
 
@@ -126,11 +128,39 @@ export default function Processos() {
     }
   }
 
+  const handleKanbanStatusChange = async (id: string, status: Process['status']) => {
+    try {
+      await updateProcessStatus(id, status)
+      setProcesses((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)))
+      toast({ title: 'Status Atualizado', description: `Processo movido para ${status}.` })
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao atualizar.' })
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in h-full flex flex-col">
       {/* Filters */}
       <Card className="p-4 shadow-sm shrink-0 border-t-4 border-t-primary rounded-t-none">
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end mb-4 gap-2">
+          <div className="flex rounded-md border overflow-hidden">
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="rounded-none"
+            >
+              <List size={16} className="mr-1" /> Lista
+            </Button>
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('kanban')}
+              className="rounded-none"
+            >
+              <LayoutGrid size={16} className="mr-1" /> Kanban
+            </Button>
+          </div>
           <Button
             onClick={() => setCreateOpen(true)}
             className="bg-primary hover:bg-primary/90 gap-2"
@@ -190,71 +220,75 @@ export default function Processos() {
         </form>
       </Card>
 
-      {/* Table */}
-      <div className="bg-card rounded-lg shadow-sm border flex-1 overflow-hidden flex flex-col">
-        <div className="overflow-x-auto flex-1">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-muted/50 text-muted-foreground sticky top-0 z-10">
-              <tr>
-                <th className="px-6 py-4 font-medium">Cliente</th>
-                <th className="px-6 py-4 font-medium">Processo</th>
-                <th className="px-6 py-4 font-medium">Depto.</th>
-                <th className="px-6 py-4 font-medium">Prazo</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.length === 0 ? (
+      {/* Table or Kanban */}
+      {viewMode === 'kanban' ? (
+        <KanbanBoard processes={filtered} onStatusChange={handleKanbanStatusChange} />
+      ) : (
+        <div className="bg-card rounded-lg shadow-sm border flex-1 overflow-hidden flex flex-col">
+          <div className="overflow-x-auto flex-1">
+            <table className="w-full text-sm text-left whitespace-nowrap">
+              <thead className="bg-muted/50 text-muted-foreground sticky top-0 z-10">
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                    Nenhum processo encontrado.
-                  </td>
+                  <th className="px-6 py-4 font-medium">Cliente</th>
+                  <th className="px-6 py-4 font-medium">Processo</th>
+                  <th className="px-6 py-4 font-medium">Depto.</th>
+                  <th className="px-6 py-4 font-medium">Prazo</th>
+                  <th className="px-6 py-4 font-medium">Status</th>
                 </tr>
-              ) : (
-                filtered.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="hover:bg-muted/30 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedProcess(p)
-                      setNotesDraft(p.notes || '')
-                    }}
-                  >
-                    <td className="px-6 py-4 font-medium text-foreground">
-                      {p.expand?.client?.name}
-                    </td>
-                    <td className="px-6 py-4 text-foreground">{p.title}</td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      {p.expand?.department?.name}
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={14} />
-                        {p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy') : '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
-                          p.status === 'Concluído'
-                            ? 'bg-green-50 text-green-700 border-green-200'
-                            : p.status === 'Atrasado'
-                              ? 'bg-red-50 text-red-700 border-red-200'
-                              : p.status === 'Em Andamento'
-                                ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                : 'bg-gray-50 text-gray-700 border-gray-200'
-                        }`}
-                      >
-                        {p.status}
-                      </span>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Nenhum processo encontrado.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filtered.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedProcess(p)
+                        setNotesDraft(p.notes || '')
+                      }}
+                    >
+                      <td className="px-6 py-4 font-medium text-foreground">
+                        {p.expand?.client?.name}
+                      </td>
+                      <td className="px-6 py-4 text-foreground">{p.title}</td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        {p.expand?.department?.name}
+                      </td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} />
+                          {p.due_date ? format(new Date(p.due_date), 'dd/MM/yyyy') : '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border ${
+                            p.status === 'Concluído'
+                              ? 'bg-green-50 text-green-700 border-green-200'
+                              : p.status === 'Atrasado'
+                                ? 'bg-red-50 text-red-700 border-red-200'
+                                : p.status === 'Em Andamento'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                  : 'bg-gray-50 text-gray-700 border-gray-200'
+                          }`}
+                        >
+                          {p.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Details Drawer */}
       <Sheet open={!!selectedProcess} onOpenChange={(o) => !o && setSelectedProcess(null)}>

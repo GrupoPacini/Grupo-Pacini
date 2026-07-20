@@ -10,6 +10,9 @@ import {
   Menu,
   X,
   Download,
+  BookOpen,
+  ShieldCheck,
+  Bot,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -25,6 +28,9 @@ export default function Layout() {
     { name: 'Painel De Controle', path: '/', icon: LayoutDashboard },
     { name: 'Gestão De Processos', path: '/processos', icon: FileText },
     { name: 'Gestão De Clientes', path: '/clientes', icon: Users },
+    { name: 'Playbooks', path: '/playbooks', icon: BookOpen },
+    { name: 'Licenças', path: '/licencas', icon: ShieldCheck },
+    { name: 'Assistente IA', path: '/chat', icon: Bot },
   ]
 
   const getPageTitle = () => {

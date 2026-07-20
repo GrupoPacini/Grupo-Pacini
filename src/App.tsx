@@ -8,6 +8,9 @@ import Login from './pages/Login'
 import Index from './pages/Index'
 import Processos from './pages/Processos'
 import Clientes from './pages/Clientes'
+import Playbooks from './pages/Playbooks'
+import Licenses from './pages/Licenses'
+import Chat from './pages/Chat'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -26,6 +29,9 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/processos" element={<Processos />} />
               <Route path="/clientes" element={<Clientes />} />
+              <Route path="/playbooks" element={<Playbooks />} />
+              <Route path="/licencas" element={<Licenses />} />
+              <Route path="/chat" element={<Chat />} />
             </Route>
           </Route>
 

@@ -7,6 +7,7 @@ export interface Client {
   tax_regime: string
   code: string
   alias: string
+  onboarding_status: string
   created: string
 }
 

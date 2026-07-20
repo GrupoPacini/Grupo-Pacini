@@ -12,6 +12,7 @@ import { ptBR } from 'date-fns/locale'
 export default function Index() {
   const [processes, setProcesses] = useState<Process[]>([])
   const [clientCount, setClientCount] = useState(0)
+  const [onboardingData, setOnboardingData] = useState<Record<string, number>>({})
 
   const loadData = async () => {
     try {
@@ -19,6 +20,15 @@ export default function Index() {
       setProcesses(p)
       const c = await getClients()
       setClientCount(c.length)
+      const onboarding = c.reduce(
+        (acc, cl) => {
+          const status = cl.onboarding_status || 'Lead'
+          acc[status] = (acc[status] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+      setOnboardingData(onboarding)
     } catch {
       /* intentionally ignored */
     }
@@ -132,6 +142,28 @@ export default function Index() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg text-primary text-title-case">
+            Funil De Onboarding De Clientes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {['Lead', 'Documentação', 'Configuração', 'Ativo'].map((stage) => (
+              <div key={stage} className="text-center">
+                <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2">
+                  <span className="text-xl font-bold text-primary">
+                    {onboardingData[stage] || 0}
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-title-case">{stage}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chart */}

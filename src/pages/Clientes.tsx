@@ -52,6 +52,7 @@ interface FormState {
   tax_regime: string
   code: string
   alias: string
+  onboarding_status: string
 }
 
 const emptyForm: FormState = {
@@ -60,6 +61,7 @@ const emptyForm: FormState = {
   tax_regime: '',
   code: '',
   alias: '',
+  onboarding_status: '',
 }
 
 export default function Clientes() {
@@ -114,6 +116,7 @@ export default function Clientes() {
       tax_regime: client.tax_regime || '',
       code: client.code || '',
       alias: client.alias || '',
+      onboarding_status: client.onboarding_status || '',
     })
     setEditingId(client.id)
     setFieldErrors({})
@@ -176,6 +179,18 @@ export default function Clientes() {
           <Plus size={16} />
           Novo Cliente
         </Button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {['Lead', 'Documentação', 'Configuração', 'Ativo'].map((stage) => {
+          const count = clients.filter((c) => c.onboarding_status === stage).length
+          return (
+            <Card key={stage} className="p-4">
+              <p className="text-xs text-muted-foreground text-title-case">{stage}</p>
+              <p className="text-2xl font-bold text-primary mt-1">{count}</p>
+            </Card>
+          )
+        })}
       </div>
 
       <Card className="border-t-4 border-t-accent overflow-hidden">
@@ -378,6 +393,26 @@ export default function Clientes() {
                 <p className="text-sm text-destructive">{fieldErrors.tax_regime}</p>
               )}
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-title-case text-sm font-medium">Status De Onboarding</Label>
+            <Select
+              value={form.onboarding_status || '__none__'}
+              onValueChange={(v) =>
+                setForm({ ...form, onboarding_status: v === '__none__' ? '' : v })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Nenhum —</SelectItem>
+                <SelectItem value="Lead">Lead</SelectItem>
+                <SelectItem value="Documentação">Documentação</SelectItem>
+                <SelectItem value="Configuração">Configuração</SelectItem>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>
