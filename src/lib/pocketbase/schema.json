@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T18:42:33.808Z",
+  "generatedAt": "2026-07-21T18:47:17.632Z",
   "collections": [
     {
       "name": "users",
@@ -450,6 +450,20 @@
           "type": "bool",
           "required": false,
           "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": ["CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"]

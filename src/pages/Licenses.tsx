@@ -146,20 +146,31 @@ export default function Licenses() {
   const handleSubmit = async () => {
     setSubmitting(true)
     setFieldErrors({})
+
+    let hasError = false
+    const errors: FieldErrors = {}
+
     if (!form.client) {
-      setFieldErrors({ client: 'Selecione um cliente para continuar.' })
-      setSubmitting(false)
-      return
+      errors.client = 'Selecione um cliente para continuar.'
+      hasError = true
+    }
+    if (!form.name || !form.name.trim()) {
+      errors.name = 'Nome da licença é obrigatório.'
+      hasError = true
     }
     if (!form.sem_vencimento && !form.expiration_date) {
-      setFieldErrors({
-        expiration_date: 'Data de vencimento é obrigatória quando não for indeterminada.',
-      })
+      errors.expiration_date = 'Data de vencimento é obrigatória quando não for indeterminada.'
+      hasError = true
+    }
+
+    if (hasError) {
+      setFieldErrors(errors)
       setSubmitting(false)
       return
     }
+
     const payload: Record<string, unknown> = {
-      name: form.name,
+      name: form.name.trim(),
       client: form.client || undefined,
       status: form.status || undefined,
       numero_protocolo: form.numero_protocolo || undefined,
@@ -200,37 +211,32 @@ export default function Licenses() {
     return matchesSearch && matchesStatusOp
   })
 
-  const renderDaysRemaining = (l: License, days: number | null) => {
-    if (l.sem_vencimento) {
-      return <span className="text-muted-foreground text-xs">Indeterminado</span>
-    }
-    if (days === null) {
-      return <span className="text-muted-foreground">—</span>
-    }
-    if (days < 0) {
-      return <span className="text-destructive font-semibold">Vencida</span>
-    }
-    return (
-      <span className={cn('font-medium', days <= 30 ? 'text-orange-600' : 'text-green-600')}>
-        {days}
-      </span>
-    )
-  }
-
   const renderExpiration = (l: License) => {
     if (l.sem_vencimento) {
-      return <span className="text-muted-foreground font-medium">Indeterminado</span>
+      return <span className="text-muted-foreground font-medium text-sm">Indeterminado</span>
     }
     if (!l.expiration_date) {
-      return <span className="text-muted-foreground">—</span>
+      return <span className="text-muted-foreground text-sm">—</span>
     }
     const days = getDaysRemaining(l.expiration_date)
     const expiring = days !== null && days >= 0 && days <= 30
     const expired = days !== null && days < 0
     return (
-      <span className={cn('text-sm', (expiring || expired) && 'text-destructive font-medium')}>
-        {format(new Date(l.expiration_date), 'dd/MM/yyyy')}
-      </span>
+      <div className="flex flex-col">
+        <span className={cn('text-sm', (expiring || expired) && 'text-destructive font-medium')}>
+          {format(new Date(l.expiration_date), 'dd/MM/yyyy')}
+        </span>
+        {days !== null && (
+          <span
+            className={cn(
+              'text-xs font-medium',
+              days < 0 ? 'text-destructive' : days <= 30 ? 'text-orange-600' : 'text-green-600',
+            )}
+          >
+            {days < 0 ? 'Vencida' : `${days} dias`}
+          </span>
+        )}
+      </div>
     )
   }
 
@@ -296,27 +302,16 @@ export default function Licenses() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="font-semibold text-muted-foreground">Código</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Apelido</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Razão Social
-                    </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">CNPJ</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Status Cliente
-                    </TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Licença</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
                       Nº Protocolo
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
-                      Observação
+                      Prioridade
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
                       Vencimento
-                    </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Dias Rest.
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
                       Status Op.
@@ -336,22 +331,15 @@ export default function Licenses() {
                         key={l.id}
                         className={expiring || expired ? 'bg-red-50 dark:bg-red-950/20' : ''}
                       >
-                        <TableCell className="font-mono text-sm text-accent">
-                          {l.expand?.client?.code || '—'}
-                        </TableCell>
-                        <TableCell className="text-sm">{l.expand?.client?.alias || '—'}</TableCell>
-                        <TableCell className="text-sm font-medium">
-                          {l.expand?.client?.razao_social || l.expand?.client?.name || '—'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {l.expand?.client?.cnpj || '—'}
-                        </TableCell>
                         <TableCell>
-                          {l.expand?.client?.onboarding_status ? (
-                            <Badge variant="outline">{l.expand.client.onboarding_status}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm">
+                              {l.expand?.client?.razao_social || l.expand?.client?.name || '—'}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {l.expand?.client?.cnpj || '—'}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -362,16 +350,26 @@ export default function Licenses() {
                         <TableCell className="text-sm text-muted-foreground">
                           {l.numero_protocolo || '—'}
                         </TableCell>
-                        <TableCell
-                          className="text-sm text-muted-foreground max-w-[200px] truncate"
-                          title={l.observacoes || ''}
-                        >
-                          {l.observacoes || '—'}
+                        <TableCell>
+                          {l.prioridade ? (
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                l.prioridade === 'Alta' &&
+                                  'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400',
+                                l.prioridade === 'Média' &&
+                                  'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400',
+                                l.prioridade === 'Baixa' &&
+                                  'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400',
+                              )}
+                            >
+                              {l.prioridade}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
                         </TableCell>
                         <TableCell>{renderExpiration(l)}</TableCell>
-                        <TableCell className="text-sm font-medium">
-                          {renderDaysRemaining(l, days)}
-                        </TableCell>
                         <TableCell>
                           {l.status_operacional ? (
                             <Badge
