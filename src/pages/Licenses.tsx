@@ -30,6 +30,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Plus, Search, Pencil, ShieldCheck, AlertTriangle, Upload, FileText } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Client, User, getClients, getUsers } from '@/services/api'
+import { ClientCombobox } from '@/components/ClientCombobox'
 import { License, getLicenses, createLicense, updateLicense } from '@/services/licenses'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
@@ -97,12 +98,27 @@ export default function Licenses() {
   const [search, setSearch] = useState('')
   const [filterStatusOp, setFilterStatusOp] = useState('all')
   const [filterStatusVenc, setFilterStatusVenc] = useState('all')
+  const [clientsLoading, setClientsLoading] = useState(true)
+  const [clientsError, setClientsError] = useState(false)
+
+  const loadClients = useCallback(async () => {
+    setClientsLoading(true)
+    setClientsError(false)
+    try {
+      const c = await getClients()
+      setClients(c)
+    } catch {
+      setClientsError(true)
+      toast.error('Erro Ao Carregar Lista De Clientes')
+    } finally {
+      setClientsLoading(false)
+    }
+  }, [])
 
   const loadData = useCallback(async () => {
     try {
-      const [l, c, u] = await Promise.all([getLicenses(), getClients(), getUsers()])
+      const [l, u] = await Promise.all([getLicenses(), getUsers()])
       setLicenses(l)
-      setClients(c)
       setUsers(u)
     } catch {
       toast.error('Erro Ao Carregar Licenças')
@@ -113,10 +129,11 @@ export default function Licenses() {
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+    loadClients()
+  }, [loadData, loadClients])
 
   useRealtime('licenses', () => loadData())
-  useRealtime('clients', () => loadData())
+  useRealtime('clients', () => loadClients())
 
   const openCreate = () => {
     setForm(emptyForm)
@@ -154,6 +171,11 @@ export default function Licenses() {
   const handleSubmit = async () => {
     setSubmitting(true)
     setFieldErrors({})
+    if (!form.client) {
+      setFieldErrors({ client: 'Selecione um cliente para continuar.' })
+      setSubmitting(false)
+      return
+    }
     const payload: Record<string, unknown> = {
       name: form.name,
       client: form.client || undefined,
@@ -450,23 +472,17 @@ export default function Licenses() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Cliente</Label>
-              <Select
-                value={form.client || '__none__'}
-                onValueChange={(v) => setForm({ ...form, client: v === '__none__' ? '' : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">—</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-sm font-medium">
+                Cliente <span className="text-destructive">*</span>
+              </Label>
+              <ClientCombobox
+                clients={clients}
+                value={form.client}
+                onChange={(v) => setForm({ ...form, client: v })}
+                loading={clientsLoading}
+                error={clientsError}
+                invalid={!!fieldErrors.client}
+              />
               {fieldErrors.client && (
                 <p className="text-sm text-destructive">{fieldErrors.client}</p>
               )}
