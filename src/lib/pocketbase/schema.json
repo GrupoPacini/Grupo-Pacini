@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T18:39:29.202Z",
+  "generatedAt": "2026-07-21T18:42:33.808Z",
   "collections": [
     {
       "name": "users",
@@ -396,12 +396,6 @@
           "system": false
         },
         {
-          "name": "document",
-          "type": "file",
-          "required": false,
-          "system": false
-        },
-        {
           "name": "status",
           "type": "select",
           "required": false,
@@ -409,20 +403,8 @@
           "selectValues": ["Ativo", "Expirado", "Renovando"]
         },
         {
-          "name": "orgao_emissor",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
           "name": "numero_protocolo",
           "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "data_emissao",
-          "type": "date",
           "required": false,
           "system": false
         },
@@ -457,12 +439,6 @@
           "system": false
         },
         {
-          "name": "numero_licenca",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
           "name": "prioridade",
           "type": "select",
           "required": false,
@@ -470,24 +446,10 @@
           "selectValues": ["Baixa", "Média", "Alta"]
         },
         {
-          "name": "proxima_acao",
-          "type": "text",
+          "name": "sem_vencimento",
+          "type": "bool",
           "required": false,
           "system": false
-        },
-        {
-          "name": "status_vencimento",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Regular", "Vencida", "Indeterminado", "Pendente"]
-        },
-        {
-          "name": "responsible",
-          "type": "relation",
-          "required": false,
-          "system": false,
-          "collectionRef": "users"
         }
       ],
       "indexes": ["CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"]

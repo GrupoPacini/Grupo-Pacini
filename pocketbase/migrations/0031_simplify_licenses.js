@@ -14,7 +14,7 @@ migrate(
 
     for (const fieldName of fieldsToRemove) {
       const f = col.fields.getByName(fieldName)
-      if (f) col.fields.remove(f)
+      if (f) col.fields.removeById(f.id)
     }
 
     if (!col.fields.getByName('sem_vencimento')) {
@@ -32,7 +32,7 @@ migrate(
     const col = app.findCollectionByNameOrId('licenses')
 
     const f = col.fields.getByName('sem_vencimento')
-    if (f) col.fields.remove(f)
+    if (f) col.fields.removeById(f.id)
 
     app.save(col)
   },
