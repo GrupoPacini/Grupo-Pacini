@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-20T02:48:06.386Z",
+  "generatedAt": "2026-07-21T17:15:07.917Z",
   "collections": [
     {
       "name": "users",
@@ -140,6 +140,90 @@
           "required": false,
           "system": false,
           "selectValues": ["Lead", "Documentação", "Configuração", "Ativo"]
+        },
+        {
+          "name": "razao_social",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "nome_fantasia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "municipio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cnae_principal",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cnaes_secundarios",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objeto_social",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "necessita_validacao_humana",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "motivos_validacao",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objeto_social_classificacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objeto_social_divergencias",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objeto_social_necessidade_alteracao",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objeto_social_recomendacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "objeto_social_necessidade_juridica",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX `idx_clients_code` ON `clients` (code)"]
@@ -306,13 +390,6 @@
           "system": false
         },
         {
-          "name": "type",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Certificado Digital", "Software", "Alvará", "Outros"]
-        },
-        {
           "name": "expiration_date",
           "type": "date",
           "required": false,
@@ -332,18 +409,85 @@
           "selectValues": ["Ativo", "Expirado", "Renovando"]
         },
         {
-          "name": "created",
-          "type": "autodate",
+          "name": "orgao_emissor",
+          "type": "text",
           "required": false,
-          "system": false,
-          "autodateTriggers": ["onCreate"]
+          "system": false
         },
         {
-          "name": "updated",
-          "type": "autodate",
+          "name": "numero_protocolo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_emissao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_operacional",
+          "type": "select",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "selectValues": [
+            "Regular",
+            "Em Atenção",
+            "Próxima Vencimento",
+            "Vencida",
+            "Sem Vencimento Informado",
+            "Em Renovação",
+            "Aguardando Cliente",
+            "Em Análise Órgão",
+            "Com Exigência",
+            "Concluída"
+          ]
+        },
+        {
+          "name": "pendencia_atual",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "numero_licenca",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "prioridade",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Baixa", "Média", "Alta"]
+        },
+        {
+          "name": "proxima_acao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_vencimento",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Regular", "Vencida", "Indeterminado", "Pendente"]
+        },
+        {
+          "name": "responsible",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": ["CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"]
