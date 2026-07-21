@@ -27,32 +27,28 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Search, Pencil, ShieldCheck, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Pencil, ShieldCheck, AlertTriangle, Upload, FileText } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Client, User, getClients, getUsers } from '@/services/api'
 import { License, getLicenses, createLicense, updateLicense } from '@/services/licenses'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { cn } from '@/lib/utils'
+import {
+  PRIORIDADES,
+  STATUS_VENCIMENTO,
+  STATUS_OPERACIONAL,
+  LICENSE_STATUS,
+  getDaysRemaining,
+  statusVencimentoBadge,
+  statusOperacionalBadge,
+} from '@/lib/license-utils'
 import { toast } from 'sonner'
-import { format, differenceInDays } from 'date-fns'
-
-const PRIORIDADES = ['Baixa', 'Média', 'Alta']
-const STATUS_VENCIMENTO = ['Regular', 'Vencida', 'Indeterminado', 'Pendente']
-const STATUS_OPERACIONAL = [
-  'Regular',
-  'Em Atenção',
-  'Próxima Vencimento',
-  'Vencida',
-  'Sem Vencimento Informado',
-  'Em Renovação',
-  'Aguardando Cliente',
-  'Em Análise Órgão',
-  'Com Exigência',
-  'Concluída',
-]
+import { format } from 'date-fns'
 
 interface FormState {
   name: string
   client: string
+  status: string
   numero_licenca: string
   numero_protocolo: string
   orgao_emissor: string
@@ -65,11 +61,13 @@ interface FormState {
   observacoes: string
   status_operacional: string
   status_vencimento: string
+  document: File | null
 }
 
 const emptyForm: FormState = {
   name: '',
   client: '',
+  status: '',
   numero_licenca: '',
   numero_protocolo: '',
   orgao_emissor: '',
@@ -82,37 +80,7 @@ const emptyForm: FormState = {
   observacoes: '',
   status_operacional: '',
   status_vencimento: '',
-}
-
-function getDaysRemaining(date: string | null | undefined): number | null {
-  if (!date) return null
-  return differenceInDays(new Date(date), new Date())
-}
-
-function statusVencimentoBadge(status: string) {
-  const map: Record<string, string> = {
-    Regular: 'bg-green-100 text-green-700 border-green-300',
-    Vencida: 'bg-red-100 text-red-700 border-red-300',
-    Indeterminado: 'bg-gray-100 text-gray-600 border-gray-300',
-    Pendente: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-  }
-  return map[status] || 'bg-gray-100 text-gray-600 border-gray-300'
-}
-
-function statusOperacionalBadge(status: string) {
-  const map: Record<string, string> = {
-    Regular: 'bg-green-100 text-green-700 border-green-300',
-    'Em Atenção': 'bg-yellow-100 text-yellow-700 border-yellow-300',
-    'Próxima Vencimento': 'bg-orange-100 text-orange-700 border-orange-300',
-    Vencida: 'bg-red-100 text-red-700 border-red-300',
-    'Sem Vencimento Informado': 'bg-gray-100 text-gray-600 border-gray-300',
-    'Em Renovação': 'bg-blue-100 text-blue-700 border-blue-300',
-    'Aguardando Cliente': 'bg-purple-100 text-purple-700 border-purple-300',
-    'Em Análise Órgão': 'bg-cyan-100 text-cyan-700 border-cyan-300',
-    'Com Exigência': 'bg-red-100 text-red-700 border-red-300',
-    Concluída: 'bg-green-100 text-green-700 border-green-300',
-  }
-  return map[status] || 'bg-gray-100 text-gray-600 border-gray-300'
+  document: null,
 }
 
 export default function Licenses() {
@@ -122,6 +90,7 @@ export default function Licenses() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingDoc, setEditingDoc] = useState<string>('')
   const [form, setForm] = useState<FormState>(emptyForm)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
@@ -147,10 +116,12 @@ export default function Licenses() {
   }, [loadData])
 
   useRealtime('licenses', () => loadData())
+  useRealtime('clients', () => loadData())
 
   const openCreate = () => {
     setForm(emptyForm)
     setEditingId(null)
+    setEditingDoc('')
     setFieldErrors({})
     setDialogOpen(true)
   }
@@ -159,6 +130,7 @@ export default function Licenses() {
     setForm({
       name: license.name || '',
       client: license.client || '',
+      status: license.status || '',
       numero_licenca: license.numero_licenca || '',
       numero_protocolo: license.numero_protocolo || '',
       orgao_emissor: license.orgao_emissor || '',
@@ -171,8 +143,10 @@ export default function Licenses() {
       observacoes: license.observacoes || '',
       status_operacional: license.status_operacional || '',
       status_vencimento: license.status_vencimento || '',
+      document: null,
     })
     setEditingId(license.id)
+    setEditingDoc(license.document || '')
     setFieldErrors({})
     setDialogOpen(true)
   }
@@ -183,6 +157,7 @@ export default function Licenses() {
     const payload: Record<string, unknown> = {
       name: form.name,
       client: form.client || undefined,
+      status: form.status || undefined,
       numero_licenca: form.numero_licenca || undefined,
       numero_protocolo: form.numero_protocolo || undefined,
       orgao_emissor: form.orgao_emissor || undefined,
@@ -197,13 +172,27 @@ export default function Licenses() {
       status_vencimento: form.status_vencimento || undefined,
     }
     try {
-      if (editingId) {
-        await updateLicense(editingId, payload)
-        toast.success('Licença Atualizada')
+      if (form.document) {
+        const formData = new FormData()
+        Object.entries(payload).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            formData.append(key, String(value))
+          }
+        })
+        formData.append('document', form.document)
+        if (editingId) {
+          await updateLicense(editingId, formData)
+        } else {
+          await createLicense(formData)
+        }
       } else {
-        await createLicense(payload)
-        toast.success('Licença Criada')
+        if (editingId) {
+          await updateLicense(editingId, payload)
+        } else {
+          await createLicense(payload)
+        }
       }
+      toast.success(editingId ? 'Licença Atualizada' : 'Licença Criada')
       setDialogOpen(false)
       setForm(emptyForm)
       loadData()
@@ -227,6 +216,23 @@ export default function Licenses() {
     const matchesStatusVenc = filterStatusVenc === 'all' || l.status_vencimento === filterStatusVenc
     return matchesSearch && matchesStatusOp && matchesStatusVenc
   })
+
+  const renderDaysRemaining = (l: License, days: number | null) => {
+    if (l.status_vencimento === 'Indeterminado' || l.status_vencimento === 'Pendente') {
+      return <span className="text-muted-foreground text-xs">{l.status_vencimento}</span>
+    }
+    if (days === null) {
+      return <span className="text-muted-foreground">—</span>
+    }
+    if (days < 0) {
+      return <span className="text-destructive font-semibold">Vencida</span>
+    }
+    return (
+      <span className={cn('font-medium', days <= 30 ? 'text-orange-600' : 'text-green-600')}>
+        {days}
+      </span>
+    )
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -379,30 +385,17 @@ export default function Licenses() {
                           {l.observacoes || '—'}
                         </TableCell>
                         <TableCell
-                          className={
-                            expiring || expired ? 'text-destructive font-medium text-sm' : 'text-sm'
-                          }
+                          className={cn(
+                            'text-sm',
+                            (expiring || expired) && 'text-destructive font-medium',
+                          )}
                         >
                           {l.expiration_date
                             ? format(new Date(l.expiration_date), 'dd/MM/yyyy')
                             : '—'}
                         </TableCell>
                         <TableCell className="text-sm font-medium">
-                          {days === null ? (
-                            <span className="text-muted-foreground">—</span>
-                          ) : (
-                            <span
-                              className={
-                                expired
-                                  ? 'text-destructive'
-                                  : expiring
-                                    ? 'text-orange-600'
-                                    : 'text-green-600'
-                              }
-                            >
-                              {days}
-                            </span>
-                          )}
+                          {renderDaysRemaining(l, days)}
                         </TableCell>
                         <TableCell>
                           {l.status_vencimento ? (
@@ -515,6 +508,27 @@ export default function Licenses() {
                 />
               </div>
               <div className="space-y-2">
+                <Label className="text-sm font-medium">Status</Label>
+                <Select
+                  value={form.status || '__none__'}
+                  onValueChange={(v) => setForm({ ...form, status: v === '__none__' ? '' : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {LICENSE_STATUS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label className="text-sm font-medium">Prioridade</Label>
                 <Select
                   value={form.prioridade || '__none__'}
@@ -528,6 +542,27 @@ export default function Licenses() {
                     {PRIORIDADES.map((p) => (
                       <SelectItem key={p} value={p}>
                         {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Responsável Interno</Label>
+                <Select
+                  value={form.responsible || '__none__'}
+                  onValueChange={(v) =>
+                    setForm({ ...form, responsible: v === '__none__' ? '' : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name || u.email}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -551,25 +586,6 @@ export default function Licenses() {
                   onChange={(e) => setForm({ ...form, expiration_date: e.target.value })}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Responsável Interno</Label>
-              <Select
-                value={form.responsible || '__none__'}
-                onValueChange={(v) => setForm({ ...form, responsible: v === '__none__' ? '' : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">—</SelectItem>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name || u.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Próxima Ação</Label>
@@ -638,6 +654,39 @@ export default function Licenses() {
                 onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
                 placeholder="Observações adicionais"
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Documento (PDF, JPG, PNG)</Label>
+              <div className="flex items-center gap-3">
+                <label className="flex-1 cursor-pointer">
+                  <div className="flex items-center gap-2 px-3 py-2 border border-input rounded-md hover:bg-muted/50 transition-colors">
+                    <Upload size={16} className="text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {form.document ? form.document.name : 'Selecionar arquivo...'}
+                    </span>
+                  </div>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="application/pdf,image/jpeg,image/png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      setForm({ ...form, document: file })
+                    }}
+                  />
+                </label>
+                {editingDoc && !form.document && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <FileText size={14} />
+                    <span className="truncate max-w-[120px]" title={editingDoc}>
+                      {editingDoc}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {fieldErrors.document && (
+                <p className="text-sm text-destructive">{fieldErrors.document}</p>
+              )}
             </div>
           </div>
           <DialogFooter>

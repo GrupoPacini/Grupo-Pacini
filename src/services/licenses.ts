@@ -40,10 +40,10 @@ export const getLicenses = () =>
 export const getLicense = (id: string) =>
   pb.collection<License>('licenses').getOne(id, { expand: 'client,responsible' })
 
-export const createLicense = (data: Record<string, unknown>) =>
+export const createLicense = (data: Record<string, unknown> | FormData) =>
   pb.collection('licenses').create(data)
 
-export const updateLicense = (id: string, data: Record<string, unknown>) =>
+export const updateLicense = (id: string, data: Record<string, unknown> | FormData) =>
   pb.collection('licenses').update(id, data)
 
 export const deleteLicense = (id: string) => pb.collection('licenses').delete(id)
