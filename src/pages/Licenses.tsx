@@ -437,7 +437,7 @@ export default function Licenses() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Nº de Protocolo</Label>
+                <Label className="text-sm font-medium">Número do Protocolo</Label>
                 <Input
                   value={form.numero_protocolo}
                   onChange={(e) => setForm({ ...form, numero_protocolo: e.target.value })}
