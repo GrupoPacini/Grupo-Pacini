@@ -5,19 +5,13 @@ export interface License {
   client: string
   name: string
   expiration_date: string
-  document: string
+  sem_vencimento: boolean
   status: string
-  orgao_emissor: string
   numero_protocolo: string
-  data_emissao: string
   status_operacional: string
   pendencia_atual: string
   observacoes: string
-  numero_licenca: string
   prioridade: string
-  proxima_acao: string
-  status_vencimento: string
-  responsible: string
   created: string
   updated: string
   expand?: {
@@ -30,15 +24,14 @@ export interface License {
       cnpj: string
       onboarding_status: string
     }
-    responsible?: { id: string; name: string; email: string }
   }
 }
 
 export const getLicenses = () =>
-  pb.collection<License>('licenses').getFullList({ expand: 'client,responsible', sort: '-created' })
+  pb.collection<License>('licenses').getFullList({ expand: 'client', sort: '-created' })
 
 export const getLicense = (id: string) =>
-  pb.collection<License>('licenses').getOne(id, { expand: 'client,responsible' })
+  pb.collection<License>('licenses').getOne(id, { expand: 'client' })
 
 export const createLicense = (data: Record<string, unknown> | FormData) =>
   pb.collection('licenses').create(data)

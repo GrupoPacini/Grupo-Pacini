@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -27,20 +28,18 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Search, Pencil, ShieldCheck, AlertTriangle, Upload, FileText } from 'lucide-react'
+import { Plus, Search, Pencil, ShieldCheck, AlertTriangle } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Client, User, getClients, getUsers } from '@/services/api'
+import { Client, getClients } from '@/services/api'
 import { ClientCombobox } from '@/components/ClientCombobox'
 import { License, getLicenses, createLicense, updateLicense } from '@/services/licenses'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
 import {
   PRIORIDADES,
-  STATUS_VENCIMENTO,
   STATUS_OPERACIONAL,
   LICENSE_STATUS,
   getDaysRemaining,
-  statusVencimentoBadge,
   statusOperacionalBadge,
 } from '@/lib/license-utils'
 import { toast } from 'sonner'
@@ -50,54 +49,39 @@ interface FormState {
   name: string
   client: string
   status: string
-  numero_licenca: string
   numero_protocolo: string
-  orgao_emissor: string
-  data_emissao: string
   expiration_date: string
-  responsible: string
+  sem_vencimento: boolean
   prioridade: string
-  proxima_acao: string
   pendencia_atual: string
   observacoes: string
   status_operacional: string
-  status_vencimento: string
-  document: File | null
 }
 
 const emptyForm: FormState = {
   name: '',
   client: '',
   status: '',
-  numero_licenca: '',
   numero_protocolo: '',
-  orgao_emissor: '',
-  data_emissao: '',
   expiration_date: '',
-  responsible: '',
+  sem_vencimento: false,
   prioridade: '',
-  proxima_acao: '',
   pendencia_atual: '',
   observacoes: '',
   status_operacional: '',
-  status_vencimento: '',
-  document: null,
 }
 
 export default function Licenses() {
   const [licenses, setLicenses] = useState<License[]>([])
   const [clients, setClients] = useState<Client[]>([])
-  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingDoc, setEditingDoc] = useState<string>('')
   const [form, setForm] = useState<FormState>(emptyForm)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState('')
   const [filterStatusOp, setFilterStatusOp] = useState('all')
-  const [filterStatusVenc, setFilterStatusVenc] = useState('all')
   const [clientsLoading, setClientsLoading] = useState(true)
   const [clientsError, setClientsError] = useState(false)
 
@@ -117,9 +101,8 @@ export default function Licenses() {
 
   const loadData = useCallback(async () => {
     try {
-      const [l, u] = await Promise.all([getLicenses(), getUsers()])
+      const l = await getLicenses()
       setLicenses(l)
-      setUsers(u)
     } catch {
       toast.error('Erro Ao Carregar Licenças')
     } finally {
@@ -138,7 +121,6 @@ export default function Licenses() {
   const openCreate = () => {
     setForm(emptyForm)
     setEditingId(null)
-    setEditingDoc('')
     setFieldErrors({})
     setDialogOpen(true)
   }
@@ -148,22 +130,15 @@ export default function Licenses() {
       name: license.name || '',
       client: license.client || '',
       status: license.status || '',
-      numero_licenca: license.numero_licenca || '',
       numero_protocolo: license.numero_protocolo || '',
-      orgao_emissor: license.orgao_emissor || '',
-      data_emissao: license.data_emissao || '',
       expiration_date: license.expiration_date || '',
-      responsible: license.responsible || '',
+      sem_vencimento: license.sem_vencimento || false,
       prioridade: license.prioridade || '',
-      proxima_acao: license.proxima_acao || '',
       pendencia_atual: license.pendencia_atual || '',
       observacoes: license.observacoes || '',
       status_operacional: license.status_operacional || '',
-      status_vencimento: license.status_vencimento || '',
-      document: null,
     })
     setEditingId(license.id)
-    setEditingDoc(license.document || '')
     setFieldErrors({})
     setDialogOpen(true)
   }
@@ -176,43 +151,30 @@ export default function Licenses() {
       setSubmitting(false)
       return
     }
+    if (!form.sem_vencimento && !form.expiration_date) {
+      setFieldErrors({
+        expiration_date: 'Data de vencimento é obrigatória quando não for indeterminada.',
+      })
+      setSubmitting(false)
+      return
+    }
     const payload: Record<string, unknown> = {
       name: form.name,
       client: form.client || undefined,
       status: form.status || undefined,
-      numero_licenca: form.numero_licenca || undefined,
       numero_protocolo: form.numero_protocolo || undefined,
-      orgao_emissor: form.orgao_emissor || undefined,
-      data_emissao: form.data_emissao || undefined,
-      expiration_date: form.expiration_date || undefined,
-      responsible: form.responsible || undefined,
+      expiration_date: form.sem_vencimento ? '' : form.expiration_date || undefined,
+      sem_vencimento: form.sem_vencimento,
       prioridade: form.prioridade || undefined,
-      proxima_acao: form.proxima_acao || undefined,
       pendencia_atual: form.pendencia_atual || undefined,
       observacoes: form.observacoes || undefined,
       status_operacional: form.status_operacional || undefined,
-      status_vencimento: form.status_vencimento || undefined,
     }
     try {
-      if (form.document) {
-        const formData = new FormData()
-        Object.entries(payload).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            formData.append(key, String(value))
-          }
-        })
-        formData.append('document', form.document)
-        if (editingId) {
-          await updateLicense(editingId, formData)
-        } else {
-          await createLicense(formData)
-        }
+      if (editingId) {
+        await updateLicense(editingId, payload)
       } else {
-        if (editingId) {
-          await updateLicense(editingId, payload)
-        } else {
-          await createLicense(payload)
-        }
+        await createLicense(payload)
       }
       toast.success(editingId ? 'Licença Atualizada' : 'Licença Criada')
       setDialogOpen(false)
@@ -235,13 +197,12 @@ export default function Licenses() {
       clientCnpj.includes(search) ||
       licenseName.toLowerCase().includes(search.toLowerCase())
     const matchesStatusOp = filterStatusOp === 'all' || l.status_operacional === filterStatusOp
-    const matchesStatusVenc = filterStatusVenc === 'all' || l.status_vencimento === filterStatusVenc
-    return matchesSearch && matchesStatusOp && matchesStatusVenc
+    return matchesSearch && matchesStatusOp
   })
 
   const renderDaysRemaining = (l: License, days: number | null) => {
-    if (l.status_vencimento === 'Indeterminado' || l.status_vencimento === 'Pendente') {
-      return <span className="text-muted-foreground text-xs">{l.status_vencimento}</span>
+    if (l.sem_vencimento) {
+      return <span className="text-muted-foreground text-xs">Indeterminado</span>
     }
     if (days === null) {
       return <span className="text-muted-foreground">—</span>
@@ -252,6 +213,23 @@ export default function Licenses() {
     return (
       <span className={cn('font-medium', days <= 30 ? 'text-orange-600' : 'text-green-600')}>
         {days}
+      </span>
+    )
+  }
+
+  const renderExpiration = (l: License) => {
+    if (l.sem_vencimento) {
+      return <span className="text-muted-foreground font-medium">Indeterminado</span>
+    }
+    if (!l.expiration_date) {
+      return <span className="text-muted-foreground">—</span>
+    }
+    const days = getDaysRemaining(l.expiration_date)
+    const expiring = days !== null && days >= 0 && days <= 30
+    const expired = days !== null && days < 0
+    return (
+      <span className={cn('text-sm', (expiring || expired) && 'text-destructive font-medium')}>
+        {format(new Date(l.expiration_date), 'dd/MM/yyyy')}
       </span>
     )
   }
@@ -295,19 +273,6 @@ export default function Licenses() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={filterStatusVenc} onValueChange={setFilterStatusVenc}>
-            <SelectTrigger className="w-full md:w-[180px]">
-              <SelectValue placeholder="Status Vencimento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Vencimento</SelectItem>
-              {STATUS_VENCIMENTO.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </Card>
 
@@ -342,7 +307,7 @@ export default function Licenses() {
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Licença</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
-                      Nº / Protocolo
+                      Nº Protocolo
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
                       Observação
@@ -354,9 +319,6 @@ export default function Licenses() {
                       Dias Rest.
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
-                      Status Venc.
-                    </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
                       Status Op.
                     </TableHead>
                     <TableHead className="text-right font-semibold text-muted-foreground">
@@ -366,7 +328,7 @@ export default function Licenses() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((l) => {
-                    const days = getDaysRemaining(l.expiration_date)
+                    const days = l.sem_vencimento ? null : getDaysRemaining(l.expiration_date)
                     const expiring = days !== null && days >= 0 && days <= 30
                     const expired = days !== null && days < 0
                     return (
@@ -398,7 +360,7 @@ export default function Licenses() {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {l.numero_licenca || l.numero_protocolo || '—'}
+                          {l.numero_protocolo || '—'}
                         </TableCell>
                         <TableCell
                           className="text-sm text-muted-foreground max-w-[200px] truncate"
@@ -406,30 +368,9 @@ export default function Licenses() {
                         >
                           {l.observacoes || '—'}
                         </TableCell>
-                        <TableCell
-                          className={cn(
-                            'text-sm',
-                            (expiring || expired) && 'text-destructive font-medium',
-                          )}
-                        >
-                          {l.expiration_date
-                            ? format(new Date(l.expiration_date), 'dd/MM/yyyy')
-                            : '—'}
-                        </TableCell>
+                        <TableCell>{renderExpiration(l)}</TableCell>
                         <TableCell className="text-sm font-medium">
                           {renderDaysRemaining(l, days)}
-                        </TableCell>
-                        <TableCell>
-                          {l.status_vencimento ? (
-                            <Badge
-                              variant="outline"
-                              className={statusVencimentoBadge(l.status_vencimento)}
-                            >
-                              {l.status_vencimento}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
                         </TableCell>
                         <TableCell>
                           {l.status_operacional ? (
@@ -498,29 +439,11 @@ export default function Licenses() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Número da Licença</Label>
-                <Input
-                  value={form.numero_licenca}
-                  onChange={(e) => setForm({ ...form, numero_licenca: e.target.value })}
-                  placeholder="Nº da licença"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label className="text-sm font-medium">Nº de Protocolo</Label>
                 <Input
                   value={form.numero_protocolo}
                   onChange={(e) => setForm({ ...form, numero_protocolo: e.target.value })}
                   placeholder="Protocolo"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Órgão Emissor</Label>
-                <Input
-                  value={form.orgao_emissor}
-                  onChange={(e) => setForm({ ...form, orgao_emissor: e.target.value })}
-                  placeholder="Ex: Receita Federal"
                 />
               </div>
               <div className="space-y-2">
@@ -564,63 +487,6 @@ export default function Licenses() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Responsável Interno</Label>
-                <Select
-                  value={form.responsible || '__none__'}
-                  onValueChange={(v) =>
-                    setForm({ ...form, responsible: v === '__none__' ? '' : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">—</SelectItem>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name || u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Data de Emissão</Label>
-                <Input
-                  type="date"
-                  value={form.data_emissao}
-                  onChange={(e) => setForm({ ...form, data_emissao: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Data de Vencimento</Label>
-                <Input
-                  type="date"
-                  value={form.expiration_date}
-                  onChange={(e) => setForm({ ...form, expiration_date: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Próxima Ação</Label>
-              <Input
-                value={form.proxima_acao}
-                onChange={(e) => setForm({ ...form, proxima_acao: e.target.value })}
-                placeholder="Próximo passo"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Pendência Atual</Label>
-              <Input
-                value={form.pendencia_atual}
-                onChange={(e) => setForm({ ...form, pendencia_atual: e.target.value })}
-                placeholder="Pendência atual"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
                 <Label className="text-sm font-medium">Status Operacional</Label>
                 <Select
                   value={form.status_operacional || '__none__'}
@@ -641,27 +507,45 @@ export default function Licenses() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Status de Vencimento</Label>
-                <Select
-                  value={form.status_vencimento || '__none__'}
-                  onValueChange={(v) =>
-                    setForm({ ...form, status_vencimento: v === '__none__' ? '' : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">—</SelectItem>
-                    {STATUS_VENCIMENTO.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Data de Vencimento</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="date"
+                  value={form.expiration_date}
+                  onChange={(e) => setForm({ ...form, expiration_date: e.target.value })}
+                  disabled={form.sem_vencimento}
+                  className={cn('flex-1', form.sem_vencimento && 'opacity-50')}
+                />
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <Checkbox
+                    id="sem_vencimento"
+                    checked={form.sem_vencimento}
+                    onCheckedChange={(checked) =>
+                      setForm({
+                        ...form,
+                        sem_vencimento: checked === true,
+                        expiration_date: checked === true ? '' : form.expiration_date,
+                      })
+                    }
+                  />
+                  <Label htmlFor="sem_vencimento" className="text-sm font-medium cursor-pointer">
+                    Sem Vencimento
+                  </Label>
+                </div>
               </div>
+              {fieldErrors.expiration_date && (
+                <p className="text-sm text-destructive">{fieldErrors.expiration_date}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Pendência Atual</Label>
+              <Input
+                value={form.pendencia_atual}
+                onChange={(e) => setForm({ ...form, pendencia_atual: e.target.value })}
+                placeholder="Pendência atual"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Observações</Label>
@@ -670,39 +554,6 @@ export default function Licenses() {
                 onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
                 placeholder="Observações adicionais"
               />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Documento (PDF, JPG, PNG)</Label>
-              <div className="flex items-center gap-3">
-                <label className="flex-1 cursor-pointer">
-                  <div className="flex items-center gap-2 px-3 py-2 border border-input rounded-md hover:bg-muted/50 transition-colors">
-                    <Upload size={16} className="text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      {form.document ? form.document.name : 'Selecionar arquivo...'}
-                    </span>
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="application/pdf,image/jpeg,image/png"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null
-                      setForm({ ...form, document: file })
-                    }}
-                  />
-                </label>
-                {editingDoc && !form.document && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <FileText size={14} />
-                    <span className="truncate max-w-[120px]" title={editingDoc}>
-                      {editingDoc}
-                    </span>
-                  </div>
-                )}
-              </div>
-              {fieldErrors.document && (
-                <p className="text-sm text-destructive">{fieldErrors.document}</p>
-              )}
             </div>
           </div>
           <DialogFooter>

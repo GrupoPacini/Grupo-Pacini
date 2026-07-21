@@ -1,7 +1,6 @@
 import { differenceInDays } from 'date-fns'
 
 export const PRIORIDADES = ['Baixa', 'Média', 'Alta']
-export const STATUS_VENCIMENTO = ['Regular', 'Vencida', 'Indeterminado', 'Pendente']
 export const LICENSE_STATUS = ['Ativo', 'Expirado', 'Renovando']
 export const STATUS_OPERACIONAL = [
   'Regular',
@@ -19,16 +18,6 @@ export const STATUS_OPERACIONAL = [
 export function getDaysRemaining(date: string | null | undefined): number | null {
   if (!date) return null
   return differenceInDays(new Date(date), new Date())
-}
-
-export function statusVencimentoBadge(status: string) {
-  const map: Record<string, string> = {
-    Regular: 'bg-green-100 text-green-700 border-green-300',
-    Vencida: 'bg-red-100 text-red-700 border-red-300',
-    Indeterminado: 'bg-gray-100 text-gray-600 border-gray-300',
-    Pendente: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-  }
-  return map[status] || 'bg-gray-100 text-gray-600 border-gray-300'
 }
 
 export function statusOperacionalBadge(status: string) {
