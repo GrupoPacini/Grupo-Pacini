@@ -285,7 +285,7 @@ export default function Licenses() {
 
       <Card className="border-t-4 border-t-accent overflow-hidden">
         <CardHeader className="bg-primary text-primary-foreground">
-          <CardTitle className="text-title-case">Controle De Licenças E Certificados</CardTitle>
+          <CardTitle className="text-title-case">Controle de Licenças E Certificados</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
