@@ -86,13 +86,13 @@ export default function Licenses() {
   }, [licenses, search])
 
   const nearExpirationCount = useMemo(
-    () =>
-      activeLicenses.filter((l) => {
-        if (l.sem_vencimento) return false
-        const days = getDaysRemaining(l.expiration_date)
-        return days !== null && days >= 0 && days <= 30
-      }).length,
-    [activeLicenses],
+    () => licenses.filter((l) => l.status === 'Próxima ao Vencimento').length,
+    [licenses],
+  )
+
+  const vencidasCount = useMemo(
+    () => licenses.filter((l) => l.status === 'Vencido').length,
+    [licenses],
   )
 
   const openCreate = () => {
@@ -132,6 +132,13 @@ export default function Licenses() {
       icon: Clock,
       iconColor: 'text-amber-600',
       bg: 'bg-amber-100 dark:bg-amber-900/20',
+    },
+    {
+      label: 'Vencidas',
+      value: vencidasCount,
+      icon: AlertTriangle,
+      iconColor: 'text-red-600',
+      bg: 'bg-red-100 dark:bg-red-900/20',
     },
   ]
 
@@ -243,12 +250,15 @@ export default function Licenses() {
                 </TableHeader>
                 <TableBody>
                   {filtered.map((l) => {
-                    const days = l.sem_vencimento ? null : getDaysRemaining(l.expiration_date)
-                    const nearExpiry = days !== null && days >= 0 && days <= 30
+                    const nearExpiry = l.status === 'Próxima ao Vencimento'
+                    const isExpired = l.status === 'Vencido'
                     return (
                       <TableRow
                         key={l.id}
-                        className={nearExpiry ? 'bg-amber-50 dark:bg-amber-950/20' : ''}
+                        className={cn(
+                          nearExpiry && 'bg-amber-50 dark:bg-amber-950/20',
+                          isExpired && 'bg-red-50 dark:bg-red-950/20',
+                        )}
                       >
                         <TableCell>
                           <div className="flex flex-col">

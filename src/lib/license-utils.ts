@@ -64,6 +64,20 @@ export function statusOperacionalBadge(status: string) {
   )
 }
 
+export function prioridadeBadge(prioridade: string) {
+  const map: Record<string, string> = {
+    Alta: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+    Média:
+      'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+    Baixa:
+      'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
+  }
+  return (
+    map[prioridade] ||
+    'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800'
+  )
+}
+
 export function etapaRenovacaoBadge(etapa: string) {
   const map: Record<string, string> = {
     Protocolado:

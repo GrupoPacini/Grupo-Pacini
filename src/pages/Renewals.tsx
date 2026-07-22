@@ -28,7 +28,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { License, getLicenses } from '@/services/licenses'
 import { RenewalEditDialog } from '@/components/RenewalEditDialog'
 import { RenewalCompleteDialog } from '@/components/RenewalCompleteDialog'
-import { getDaysRemaining, statusOperacionalBadge, etapaRenovacaoBadge } from '@/lib/license-utils'
+import { getDaysRemaining, etapaRenovacaoBadge, prioridadeBadge } from '@/lib/license-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -60,8 +60,7 @@ export default function Renewals() {
   const renewalLicenses = useMemo(
     () =>
       licenses.filter(
-        (l) =>
-          l.status === 'Renovando' || l.status === 'Vencido' || l.status_operacional === 'Vencida',
+        (l) => l.status === 'Renovando' || l.status === 'Vencido' || l.status === 'Pendente',
       ),
     [licenses],
   )
@@ -77,11 +76,9 @@ export default function Renewals() {
   }, [renewalLicenses, search])
 
   const counts = useMemo(() => {
-    const vencidas = renewalLicenses.filter(
-      (l) => l.status === 'Vencido' || l.status_operacional === 'Vencida',
-    ).length
+    const vencidas = renewalLicenses.filter((l) => l.status === 'Vencido').length
     const emRenovacao = renewalLicenses.filter((l) => l.status === 'Renovando').length
-    const pendentes = renewalLicenses.filter((l) => l.status_operacional === 'Pendente').length
+    const pendentes = renewalLicenses.filter((l) => l.status === 'Pendente').length
     return { vencidas, emRenovacao, pendentes, total: renewalLicenses.length }
   }, [renewalLicenses])
 
@@ -222,7 +219,7 @@ export default function Renewals() {
                       Vencimento
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
-                      Status Op.
+                      Prioridade
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Etapa</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Início</TableHead>
@@ -256,12 +253,9 @@ export default function Renewals() {
                         </TableCell>
                         <TableCell>{renderExpiration(l)}</TableCell>
                         <TableCell>
-                          {l.status_operacional ? (
-                            <Badge
-                              variant="outline"
-                              className={statusOperacionalBadge(l.status_operacional)}
-                            >
-                              {l.status_operacional}
+                          {l.prioridade ? (
+                            <Badge variant="outline" className={prioridadeBadge(l.prioridade)}>
+                              {l.prioridade}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
