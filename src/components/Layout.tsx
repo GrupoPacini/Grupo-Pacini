@@ -13,6 +13,7 @@ import {
   BookOpen,
   ShieldCheck,
   Bot,
+  RefreshCw,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -30,6 +31,7 @@ export default function Layout() {
     { name: 'Gestão De Clientes', path: '/clientes', icon: Users },
     { name: 'Playbooks', path: '/playbooks', icon: BookOpen },
     { name: 'Licenças', path: '/licencas', icon: ShieldCheck },
+    { name: 'Renovações', path: '/renovacoes', icon: RefreshCw },
     { name: 'Assistente IA', path: '/chat', icon: Bot },
   ]
 

@@ -10,6 +10,7 @@ import Processos from './pages/Processos'
 import Clientes from './pages/Clientes'
 import Playbooks from './pages/Playbooks'
 import Licenses from './pages/Licenses'
+import Renewals from './pages/Renewals'
 import Chat from './pages/Chat'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/clientes" element={<Clientes />} />
               <Route path="/playbooks" element={<Playbooks />} />
               <Route path="/licencas" element={<Licenses />} />
+              <Route path="/renovacoes" element={<Renewals />} />
               <Route path="/chat" element={<Chat />} />
             </Route>
           </Route>

@@ -22,6 +22,18 @@ export const ETAPAS_RENOVACAO = [
   'Concluída',
 ]
 
+export const RENEWAL_OPERATIONAL_STATUSES = [
+  'Em Renovação',
+  'Aguardando Cliente',
+  'Em Análise Órgão',
+  'Com Exigência',
+  'Em Atenção',
+]
+
+export function isRenewalStatus(statusOperacional: string | undefined | null): boolean {
+  return !!statusOperacional && RENEWAL_OPERATIONAL_STATUSES.includes(statusOperacional)
+}
+
 export function getDaysRemaining(date: string | null | undefined): number | null {
   if (!date) return null
   return differenceInDays(new Date(date), new Date())

@@ -43,3 +43,22 @@ export const updateLicense = (id: string, data: Record<string, unknown> | FormDa
   pb.collection('licenses').update(id, data)
 
 export const deleteLicense = (id: string) => pb.collection('licenses').delete(id)
+
+export const startRenewal = (id: string) =>
+  pb.collection('licenses').update(id, {
+    status_operacional: 'Em Renovação',
+    etapa_renovacao: 'Protocolado',
+    data_renovacao_inicio: new Date().toISOString().split('T')[0],
+  })
+
+export const completeRenewal = (
+  id: string,
+  data: { expiration_date: string; numero_protocolo?: string },
+) =>
+  pb.collection('licenses').update(id, {
+    status: 'Ativo',
+    status_operacional: 'Regular',
+    etapa_renovacao: 'Concluída',
+    expiration_date: data.expiration_date,
+    numero_protocolo: data.numero_protocolo || undefined,
+  })
