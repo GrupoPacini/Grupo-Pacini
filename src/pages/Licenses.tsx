@@ -212,7 +212,7 @@ export default function Licenses() {
 
       <Card className="border-t-4 border-t-accent overflow-hidden">
         <CardHeader className="bg-primary text-primary-foreground">
-          <CardTitle className="text-title-case">Licenças Ativas</CardTitle>
+          <CardTitle className="text-title-case">Licenças da Empresa</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
