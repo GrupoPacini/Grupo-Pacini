@@ -26,7 +26,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { Client, getClients } from '@/services/api'
 import { License, getLicenses, startRenewal } from '@/services/licenses'
 import { LicenseFormDialog } from '@/components/LicenseFormDialog'
-import { getDaysRemaining, statusOperacionalBadge } from '@/lib/license-utils'
+import { getDaysRemaining, licenseStatusBadge } from '@/lib/license-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -77,13 +77,13 @@ export default function Licenses() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return activeLicenses.filter((l) => {
+    return licenses.filter((l) => {
       const clientName = (l.expand?.client?.name || '').toLowerCase()
       const clientCnpj = l.expand?.client?.cnpj || ''
       const licenseName = (l.name || '').toLowerCase()
       return clientName.includes(q) || clientCnpj.includes(q) || licenseName.includes(q)
     })
-  }, [activeLicenses, search])
+  }, [licenses, search])
 
   const nearExpirationCount = useMemo(
     () =>
@@ -167,7 +167,7 @@ export default function Licenses() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2 text-muted-foreground">
           <ShieldCheck size={18} className="text-primary" />
-          <span className="text-sm">Licenças ativas e regulares</span>
+          <span className="text-sm">Controle de licenças e vencimentos</span>
         </div>
         <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
           <Plus size={16} /> Nova Licença
@@ -223,7 +223,7 @@ export default function Licenses() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              Nenhuma licença ativa encontrada.
+              Nenhuma licença encontrada.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -235,12 +235,7 @@ export default function Licenses() {
                     <TableHead className="font-semibold text-muted-foreground">
                       Vencimento
                     </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Status Op.
-                    </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Prioridade
-                    </TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
                     <TableHead className="text-right font-semibold text-muted-foreground">
                       Ações
                     </TableHead>
@@ -273,31 +268,9 @@ export default function Licenses() {
                         </TableCell>
                         <TableCell>{renderExpiration(l)}</TableCell>
                         <TableCell>
-                          {l.status_operacional ? (
-                            <Badge
-                              variant="outline"
-                              className={statusOperacionalBadge(l.status_operacional)}
-                            >
-                              {l.status_operacional}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {l.prioridade ? (
-                            <Badge
-                              variant="secondary"
-                              className={cn(
-                                l.prioridade === 'Alta' &&
-                                  'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400',
-                                l.prioridade === 'Média' &&
-                                  'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400',
-                                l.prioridade === 'Baixa' &&
-                                  'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400',
-                              )}
-                            >
-                              {l.prioridade}
+                          {l.status ? (
+                            <Badge variant="outline" className={licenseStatusBadge(l.status)}>
+                              {l.status}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>

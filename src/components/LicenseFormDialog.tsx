@@ -21,7 +21,7 @@ import { ClientCombobox } from '@/components/ClientCombobox'
 import { Client } from '@/services/api'
 import { License, createLicense, updateLicense } from '@/services/licenses'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
-import { STATUS_OPERACIONAL, LICENSE_STATUS } from '@/lib/license-utils'
+import { LICENSE_STATUS } from '@/lib/license-utils'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -33,7 +33,6 @@ interface FormState {
   expiration_date: string
   sem_vencimento: boolean
   observacoes: string
-  status_operacional: string
 }
 
 const emptyForm: FormState = {
@@ -44,7 +43,6 @@ const emptyForm: FormState = {
   expiration_date: '',
   sem_vencimento: false,
   observacoes: '',
-  status_operacional: 'Regular',
 }
 
 interface LicenseFormDialogProps {
@@ -81,7 +79,6 @@ export function LicenseFormDialog({
           expiration_date: editingLicense.expiration_date || '',
           sem_vencimento: editingLicense.sem_vencimento || false,
           observacoes: editingLicense.observacoes || '',
-          status_operacional: editingLicense.status_operacional || 'Regular',
         })
       } else {
         setForm(emptyForm)
@@ -111,7 +108,6 @@ export function LicenseFormDialog({
       expiration_date: form.sem_vencimento ? '' : form.expiration_date || undefined,
       sem_vencimento: form.sem_vencimento,
       observacoes: form.observacoes || undefined,
-      status_operacional: form.status_operacional || undefined,
     }
     try {
       if (editingLicense) {
@@ -191,27 +187,6 @@ export function LicenseFormDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Status Operacional</Label>
-            <Select
-              value={form.status_operacional || '__none__'}
-              onValueChange={(v) =>
-                setForm({ ...form, status_operacional: v === '__none__' ? '' : v })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">—</SelectItem>
-                {STATUS_OPERACIONAL.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">Data de Vencimento</Label>

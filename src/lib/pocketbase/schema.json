@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-22T17:28:04.596Z",
+  "generatedAt": "2026-07-22T17:50:09.216Z",
   "collections": [
     {
       "name": "users",
@@ -460,13 +460,6 @@
           "system": false
         },
         {
-          "name": "status",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["Ativo", "Pendente", "Vencido", "Renovando"]
-        },
-        {
           "name": "status_operacional",
           "type": "select",
           "required": false,
@@ -478,6 +471,13 @@
             "Sem Vencimento",
             "Pendente"
           ]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Pendente", "Vencido", "Renovando", "Próxima ao Vencimento"]
         }
       ],
       "indexes": ["CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"]
