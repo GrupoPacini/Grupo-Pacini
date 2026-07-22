@@ -42,7 +42,17 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtime } from '@/hooks/use-realtime'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
-import { Search, Plus, Pencil, Trash2, Building2, FileText, BadgePercent } from 'lucide-react'
+import {
+  Search,
+  Plus,
+  Pencil,
+  Trash2,
+  Building2,
+  FileText,
+  BadgePercent,
+  FilePlus2,
+} from 'lucide-react'
+import { startLicensing } from '@/services/licenses'
 
 const TAX_REGIMES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real']
 
@@ -74,6 +84,7 @@ export default function Clientes() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [licensing, setLicensing] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -157,6 +168,18 @@ export default function Clientes() {
       loadData()
     } catch {
       toast.error('Erro Ao Remover Cliente')
+    }
+  }
+
+  const handleStartLicensing = async (client: Client) => {
+    setLicensing(client.id)
+    try {
+      await startLicensing(client.id)
+      toast.success(`Licenciamento Iniciado Para ${client.name}`)
+    } catch {
+      toast.error('Erro Ao Iniciar Licenciamento')
+    } finally {
+      setLicensing(null)
     }
   }
 
@@ -283,6 +306,16 @@ export default function Clientes() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1 text-primary hover:bg-primary/10"
+                            onClick={() => handleStartLicensing(c)}
+                            disabled={licensing === c.id}
+                          >
+                            <FilePlus2 size={14} />
+                            <span className="hidden xl:inline">Licenciar</span>
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

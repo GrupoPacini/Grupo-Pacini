@@ -9,7 +9,6 @@ export interface License {
   status: string
   numero_protocolo: string
   status_operacional: string
-  pendencia_atual: string
   observacoes: string
   prioridade: string
   etapa_renovacao: string
@@ -46,9 +45,18 @@ export const deleteLicense = (id: string) => pb.collection('licenses').delete(id
 
 export const startRenewal = (id: string) =>
   pb.collection('licenses').update(id, {
-    status_operacional: 'Em Renovação',
+    status: 'Renovando',
+    status_operacional: 'Pendente',
     etapa_renovacao: 'Protocolado',
     data_renovacao_inicio: new Date().toISOString().split('T')[0],
+  })
+
+export const startLicensing = (clientId: string) =>
+  pb.collection('licenses').create({
+    client: clientId,
+    name: 'Nova Licença',
+    status: 'Pendente',
+    status_operacional: 'Pendente',
   })
 
 export const completeRenewal = (

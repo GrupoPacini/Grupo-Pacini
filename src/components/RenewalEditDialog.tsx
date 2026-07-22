@@ -18,17 +18,14 @@ import {
 } from '@/components/ui/select'
 import { License, updateLicense } from '@/services/licenses'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
-import { ETAPAS_RENOVACAO, STATUS_OPERACIONAL, PRIORIDADES } from '@/lib/license-utils'
+import { ETAPAS_RENOVACAO, PRIORIDADES } from '@/lib/license-utils'
 import { toast } from 'sonner'
 
 interface RenewalFormState {
-  status_operacional: string
   etapa_renovacao: string
   documentos_pendentes: string
   data_renovacao_inicio: string
   prioridade: string
-  pendencia_atual: string
-  observacoes: string
   numero_protocolo: string
 }
 
@@ -46,13 +43,10 @@ export function RenewalEditDialog({
   onSuccess,
 }: RenewalEditDialogProps) {
   const [form, setForm] = useState<RenewalFormState>({
-    status_operacional: '',
     etapa_renovacao: '',
     documentos_pendentes: '',
     data_renovacao_inicio: '',
     prioridade: '',
-    pendencia_atual: '',
-    observacoes: '',
     numero_protocolo: '',
   })
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -61,13 +55,10 @@ export function RenewalEditDialog({
   useEffect(() => {
     if (open && license) {
       setForm({
-        status_operacional: license.status_operacional || '',
         etapa_renovacao: license.etapa_renovacao || '',
         documentos_pendentes: license.documentos_pendentes || '',
         data_renovacao_inicio: license.data_renovacao_inicio || '',
         prioridade: license.prioridade || '',
-        pendencia_atual: license.pendencia_atual || '',
-        observacoes: license.observacoes || '',
         numero_protocolo: license.numero_protocolo || '',
       })
       setFieldErrors({})
@@ -80,13 +71,10 @@ export function RenewalEditDialog({
     setFieldErrors({})
     try {
       await updateLicense(license.id, {
-        status_operacional: form.status_operacional || undefined,
         etapa_renovacao: form.etapa_renovacao || undefined,
         documentos_pendentes: form.documentos_pendentes || undefined,
         data_renovacao_inicio: form.data_renovacao_inicio || undefined,
         prioridade: form.prioridade || undefined,
-        pendencia_atual: form.pendencia_atual || undefined,
-        observacoes: form.observacoes || undefined,
         numero_protocolo: form.numero_protocolo || undefined,
       })
       toast.success('Renovação Atualizada')
@@ -115,27 +103,6 @@ export function RenewalEditDialog({
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Status Operacional</Label>
-                <Select
-                  value={form.status_operacional || '__none__'}
-                  onValueChange={(v) =>
-                    setForm({ ...form, status_operacional: v === '__none__' ? '' : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">—</SelectItem>
-                    {STATUS_OPERACIONAL.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label className="text-sm font-medium">Etapa de Renovação</Label>
                 <Select
                   value={form.etapa_renovacao || '__none__'}
@@ -151,6 +118,25 @@ export function RenewalEditDialog({
                     {ETAPAS_RENOVACAO.map((e) => (
                       <SelectItem key={e} value={e}>
                         {e}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Prioridade</Label>
+                <Select
+                  value={form.prioridade || '__none__'}
+                  onValueChange={(v) => setForm({ ...form, prioridade: v === '__none__' ? '' : v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {PRIORIDADES.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -176,51 +162,14 @@ export function RenewalEditDialog({
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Documentos Pendentes</Label>
+              <Label className="text-sm font-medium">Observações</Label>
               <textarea
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none"
                 value={form.documentos_pendentes}
                 onChange={(e) => setForm({ ...form, documentos_pendentes: e.target.value })}
-                placeholder="Liste os documentos ou informações pendentes do cliente..."
+                placeholder="Observações sobre o processo de renovação..."
               />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Prioridade</Label>
-              <Select
-                value={form.prioridade || '__none__'}
-                onValueChange={(v) => setForm({ ...form, prioridade: v === '__none__' ? '' : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">—</SelectItem>
-                  {PRIORIDADES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Pendência Atual</Label>
-              <Input
-                value={form.pendencia_atual}
-                onChange={(e) => setForm({ ...form, pendencia_atual: e.target.value })}
-                placeholder="Pendência atual"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Observações</Label>
-            <Input
-              value={form.observacoes}
-              onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-              placeholder="Observações adicionais"
-            />
           </div>
         </div>
         <DialogFooter>

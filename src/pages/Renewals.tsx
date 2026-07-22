@@ -28,13 +28,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { License, getLicenses } from '@/services/licenses'
 import { RenewalEditDialog } from '@/components/RenewalEditDialog'
 import { RenewalCompleteDialog } from '@/components/RenewalCompleteDialog'
-import {
-  getDaysRemaining,
-  statusOperacionalBadge,
-  etapaRenovacaoBadge,
-  isRenewalStatus,
-  RENEWAL_OPERATIONAL_STATUSES,
-} from '@/lib/license-utils'
+import { getDaysRemaining, statusOperacionalBadge, etapaRenovacaoBadge } from '@/lib/license-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -67,9 +61,7 @@ export default function Renewals() {
     () =>
       licenses.filter(
         (l) =>
-          l.status === 'Expirado' ||
-          isRenewalStatus(l.status_operacional) ||
-          l.status_operacional === 'Vencida',
+          l.status === 'Renovando' || l.status === 'Vencido' || l.status_operacional === 'Vencida',
       ),
     [licenses],
   )
@@ -86,15 +78,11 @@ export default function Renewals() {
 
   const counts = useMemo(() => {
     const vencidas = renewalLicenses.filter(
-      (l) => l.status === 'Expirado' || l.status_operacional === 'Vencida',
+      (l) => l.status === 'Vencido' || l.status_operacional === 'Vencida',
     ).length
-    const emRenovacao = renewalLicenses.filter(
-      (l) => l.status_operacional === 'Em Renovação',
-    ).length
-    const aguardandoCliente = renewalLicenses.filter(
-      (l) => l.status_operacional === 'Aguardando Cliente',
-    ).length
-    return { vencidas, emRenovacao, aguardandoCliente, total: renewalLicenses.length }
+    const emRenovacao = renewalLicenses.filter((l) => l.status === 'Renovando').length
+    const pendentes = renewalLicenses.filter((l) => l.status_operacional === 'Pendente').length
+    return { vencidas, emRenovacao, pendentes, total: renewalLicenses.length }
   }, [renewalLicenses])
 
   const openEdit = (license: License) => {
@@ -123,11 +111,11 @@ export default function Renewals() {
       bg: 'bg-blue-100 dark:bg-blue-900/20',
     },
     {
-      label: 'Aguardando Cliente',
-      value: counts.aguardandoCliente,
+      label: 'Pendentes',
+      value: counts.pendentes,
       icon: Clock,
-      iconColor: 'text-purple-600',
-      bg: 'bg-purple-100 dark:bg-purple-900/20',
+      iconColor: 'text-yellow-600',
+      bg: 'bg-yellow-100 dark:bg-yellow-900/20',
     },
     {
       label: 'Total em Renovação',
@@ -238,7 +226,7 @@ export default function Renewals() {
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Etapa</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Início</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Docs</TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">Obs.</TableHead>
                     <TableHead className="text-right font-semibold text-muted-foreground">
                       Ações
                     </TableHead>
@@ -313,9 +301,7 @@ export default function Renewals() {
                                   </span>
                                 </TooltipTrigger>
                                 <TooltipContent className="max-w-xs">
-                                  <p className="text-xs font-semibold mb-1">
-                                    Documentos Pendentes:
-                                  </p>
+                                  <p className="text-xs font-semibold mb-1">Observações:</p>
                                   <p className="text-xs whitespace-pre-wrap">
                                     {l.documentos_pendentes}
                                   </p>

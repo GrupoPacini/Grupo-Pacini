@@ -21,7 +21,7 @@ import { ClientCombobox } from '@/components/ClientCombobox'
 import { Client } from '@/services/api'
 import { License, createLicense, updateLicense } from '@/services/licenses'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
-import { PRIORIDADES, STATUS_OPERACIONAL, LICENSE_STATUS } from '@/lib/license-utils'
+import { STATUS_OPERACIONAL, LICENSE_STATUS } from '@/lib/license-utils'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -32,8 +32,6 @@ interface FormState {
   numero_protocolo: string
   expiration_date: string
   sem_vencimento: boolean
-  prioridade: string
-  pendencia_atual: string
   observacoes: string
   status_operacional: string
 }
@@ -45,8 +43,6 @@ const emptyForm: FormState = {
   numero_protocolo: '',
   expiration_date: '',
   sem_vencimento: false,
-  prioridade: '',
-  pendencia_atual: '',
   observacoes: '',
   status_operacional: 'Regular',
 }
@@ -84,8 +80,6 @@ export function LicenseFormDialog({
           numero_protocolo: editingLicense.numero_protocolo || '',
           expiration_date: editingLicense.expiration_date || '',
           sem_vencimento: editingLicense.sem_vencimento || false,
-          prioridade: editingLicense.prioridade || '',
-          pendencia_atual: editingLicense.pendencia_atual || '',
           observacoes: editingLicense.observacoes || '',
           status_operacional: editingLicense.status_operacional || 'Regular',
         })
@@ -116,8 +110,6 @@ export function LicenseFormDialog({
       numero_protocolo: form.numero_protocolo || undefined,
       expiration_date: form.sem_vencimento ? '' : form.expiration_date || undefined,
       sem_vencimento: form.sem_vencimento,
-      prioridade: form.prioridade || undefined,
-      pendencia_atual: form.pendencia_atual || undefined,
       observacoes: form.observacoes || undefined,
       status_operacional: form.status_operacional || undefined,
     }
@@ -200,47 +192,26 @@ export function LicenseFormDialog({
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Prioridade</Label>
-              <Select
-                value={form.prioridade || '__none__'}
-                onValueChange={(v) => setForm({ ...form, prioridade: v === '__none__' ? '' : v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">—</SelectItem>
-                  {PRIORIDADES.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Status Operacional</Label>
-              <Select
-                value={form.status_operacional || '__none__'}
-                onValueChange={(v) =>
-                  setForm({ ...form, status_operacional: v === '__none__' ? '' : v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">—</SelectItem>
-                  {STATUS_OPERACIONAL.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Status Operacional</Label>
+            <Select
+              value={form.status_operacional || '__none__'}
+              onValueChange={(v) =>
+                setForm({ ...form, status_operacional: v === '__none__' ? '' : v })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">—</SelectItem>
+                {STATUS_OPERACIONAL.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">Data de Vencimento</Label>
@@ -272,14 +243,6 @@ export function LicenseFormDialog({
             {fieldErrors.expiration_date && (
               <p className="text-sm text-destructive">{fieldErrors.expiration_date}</p>
             )}
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Pendência Atual</Label>
-            <Input
-              value={form.pendencia_atual}
-              onChange={(e) => setForm({ ...form, pendencia_atual: e.target.value })}
-              placeholder="Pendência atual"
-            />
           </div>
           <div className="space-y-2">
             <Label className="text-sm font-medium">Observações</Label>

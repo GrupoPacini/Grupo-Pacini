@@ -26,7 +26,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { Client, getClients } from '@/services/api'
 import { License, getLicenses, startRenewal } from '@/services/licenses'
 import { LicenseFormDialog } from '@/components/LicenseFormDialog'
-import { getDaysRemaining, statusOperacionalBadge, isRenewalStatus } from '@/lib/license-utils'
+import { getDaysRemaining, statusOperacionalBadge } from '@/lib/license-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -73,10 +73,7 @@ export default function Licenses() {
   useRealtime('licenses', () => loadData())
   useRealtime('clients', () => loadClients())
 
-  const activeLicenses = useMemo(
-    () => licenses.filter((l) => l.status === 'Ativo' && !isRenewalStatus(l.status_operacional)),
-    [licenses],
-  )
+  const activeLicenses = useMemo(() => licenses.filter((l) => l.status === 'Ativo'), [licenses])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
