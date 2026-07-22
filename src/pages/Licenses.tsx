@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -27,8 +27,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Search, Pencil, ShieldCheck, AlertTriangle } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Plus,
+  Search,
+  Pencil,
+  ShieldCheck,
+  AlertTriangle,
+  FileWarning,
+  CheckCircle2,
+  RefreshCw,
+  XCircle,
+  ClipboardList,
+} from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Client, getClients } from '@/services/api'
 import { ClientCombobox } from '@/components/ClientCombobox'
@@ -39,8 +52,10 @@ import {
   PRIORIDADES,
   STATUS_OPERACIONAL,
   LICENSE_STATUS,
+  ETAPAS_RENOVACAO,
   getDaysRemaining,
   statusOperacionalBadge,
+  etapaRenovacaoBadge,
 } from '@/lib/license-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -56,6 +71,10 @@ interface FormState {
   pendencia_atual: string
   observacoes: string
   status_operacional: string
+  etapa_renovacao: string
+  documentos_pendentes: string
+  data_renovacao_inicio: string
+  renovacao_ativa: boolean
 }
 
 const emptyForm: FormState = {
@@ -69,7 +88,13 @@ const emptyForm: FormState = {
   pendencia_atual: '',
   observacoes: '',
   status_operacional: '',
+  etapa_renovacao: '',
+  documentos_pendentes: '',
+  data_renovacao_inicio: '',
+  renovacao_ativa: false,
 }
+
+type TabValue = 'all' | 'ativas' | 'renovacao' | 'vencidas'
 
 export default function Licenses() {
   const [licenses, setLicenses] = useState<License[]>([])
@@ -81,7 +106,7 @@ export default function Licenses() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
   const [search, setSearch] = useState('')
-  const [filterStatusOp, setFilterStatusOp] = useState('all')
+  const [activeTab, setActiveTab] = useState<TabValue>('all')
   const [clientsLoading, setClientsLoading] = useState(true)
   const [clientsError, setClientsError] = useState(false)
 
@@ -118,6 +143,44 @@ export default function Licenses() {
   useRealtime('licenses', () => loadData())
   useRealtime('clients', () => loadClients())
 
+  const counts = useMemo(() => {
+    const total = licenses.length
+    const ativas = licenses.filter((l) => l.status === 'Ativo').length
+    const renovacao = licenses.filter(
+      (l) => l.status_operacional === 'Em Renovação' || l.status === 'Renovando',
+    ).length
+    const vencidas = licenses.filter((l) => l.status === 'Expirado').length
+    return { total, ativas, renovacao, vencidas }
+  }, [licenses])
+
+  const filtered = useMemo(() => {
+    return licenses.filter((l) => {
+      const clientName = l.expand?.client?.name || ''
+      const clientCnpj = l.expand?.client?.cnpj || ''
+      const licenseName = l.name || ''
+      const matchesSearch =
+        clientName.toLowerCase().includes(search.toLowerCase()) ||
+        clientCnpj.includes(search) ||
+        licenseName.toLowerCase().includes(search.toLowerCase())
+
+      let matchesTab = true
+      if (activeTab === 'ativas') {
+        matchesTab = l.status === 'Ativo' && l.status_operacional === 'Regular'
+      } else if (activeTab === 'renovacao') {
+        matchesTab = [
+          'Em Renovação',
+          'Aguardando Cliente',
+          'Em Análise Órgão',
+          'Com Exigência',
+        ].includes(l.status_operacional || '')
+      } else if (activeTab === 'vencidas') {
+        matchesTab = l.status === 'Expirado' || l.status_operacional === 'Vencida'
+      }
+
+      return matchesSearch && matchesTab
+    })
+  }, [licenses, search, activeTab])
+
   const openCreate = () => {
     setForm(emptyForm)
     setEditingId(null)
@@ -137,6 +200,10 @@ export default function Licenses() {
       pendencia_atual: license.pendencia_atual || '',
       observacoes: license.observacoes || '',
       status_operacional: license.status_operacional || '',
+      etapa_renovacao: license.etapa_renovacao || '',
+      documentos_pendentes: license.documentos_pendentes || '',
+      data_renovacao_inicio: license.data_renovacao_inicio || '',
+      renovacao_ativa: !!(license.etapa_renovacao || license.data_renovacao_inicio),
     })
     setEditingId(license.id)
     setFieldErrors({})
@@ -180,6 +247,13 @@ export default function Licenses() {
       pendencia_atual: form.pendencia_atual || undefined,
       observacoes: form.observacoes || undefined,
       status_operacional: form.status_operacional || undefined,
+      etapa_renovacao: form.renovacao_ativa ? form.etapa_renovacao || undefined : undefined,
+      documentos_pendentes: form.renovacao_ativa
+        ? form.documentos_pendentes || undefined
+        : undefined,
+      data_renovacao_inicio: form.renovacao_ativa
+        ? form.data_renovacao_inicio || undefined
+        : undefined,
     }
     try {
       if (editingId) {
@@ -198,18 +272,6 @@ export default function Licenses() {
       setSubmitting(false)
     }
   }
-
-  const filtered = licenses.filter((l) => {
-    const clientName = l.expand?.client?.name || ''
-    const clientCnpj = l.expand?.client?.cnpj || ''
-    const licenseName = l.name || ''
-    const matchesSearch =
-      clientName.toLowerCase().includes(search.toLowerCase()) ||
-      clientCnpj.includes(search) ||
-      licenseName.toLowerCase().includes(search.toLowerCase())
-    const matchesStatusOp = filterStatusOp === 'all' || l.status_operacional === filterStatusOp
-    return matchesSearch && matchesStatusOp
-  })
 
   const renderExpiration = (l: License) => {
     if (l.sem_vencimento) {
@@ -240,6 +302,37 @@ export default function Licenses() {
     )
   }
 
+  const summaryCards = [
+    {
+      label: 'Total de Licenças',
+      value: counts.total,
+      icon: ClipboardList,
+      iconColor: 'text-primary',
+      bg: 'bg-primary/10',
+    },
+    {
+      label: 'Ativas',
+      value: counts.ativas,
+      icon: CheckCircle2,
+      iconColor: 'text-green-600',
+      bg: 'bg-green-100 dark:bg-green-900/20',
+    },
+    {
+      label: 'Em Renovação',
+      value: counts.renovacao,
+      icon: RefreshCw,
+      iconColor: 'text-blue-600',
+      bg: 'bg-blue-100 dark:bg-blue-900/20',
+    },
+    {
+      label: 'Vencidas',
+      value: counts.vencidas,
+      icon: XCircle,
+      iconColor: 'text-destructive',
+      bg: 'bg-red-100 dark:bg-red-900/20',
+    },
+  ]
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -250,6 +343,27 @@ export default function Licenses() {
         <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
           <Plus size={16} /> Nova Licença
         </Button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summaryCards.map((card) => {
+          const Icon = card.icon
+          return (
+            <Card key={card.label} className="p-4 shadow-sm border-t-4 border-t-accent">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                    {card.label}
+                  </p>
+                  <p className="text-2xl font-bold text-foreground mt-1">{card.value}</p>
+                </div>
+                <div className={cn('rounded-full p-3', card.bg)}>
+                  <Icon size={20} className={card.iconColor} />
+                </div>
+              </div>
+            </Card>
+          )
+        })}
       </div>
 
       <Card className="p-4 shadow-sm border-t-4 border-t-accent">
@@ -266,21 +380,17 @@ export default function Licenses() {
               className="pl-10"
             />
           </div>
-          <Select value={filterStatusOp} onValueChange={setFilterStatusOp}>
-            <SelectTrigger className="w-full md:w-[220px]">
-              <SelectValue placeholder="Status Operacional" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Operacional</SelectItem>
-              {STATUS_OPERACIONAL.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </Card>
+
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+        <TabsList>
+          <TabsTrigger value="all">Todas</TabsTrigger>
+          <TabsTrigger value="ativas">Ativas</TabsTrigger>
+          <TabsTrigger value="renovacao">Em Renovação</TabsTrigger>
+          <TabsTrigger value="vencidas">Vencidas</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <Card className="border-t-4 border-t-accent overflow-hidden">
         <CardHeader className="bg-primary text-primary-foreground">
@@ -305,16 +415,17 @@ export default function Licenses() {
                     <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Licença</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
-                      Nº Protocolo
-                    </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Prioridade
-                    </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
                       Vencimento
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
                       Status Op.
+                    </TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">
+                      Etapa Renovação
+                    </TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">Alertas</TableHead>
+                    <TableHead className="font-semibold text-muted-foreground">
+                      Prioridade
                     </TableHead>
                     <TableHead className="text-right font-semibold text-muted-foreground">
                       Ações
@@ -326,6 +437,7 @@ export default function Licenses() {
                     const days = l.sem_vencimento ? null : getDaysRemaining(l.expiration_date)
                     const expiring = days !== null && days >= 0 && days <= 30
                     const expired = days !== null && days < 0
+                    const hasPendingDocs = !!l.documentos_pendentes?.trim()
                     return (
                       <TableRow
                         key={l.id}
@@ -347,8 +459,56 @@ export default function Licenses() {
                             <span className="font-medium text-sm">{l.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {l.numero_protocolo || '—'}
+                        <TableCell>{renderExpiration(l)}</TableCell>
+                        <TableCell>
+                          {l.status_operacional ? (
+                            <Badge
+                              variant="outline"
+                              className={statusOperacionalBadge(l.status_operacional)}
+                            >
+                              {l.status_operacional}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {l.etapa_renovacao ? (
+                            <Badge
+                              variant="outline"
+                              className={etapaRenovacaoBadge(l.etapa_renovacao)}
+                            >
+                              {l.etapa_renovacao}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {hasPendingDocs ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex items-center justify-center">
+                                    <FileWarning
+                                      size={18}
+                                      className="text-orange-600 dark:text-orange-400 cursor-help"
+                                    />
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-xs font-semibold mb-1">
+                                    Documentos Pendentes:
+                                  </p>
+                                  <p className="text-xs whitespace-pre-wrap">
+                                    {l.documentos_pendentes}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {l.prioridade ? (
@@ -364,19 +524,6 @@ export default function Licenses() {
                               )}
                             >
                               {l.prioridade}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>{renderExpiration(l)}</TableCell>
-                        <TableCell>
-                          {l.status_operacional ? (
-                            <Badge
-                              variant="outline"
-                              className={statusOperacionalBadge(l.status_operacional)}
-                            >
-                              {l.status_operacional}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
@@ -537,6 +684,74 @@ export default function Licenses() {
                 <p className="text-sm text-destructive">{fieldErrors.expiration_date}</p>
               )}
             </div>
+
+            <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="renovacao_ativa"
+                  checked={form.renovacao_ativa}
+                  onCheckedChange={(checked) =>
+                    setForm({
+                      ...form,
+                      renovacao_ativa: checked === true,
+                      etapa_renovacao: checked === true ? form.etapa_renovacao : '',
+                      data_renovacao_inicio: checked === true ? form.data_renovacao_inicio : '',
+                      documentos_pendentes: checked === true ? form.documentos_pendentes : '',
+                    })
+                  }
+                />
+                <Label htmlFor="renovacao_ativa" className="text-sm font-semibold cursor-pointer">
+                  Processo de Renovação
+                </Label>
+              </div>
+              {form.renovacao_ativa && (
+                <div className="space-y-4 pl-6 border-l-2 border-primary/20">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Etapa de Renovação</Label>
+                      <Select
+                        value={form.etapa_renovacao || '__none__'}
+                        onValueChange={(v) =>
+                          setForm({ ...form, etapa_renovacao: v === '__none__' ? '' : v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">—</SelectItem>
+                          {ETAPAS_RENOVACAO.map((e) => (
+                            <SelectItem key={e} value={e}>
+                              {e}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Início do Processo</Label>
+                      <Input
+                        type="date"
+                        value={form.data_renovacao_inicio}
+                        onChange={(e) =>
+                          setForm({ ...form, data_renovacao_inicio: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Documentos Pendentes</Label>
+                    <textarea
+                      className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none"
+                      value={form.documentos_pendentes}
+                      onChange={(e) => setForm({ ...form, documentos_pendentes: e.target.value })}
+                      placeholder="Liste os documentos ou informações pendentes do cliente..."
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label className="text-sm font-medium">Pendência Atual</Label>
               <Input

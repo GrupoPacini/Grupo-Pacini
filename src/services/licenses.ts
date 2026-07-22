@@ -12,6 +12,9 @@ export interface License {
   pendencia_atual: string
   observacoes: string
   prioridade: string
+  etapa_renovacao: string
+  documentos_pendentes: string
+  data_renovacao_inicio: string
   created: string
   updated: string
   expand?: {
