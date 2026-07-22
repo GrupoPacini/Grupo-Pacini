@@ -11,11 +11,21 @@ export default function Login() {
   const [email, setEmail] = useState('patricia@grupopacini.com.br')
   const [password, setPassword] = useState('Skip@Pass')
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn, isAuthenticated } = useAuth()
+  const { signIn, isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-primary">
+        <div className="animate-pulse text-primary-foreground font-medium">
+          Carregando Sistema...
+        </div>
+      </div>
+    )
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />
