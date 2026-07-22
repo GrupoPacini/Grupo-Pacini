@@ -30,6 +30,7 @@ import { getDaysRemaining, licenseStatusBadge } from '@/lib/license-utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Licenses() {
   const [licenses, setLicenses] = useState<License[]>([])
@@ -41,6 +42,7 @@ export default function Licenses() {
   const [editingLicense, setEditingLicense] = useState<License | null>(null)
   const [search, setSearch] = useState('')
   const [renewing, setRenewing] = useState<string | null>(null)
+  const { isAdmin } = useAuth()
 
   const loadClients = useCallback(async () => {
     setClientsLoading(true)
@@ -176,9 +178,11 @@ export default function Licenses() {
           <ShieldCheck size={18} className="text-primary" />
           <span className="text-sm">Controle de licenças e vencimentos</span>
         </div>
-        <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
-          <Plus size={16} /> Nova Licença
-        </Button>
+        {isAdmin && (
+          <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
+            <Plus size={16} /> Nova Licença
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -287,26 +291,30 @@ export default function Licenses() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                              onClick={() => openEdit(l)}
-                            >
-                              <Pencil size={16} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                              onClick={() => handleStartRenewal(l)}
-                              disabled={renewing === l.id}
-                            >
-                              <PlayCircle size={16} />
-                              <span className="hidden sm:inline">Iniciar Renovação</span>
-                            </Button>
-                          </div>
+                          {isAdmin ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                onClick={() => openEdit(l)}
+                              >
+                                <Pencil size={16} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                onClick={() => handleStartRenewal(l)}
+                                disabled={renewing === l.id}
+                              >
+                                <PlayCircle size={16} />
+                                <span className="hidden sm:inline">Iniciar Renovação</span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     )

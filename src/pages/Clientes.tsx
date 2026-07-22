@@ -53,6 +53,7 @@ import {
   FilePlus2,
 } from 'lucide-react'
 import { startLicensing } from '@/services/licenses'
+import { useAuth } from '@/hooks/use-auth'
 
 const TAX_REGIMES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real']
 
@@ -85,6 +86,7 @@ export default function Clientes() {
   const [deleteTarget, setDeleteTarget] = useState<Client | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [licensing, setLicensing] = useState<string | null>(null)
+  const { isAdmin } = useAuth()
 
   const loadData = useCallback(async () => {
     try {
@@ -198,10 +200,12 @@ export default function Clientes() {
             className="pl-10"
           />
         </div>
-        <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
-          <Plus size={16} />
-          Novo Cliente
-        </Button>
+        {isAdmin && (
+          <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
+            <Plus size={16} />
+            Novo Cliente
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -305,34 +309,38 @@ export default function Clientes() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-1 text-primary hover:bg-primary/10"
-                            onClick={() => handleStartLicensing(c)}
-                            disabled={licensing === c.id}
-                          >
-                            <FilePlus2 size={14} />
-                            <span className="hidden xl:inline">Licenciar</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            onClick={() => openEdit(c)}
-                          >
-                            <Pencil size={16} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(c)}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
+                        {isAdmin ? (
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 gap-1 text-primary hover:bg-primary/10"
+                              onClick={() => handleStartLicensing(c)}
+                              disabled={licensing === c.id}
+                            >
+                              <FilePlus2 size={14} />
+                              <span className="hidden xl:inline">Licenciar</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              onClick={() => openEdit(c)}
+                            >
+                              <Pencil size={16} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteTarget(c)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

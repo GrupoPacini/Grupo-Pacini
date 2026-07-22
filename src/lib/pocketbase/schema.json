@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-22T18:45:10.439Z",
+  "generatedAt": "2026-07-22T18:52:29.347Z",
   "collections": [
     {
       "name": "users",
@@ -29,19 +29,21 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "colaborador"]
         }
       ],
       "indexes": [
@@ -55,9 +57,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -71,19 +73,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": []
@@ -94,9 +91,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -116,30 +113,21 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Simples Nacional",
-            "Lucro Presumido",
-            "Lucro Real"
-          ]
+          "selectValues": ["Simples Nacional", "Lucro Presumido", "Lucro Real"]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "code",
@@ -158,12 +146,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Lead",
-            "Documentação",
-            "Configuração",
-            "Ativo"
-          ]
+          "selectValues": ["Lead", "Documentação", "Configuração", "Ativo"]
         },
         {
           "name": "razao_social",
@@ -250,9 +233,7 @@
           "system": false
         }
       ],
-      "indexes": [
-        "CREATE INDEX `idx_clients_code` ON `clients` (code)"
-      ]
+      "indexes": ["CREATE INDEX `idx_clients_code` ON `clients` (code)"]
     },
     {
       "name": "processes",
@@ -260,9 +241,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -290,12 +271,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "Pendente",
-            "Em Andamento",
-            "Concluído",
-            "Atrasado"
-          ]
+          "selectValues": ["Pendente", "Em Andamento", "Concluído", "Atrasado"]
         },
         {
           "name": "due_date",
@@ -329,19 +305,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": []
@@ -352,9 +323,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -389,19 +360,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": []
@@ -412,9 +378,9 @@
       "apiRules": {
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -453,11 +419,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Baixa",
-            "Média",
-            "Alta"
-          ]
+          "selectValues": ["Baixa", "Média", "Alta"]
         },
         {
           "name": "sem_vencimento",
@@ -470,19 +432,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "etapa_renovacao",
@@ -527,18 +484,10 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": [
-            "Ativo",
-            "Pendente",
-            "Vencido",
-            "Renovando",
-            "Próxima ao Vencimento"
-          ]
+          "selectValues": ["Ativo", "Pendente", "Vencido", "Renovando", "Próxima ao Vencimento"]
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"
-      ]
+      "indexes": ["CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"]
     }
   ]
 }

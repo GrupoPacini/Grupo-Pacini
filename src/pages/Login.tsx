@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,9 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const { signIn, isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const { toast } = useToast()
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />
@@ -32,7 +34,7 @@ export default function Login() {
         description: 'Credenciais inválidas. Verifique seu e-mail e senha.',
       })
     } else {
-      navigate('/')
+      navigate(from, { replace: true })
     }
     setIsLoading(false)
   }

@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils'
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
-  const { signOut, user } = useAuth()
+  const { signOut, user, isAdmin } = useAuth()
 
   const navItems = [
     { name: 'Painel De Controle', path: '/', icon: LayoutDashboard },
@@ -132,19 +132,21 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden md:flex gap-2 text-xs"
-              onClick={() =>
-                alert(
-                  'Para importar dados, use a plataforma Skip Cloud ou crie um script de importação seguro. Por favor, conecte seu banco de dados.',
-                )
-              }
-            >
-              <Download size={14} />
-              Importar Dados
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden md:flex gap-2 text-xs"
+                onClick={() =>
+                  alert(
+                    'Para importar dados, use a plataforma Skip Cloud ou crie um script de importação seguro. Por favor, conecte seu banco de dados.',
+                  )
+                }
+              >
+                <Download size={14} />
+                Importar Dados
+              </Button>
+            )}
             <button className="text-muted-foreground hover:text-foreground relative">
               <Bell size={20} />
               <span className="absolute 0 0 w-2 h-2 bg-accent rounded-full border border-card"></span>

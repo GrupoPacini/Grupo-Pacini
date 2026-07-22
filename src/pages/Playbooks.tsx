@@ -32,6 +32,7 @@ import {
 } from '@/services/playbooks'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
+import { useAuth } from '@/hooks/use-auth'
 
 const emptyForm = { title: '', content: '', department: '' }
 
@@ -46,6 +47,7 @@ export default function Playbooks() {
   const [form, setForm] = useState(emptyForm)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitting, setSubmitting] = useState(false)
+  const { isAdmin } = useAuth()
 
   const loadData = async () => {
     try {
@@ -138,9 +140,15 @@ export default function Playbooks() {
         <Button type="submit" variant="secondary">
           Buscar
         </Button>
-        <Button type="button" onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
-          <Plus size={16} /> Novo
-        </Button>
+        {isAdmin && (
+          <Button
+            type="button"
+            onClick={openCreate}
+            className="gap-2 bg-primary hover:bg-primary/90"
+          >
+            <Plus size={16} /> Novo
+          </Button>
+        )}
       </form>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -163,24 +171,26 @@ export default function Playbooks() {
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <BookOpen className="text-primary" size={20} />
                   </div>
-                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => openEdit(pb)}
-                    >
-                      <Pencil size={14} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 hover:text-destructive"
-                      onClick={() => handleDelete(pb.id)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => openEdit(pb)}
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:text-destructive"
+                        onClick={() => handleDelete(pb.id)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <h3 className="font-semibold text-foreground mb-1 line-clamp-1">{pb.title}</h3>
                 <p className="text-sm text-muted-foreground line-clamp-2">{pb.content}</p>

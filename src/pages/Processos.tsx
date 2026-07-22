@@ -35,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ProcessCreateDialog } from '@/components/ProcessCreateDialog'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -53,6 +54,7 @@ export default function Processos() {
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const { toast } = useToast()
+  const { isAdmin } = useAuth()
 
   const loadData = async () => {
     try {
@@ -152,22 +154,26 @@ export default function Processos() {
             >
               <List size={16} className="mr-1" /> Lista
             </Button>
-            <Button
-              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('kanban')}
-              className="rounded-none"
-            >
-              <LayoutGrid size={16} className="mr-1" /> Kanban
-            </Button>
+            {isAdmin && (
+              <Button
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('kanban')}
+                className="rounded-none"
+              >
+                <LayoutGrid size={16} className="mr-1" /> Kanban
+              </Button>
+            )}
           </div>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="bg-primary hover:bg-primary/90 gap-2"
-          >
-            <Plus size={16} />
-            Novo Processo
-          </Button>
+          {isAdmin && (
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="bg-primary hover:bg-primary/90 gap-2"
+            >
+              <Plus size={16} />
+              Novo Processo
+            </Button>
+          )}
         </div>
         <form
           onSubmit={handleSemanticSearch}
@@ -305,24 +311,26 @@ export default function Processos() {
           {selectedProcess && (
             <div className="space-y-8">
               {/* Status Section */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-                  Mudar Status
-                </h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {['Pendente', 'Em Andamento', 'Concluído', 'Atrasado'].map((s) => (
-                    <Button
-                      key={s}
-                      variant={selectedProcess.status === s ? 'default' : 'outline'}
-                      className={selectedProcess.status === s ? 'bg-primary' : ''}
-                      onClick={() => handleStatusChange(s as any)}
-                      size="sm"
-                    >
-                      {s}
-                    </Button>
-                  ))}
+              {isAdmin && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                    Mudar Status
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Pendente', 'Em Andamento', 'Concluído', 'Atrasado'].map((s) => (
+                      <Button
+                        key={s}
+                        variant={selectedProcess.status === s ? 'default' : 'outline'}
+                        className={selectedProcess.status === s ? 'bg-primary' : ''}
+                        onClick={() => handleStatusChange(s as any)}
+                        size="sm"
+                      >
+                        {s}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Info Section */}
               <div className="space-y-3 bg-muted/30 p-4 rounded-lg border">
@@ -343,23 +351,25 @@ export default function Processos() {
               </div>
 
               {/* Notes Section */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
-                  Anotações Internas
-                </h4>
-                <Textarea
-                  value={notesDraft}
-                  onChange={(e) => setNotesDraft(e.target.value)}
-                  placeholder="Detalhes sobre a execução do processo..."
-                  className="min-h-[150px] resize-none"
-                />
-                <Button
-                  onClick={handleSaveNotes}
-                  className="w-full bg-accent hover:bg-accent/90 text-white"
-                >
-                  Salvar Anotações
-                </Button>
-              </div>
+              {isAdmin && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                    Anotações Internas
+                  </h4>
+                  <Textarea
+                    value={notesDraft}
+                    onChange={(e) => setNotesDraft(e.target.value)}
+                    placeholder="Detalhes sobre a execução do processo..."
+                    className="min-h-[150px] resize-none"
+                  />
+                  <Button
+                    onClick={handleSaveNotes}
+                    className="w-full bg-accent hover:bg-accent/90 text-white"
+                  >
+                    Salvar Anotações
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>
