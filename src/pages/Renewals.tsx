@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
   TableBody,
@@ -21,14 +22,15 @@ import {
   XCircle,
   CheckCircle2,
   Clock,
+  Calendar,
 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { License, getLicenses } from '@/services/licenses'
 import { RenewalEditDialog } from '@/components/RenewalEditDialog'
 import { RenewalCompleteDialog } from '@/components/RenewalCompleteDialog'
 import { FilterBar } from '@/components/FilterBar'
+import { DueDateCell } from '@/components/DueDateCell'
 import {
-  getDaysRemaining,
   etapaRenovacaoBadge,
   prioridadeBadge,
   PRIORIDADES,
@@ -134,6 +136,7 @@ export default function Renewals() {
   const [editOpen, setEditOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [selectedLicense, setSelectedLicense] = useState<License | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const loadData = useCallback(async () => {
     try {
@@ -182,6 +185,34 @@ export default function Renewals() {
     [renewalLicenses],
   )
 
+  const allChecked = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id))
+  const someChecked = filtered.some((l) => selectedIds.has(l.id)) && !allChecked
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (allChecked) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        filtered.forEach((l) => next.delete(l.id))
+        return next
+      })
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        filtered.forEach((l) => next.add(l.id))
+        return next
+      })
+    }
+  }
+
   const openEdit = (license: License) => {
     setSelectedLicense(license)
     setEditOpen(true)
@@ -221,31 +252,6 @@ export default function Renewals() {
       bg: 'bg-amber-100 dark:bg-amber-900/20',
     },
   ]
-
-  const renderExpiration = (l: License) => {
-    if (l.sem_vencimento)
-      return <span className="text-muted-foreground font-medium text-sm">Indeterminado</span>
-    if (!l.expiration_date) return <span className="text-muted-foreground text-sm">—</span>
-    const days = getDaysRemaining(l.expiration_date)
-    const expired = days !== null && days < 0
-    return (
-      <div className="flex flex-col">
-        <span className={cn('text-sm', expired && 'text-destructive font-semibold')}>
-          {format(new Date(l.expiration_date), 'dd/MM/yyyy')}
-        </span>
-        {days !== null && (
-          <span
-            className={cn(
-              'text-xs font-medium',
-              days < 0 ? 'text-destructive' : days <= 30 ? 'text-amber-600' : 'text-green-600',
-            )}
-          >
-            {days < 0 ? `Vencida há ${Math.abs(days)} dias` : `${days} dias`}
-          </span>
-        )}
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -308,6 +314,13 @@ export default function Renewals() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-12 pl-4">
+                      <Checkbox
+                        checked={allChecked ? true : someChecked ? 'indeterminate' : false}
+                        onCheckedChange={toggleAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Licença</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
@@ -319,7 +332,7 @@ export default function Renewals() {
                     <TableHead className="font-semibold text-muted-foreground">Etapa</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Início</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Obs.</TableHead>
-                    <TableHead className="text-right font-semibold text-muted-foreground">
+                    <TableHead className="text-right font-semibold text-muted-foreground pr-4">
                       Ações
                     </TableHead>
                   </TableRow>
@@ -329,8 +342,15 @@ export default function Renewals() {
                     const hasPendingDocs = !!l.documentos_pendentes?.trim()
                     const isConcluida = l.etapa_renovacao === 'Concluída'
                     return (
-                      <TableRow key={l.id}>
-                        <TableCell>
+                      <TableRow key={l.id} className="transition-colors">
+                        <TableCell className="pl-4 py-4">
+                          <Checkbox
+                            checked={selectedIds.has(l.id)}
+                            onCheckedChange={() => toggleSelection(l.id)}
+                            aria-label={`Selecionar ${l.name}`}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4">
                           <div className="flex flex-col">
                             <span className="font-medium text-sm">
                               {l.expand?.client?.razao_social || l.expand?.client?.name || '—'}
@@ -340,27 +360,35 @@ export default function Renewals() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           <div className="flex items-center gap-2">
                             <ShieldCheck size={14} className="text-muted-foreground shrink-0" />
                             <span className="font-medium text-sm">{l.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{renderExpiration(l)}</TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
+                          <DueDateCell
+                            expiration_date={l.expiration_date}
+                            sem_vencimento={l.sem_vencimento}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4">
                           {l.prioridade ? (
-                            <Badge variant="outline" className={prioridadeBadge(l.prioridade)}>
+                            <Badge
+                              variant="outline"
+                              className={cn('rounded-full', prioridadeBadge(l.prioridade))}
+                            >
                               {l.prioridade}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           {l.etapa_renovacao ? (
                             <Badge
                               variant="outline"
-                              className={etapaRenovacaoBadge(l.etapa_renovacao)}
+                              className={cn('rounded-full', etapaRenovacaoBadge(l.etapa_renovacao))}
                             >
                               {l.etapa_renovacao}
                             </Badge>
@@ -368,16 +396,19 @@ export default function Renewals() {
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           {l.data_renovacao_inicio ? (
-                            <span className="text-sm text-muted-foreground">
-                              {format(new Date(l.data_renovacao_inicio), 'dd/MM/yyyy')}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <Calendar size={13} className="text-muted-foreground shrink-0" />
+                              <span className="text-sm text-muted-foreground">
+                                {format(new Date(l.data_renovacao_inicio), 'dd/MM/yyyy')}
+                              </span>
+                            </div>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           {hasPendingDocs ? (
                             <TooltipProvider>
                               <Tooltip>
@@ -401,7 +432,7 @@ export default function Renewals() {
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right py-4 pr-4">
                           <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"

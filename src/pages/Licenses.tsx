@@ -2,6 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Table,
   TableBody,
@@ -18,17 +29,21 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  RefreshCw,
+  XCircle,
+  AlertCircle,
   PlayCircle,
+  Trash2,
 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Client, getClients } from '@/services/api'
-import { License, getLicenses, startRenewal } from '@/services/licenses'
+import { License, getLicenses, startRenewal, deleteLicense } from '@/services/licenses'
 import { LicenseFormDialog } from '@/components/LicenseFormDialog'
 import { FilterBar } from '@/components/FilterBar'
+import { DueDateCell } from '@/components/DueDateCell'
 import { getDaysRemaining, licenseStatusBadge, LICENSE_STATUS } from '@/lib/license-utils'
 import { type FilterCondition, type FilterFieldConfig, isConditionEmpty } from '@/lib/filter-types'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -116,6 +131,9 @@ export default function Licenses() {
   const [search, setSearch] = useState('')
   const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
   const [renewing, setRenewing] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleteTarget, setDeleteTarget] = useState<License | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { isAdmin } = useAuth()
 
   const loadClients = useCallback(async () => {
@@ -148,15 +166,13 @@ export default function Licenses() {
   useRealtime('licenses', () => loadData())
   useRealtime('clients', () => loadClients())
 
-  const activeLicenses = useMemo(() => licenses.filter((l) => l.status === 'Ativo'), [licenses])
-  const nearExpirationCount = useMemo(
-    () => licenses.filter((l) => l.status === 'Próxima ao Vencimento').length,
-    [licenses],
-  )
-  const vencidasCount = useMemo(
-    () => licenses.filter((l) => l.status === 'Vencido').length,
-    [licenses],
-  )
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const l of licenses) {
+      counts[l.status] = (counts[l.status] || 0) + 1
+    }
+    return counts
+  }, [licenses])
 
   const filtered = useMemo(() => {
     let result = licenses
@@ -194,56 +210,96 @@ export default function Licenses() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      await deleteLicense(deleteTarget.id)
+      toast.success(`Licença «${deleteTarget.name}» excluída`)
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(deleteTarget.id)
+        return next
+      })
+      loadData()
+    } catch {
+      toast.error('Erro Ao Excluir Licença')
+    } finally {
+      setIsDeleting(false)
+      setDeleteTarget(null)
+    }
+  }
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const allChecked = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id))
+  const someChecked = filtered.some((l) => selectedIds.has(l.id)) && !allChecked
+
+  const toggleAll = () => {
+    if (allChecked) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        filtered.forEach((l) => next.delete(l.id))
+        return next
+      })
+    } else {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        filtered.forEach((l) => next.add(l.id))
+        return next
+      })
+    }
+  }
+
   const summaryCards = [
     {
-      label: 'Licenças Ativas',
-      value: activeLicenses.length,
+      label: 'Ativo',
+      value: statusCounts['Ativo'] || 0,
       icon: CheckCircle2,
       iconColor: 'text-green-600',
-      bg: 'bg-green-100 dark:bg-green-900/20',
+      bg: 'bg-green-500/10 backdrop-blur-sm',
+      border: 'border-l-green-500',
     },
     {
-      label: 'Próximas ao Vencimento',
-      value: nearExpirationCount,
+      label: 'Pendente',
+      value: statusCounts['Pendente'] || 0,
       icon: Clock,
-      iconColor: 'text-amber-600',
-      bg: 'bg-amber-100 dark:bg-amber-900/20',
+      iconColor: 'text-yellow-600',
+      bg: 'bg-yellow-500/10 backdrop-blur-sm',
+      border: 'border-l-yellow-500',
     },
     {
-      label: 'Vencidas',
-      value: vencidasCount,
-      icon: AlertTriangle,
+      label: 'Vencido',
+      value: statusCounts['Vencido'] || 0,
+      icon: XCircle,
       iconColor: 'text-red-600',
-      bg: 'bg-red-100 dark:bg-red-900/20',
+      bg: 'bg-red-500/10 backdrop-blur-sm',
+      border: 'border-l-red-500',
+    },
+    {
+      label: 'Renovando',
+      value: statusCounts['Renovando'] || 0,
+      icon: RefreshCw,
+      iconColor: 'text-blue-600',
+      bg: 'bg-blue-500/10 backdrop-blur-sm',
+      border: 'border-l-blue-500',
+    },
+    {
+      label: 'Próximo ao Vencimento',
+      value: statusCounts['Próxima ao Vencimento'] || 0,
+      icon: AlertCircle,
+      iconColor: 'text-orange-600',
+      bg: 'bg-orange-500/10 backdrop-blur-sm',
+      border: 'border-l-orange-500',
     },
   ]
-
-  const renderExpiration = (l: License) => {
-    if (l.sem_vencimento)
-      return <span className="text-muted-foreground font-medium text-sm">Indeterminado</span>
-    if (!l.expiration_date) return <span className="text-muted-foreground text-sm">—</span>
-    const days = getDaysRemaining(l.expiration_date)
-    const expiring = days !== null && days >= 0 && days <= 30
-    return (
-      <div className="flex flex-col">
-        <span className={cn('text-sm', expiring && 'text-amber-600 font-semibold')}>
-          {format(new Date(l.expiration_date), 'dd/MM/yyyy')}
-        </span>
-        {days !== null && days >= 0 && days <= 30 && (
-          <Badge
-            variant="outline"
-            className="bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 w-fit mt-0.5"
-          >
-            <AlertTriangle size={10} className="mr-1" />
-            {days === 0 ? 'Vence hoje' : `${days} dias`}
-          </Badge>
-        )}
-        {days !== null && days > 30 && (
-          <span className="text-xs text-green-600 font-medium">{days} dias</span>
-        )}
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -259,11 +315,17 @@ export default function Licenses() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {summaryCards.map((card) => {
           const Icon = card.icon
           return (
-            <Card key={card.label} className="p-4 shadow-sm border-t-4 border-t-accent">
+            <Card
+              key={card.label}
+              className={cn(
+                'p-4 shadow-sm border-l-4 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5',
+                card.border,
+              )}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
@@ -311,13 +373,20 @@ export default function Licenses() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-12 pl-4">
+                      <Checkbox
+                        checked={allChecked ? true : someChecked ? 'indeterminate' : false}
+                        onCheckedChange={toggleAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Licença</TableHead>
                     <TableHead className="font-semibold text-muted-foreground">
                       Vencimento
                     </TableHead>
                     <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
-                    <TableHead className="text-right font-semibold text-muted-foreground">
+                    <TableHead className="text-right font-semibold text-muted-foreground pr-4">
                       Ações
                     </TableHead>
                   </TableRow>
@@ -330,11 +399,19 @@ export default function Licenses() {
                       <TableRow
                         key={l.id}
                         className={cn(
+                          'transition-colors',
                           nearExpiry && 'bg-amber-50 dark:bg-amber-950/20',
                           isExpired && 'bg-red-50 dark:bg-red-950/20',
                         )}
                       >
-                        <TableCell>
+                        <TableCell className="pl-4 py-4">
+                          <Checkbox
+                            checked={selectedIds.has(l.id)}
+                            onCheckedChange={() => toggleSelection(l.id)}
+                            aria-label={`Selecionar ${l.name}`}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4">
                           <div className="flex flex-col">
                             <span className="font-medium text-sm">
                               {l.expand?.client?.razao_social || l.expand?.client?.name || '—'}
@@ -344,23 +421,31 @@ export default function Licenses() {
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
                           <div className="flex items-center gap-2">
                             <ShieldCheck size={14} className="text-muted-foreground shrink-0" />
                             <span className="font-medium text-sm">{l.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{renderExpiration(l)}</TableCell>
-                        <TableCell>
+                        <TableCell className="py-4">
+                          <DueDateCell
+                            expiration_date={l.expiration_date}
+                            sem_vencimento={l.sem_vencimento}
+                          />
+                        </TableCell>
+                        <TableCell className="py-4">
                           {l.status ? (
-                            <Badge variant="outline" className={licenseStatusBadge(l.status)}>
+                            <Badge
+                              variant="outline"
+                              className={cn('rounded-full', licenseStatusBadge(l.status))}
+                            >
                               {l.status}
                             </Badge>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right py-4 pr-4">
                           {isAdmin ? (
                             <div className="flex items-center justify-end gap-1">
                               <Button
@@ -370,6 +455,14 @@ export default function Licenses() {
                                 onClick={() => openEdit(l)}
                               >
                                 <Pencil size={16} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                onClick={() => setDeleteTarget(l)}
+                              >
+                                <Trash2 size={16} />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -405,6 +498,33 @@ export default function Licenses() {
         clientsError={clientsError}
         onSuccess={loadData}
       />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Licença</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a licença «{deleteTarget?.name}»? Esta ação não pode
+              ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
