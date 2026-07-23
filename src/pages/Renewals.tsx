@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -14,7 +13,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
-  Search,
   Pencil,
   ShieldCheck,
   AlertTriangle,
@@ -28,15 +26,111 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { License, getLicenses } from '@/services/licenses'
 import { RenewalEditDialog } from '@/components/RenewalEditDialog'
 import { RenewalCompleteDialog } from '@/components/RenewalCompleteDialog'
-import { getDaysRemaining, etapaRenovacaoBadge, prioridadeBadge } from '@/lib/license-utils'
+import { FilterBar } from '@/components/FilterBar'
+import {
+  getDaysRemaining,
+  etapaRenovacaoBadge,
+  prioridadeBadge,
+  PRIORIDADES,
+  ETAPAS_RENOVACAO,
+} from '@/lib/license-utils'
+import { type FilterCondition, type FilterFieldConfig, isConditionEmpty } from '@/lib/filter-types'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+
+const FILTER_FIELDS: FilterFieldConfig[] = [
+  {
+    field: 'cliente',
+    label: 'Cliente',
+    type: 'text',
+    operators: [
+      { value: 'contains', label: 'contém' },
+      { value: 'eq', label: 'é igual a' },
+    ],
+  },
+  {
+    field: 'prioridade',
+    label: 'Prioridade',
+    type: 'multiselect',
+    operators: [],
+    options: PRIORIDADES.map((p) => ({ value: p, label: p })),
+  },
+  {
+    field: 'etapa',
+    label: 'Etapa de Renovação',
+    type: 'multiselect',
+    operators: [],
+    options: ETAPAS_RENOVACAO.map((e) => ({ value: e, label: e })),
+  },
+  {
+    field: 'data_inicio',
+    label: 'Data de Início da Renovação',
+    type: 'chips-date-range',
+    operators: [],
+    chips: [
+      { value: 'este_mes', label: 'Este mês' },
+      { value: 'ultimos_30', label: 'Últimos 30 dias' },
+      { value: 'este_ano', label: 'Este ano' },
+    ],
+  },
+]
+
+function applyConditions(data: License[], conditions: FilterCondition[]): License[] {
+  return conditions.reduce((acc, c) => {
+    if (isConditionEmpty(c)) return acc
+    if (c.field === 'cliente') {
+      const q = (c.value as string).toLowerCase()
+      return acc.filter((l) => {
+        const name = (l.expand?.client?.name || '').toLowerCase()
+        const cnpj = l.expand?.client?.cnpj || ''
+        return c.operator === 'eq' ? name === q || cnpj === q : name.includes(q) || cnpj.includes(q)
+      })
+    }
+    if (c.field === 'prioridade')
+      return acc.filter((l) => (c.value as string[]).includes(l.prioridade))
+    if (c.field === 'etapa')
+      return acc.filter((l) => (c.value as string[]).includes(l.etapa_renovacao))
+    if (c.field === 'data_inicio') {
+      if (typeof c.value === 'string') {
+        const now = new Date()
+        if (c.value === 'este_mes') {
+          const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+          const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+          return acc.filter(
+            (l) =>
+              l.data_renovacao_inicio &&
+              l.data_renovacao_inicio >= start &&
+              l.data_renovacao_inicio <= end,
+          )
+        }
+        if (c.value === 'ultimos_30') {
+          const start = new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0]
+          return acc.filter((l) => l.data_renovacao_inicio && l.data_renovacao_inicio >= start)
+        }
+        if (c.value === 'este_ano') {
+          const start = `${now.getFullYear()}-01-01`
+          return acc.filter((l) => l.data_renovacao_inicio && l.data_renovacao_inicio >= start)
+        }
+      } else if (c.value && typeof c.value === 'object') {
+        const { start, end } = c.value as { start: string; end: string }
+        return acc.filter(
+          (l) =>
+            l.data_renovacao_inicio &&
+            (!start || l.data_renovacao_inicio >= start) &&
+            (!end || l.data_renovacao_inicio <= end),
+        )
+      }
+    }
+    return acc
+  }, data)
+}
 
 export default function Renewals() {
   const [licenses, setLicenses] = useState<License[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
   const [editOpen, setEditOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [selectedLicense, setSelectedLicense] = useState<License | null>(null)
@@ -54,7 +148,6 @@ export default function Renewals() {
   useEffect(() => {
     loadData()
   }, [loadData])
-
   useRealtime('licenses', () => loadData())
 
   const renewalLicenses = useMemo(
@@ -66,27 +159,33 @@ export default function Renewals() {
   )
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase()
-    return renewalLicenses.filter((l) => {
-      const clientName = (l.expand?.client?.name || '').toLowerCase()
-      const clientCnpj = l.expand?.client?.cnpj || ''
-      const licenseName = (l.name || '').toLowerCase()
-      return clientName.includes(q) || clientCnpj.includes(q) || licenseName.includes(q)
-    })
-  }, [renewalLicenses, search])
+    let result = renewalLicenses
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter((l) => {
+        const name = (l.expand?.client?.name || '').toLowerCase()
+        const cnpj = l.expand?.client?.cnpj || ''
+        const licName = (l.name || '').toLowerCase()
+        return name.includes(q) || cnpj.includes(q) || licName.includes(q)
+      })
+    }
+    return applyConditions(result, filterConditions)
+  }, [renewalLicenses, search, filterConditions])
 
-  const counts = useMemo(() => {
-    const vencidas = renewalLicenses.filter((l) => l.status === 'Vencido').length
-    const emRenovacao = renewalLicenses.filter((l) => l.status === 'Renovando').length
-    const pendentes = renewalLicenses.filter((l) => l.status === 'Pendente').length
-    return { vencidas, emRenovacao, pendentes, total: renewalLicenses.length }
-  }, [renewalLicenses])
+  const counts = useMemo(
+    () => ({
+      vencidas: renewalLicenses.filter((l) => l.status === 'Vencido').length,
+      emRenovacao: renewalLicenses.filter((l) => l.status === 'Renovando').length,
+      pendentes: renewalLicenses.filter((l) => l.status === 'Pendente').length,
+      total: renewalLicenses.length,
+    }),
+    [renewalLicenses],
+  )
 
   const openEdit = (license: License) => {
     setSelectedLicense(license)
     setEditOpen(true)
   }
-
   const openComplete = (license: License) => {
     setSelectedLicense(license)
     setCompleteOpen(true)
@@ -179,18 +278,14 @@ export default function Renewals() {
       </div>
 
       <Card className="p-4 shadow-sm border-t-4 border-t-accent">
-        <div className="relative flex-1 w-full">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={18}
-          />
-          <Input
-            placeholder="Buscar por cliente, CNPJ ou licença..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <FilterBar
+          searchValue={search}
+          onSearchChange={setSearch}
+          fields={FILTER_FIELDS}
+          conditions={filterConditions}
+          onConditionsChange={setFilterConditions}
+          searchPlaceholder="Buscar por cliente, CNPJ ou licença..."
+        />
       </Card>
 
       <Card className="border-t-4 border-t-accent overflow-hidden">

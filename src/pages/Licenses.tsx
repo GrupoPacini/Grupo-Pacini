@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -14,7 +13,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Plus,
-  Search,
   Pencil,
   ShieldCheck,
   AlertTriangle,
@@ -26,11 +24,86 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { Client, getClients } from '@/services/api'
 import { License, getLicenses, startRenewal } from '@/services/licenses'
 import { LicenseFormDialog } from '@/components/LicenseFormDialog'
-import { getDaysRemaining, licenseStatusBadge } from '@/lib/license-utils'
+import { FilterBar } from '@/components/FilterBar'
+import { getDaysRemaining, licenseStatusBadge, LICENSE_STATUS } from '@/lib/license-utils'
+import { type FilterCondition, type FilterFieldConfig, isConditionEmpty } from '@/lib/filter-types'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
+
+const FILTER_FIELDS: FilterFieldConfig[] = [
+  {
+    field: 'cliente',
+    label: 'Cliente',
+    type: 'text',
+    operators: [
+      { value: 'contains', label: 'contém' },
+      { value: 'eq', label: 'é igual a' },
+    ],
+  },
+  {
+    field: 'status',
+    label: 'Status da Licença',
+    type: 'multiselect',
+    operators: [],
+    options: LICENSE_STATUS.map((s) => ({ value: s, label: s })),
+  },
+  {
+    field: 'vencimento',
+    label: 'Vencimento',
+    type: 'chips-date-range',
+    operators: [],
+    chips: [
+      { value: 'sem_vencimento', label: 'Sem Vencimento' },
+      { value: 'vence_30', label: 'Vence em 30 dias' },
+      { value: 'vence_hoje', label: 'Vence hoje' },
+    ],
+  },
+]
+
+function applyConditions(data: License[], conditions: FilterCondition[]): License[] {
+  return conditions.reduce((acc, c) => {
+    if (isConditionEmpty(c)) return acc
+    if (c.field === 'cliente') {
+      const q = (c.value as string).toLowerCase()
+      return acc.filter((l) => {
+        const name = (l.expand?.client?.name || '').toLowerCase()
+        const cnpj = l.expand?.client?.cnpj || ''
+        return c.operator === 'eq' ? name === q || cnpj === q : name.includes(q) || cnpj.includes(q)
+      })
+    }
+    if (c.field === 'status') {
+      const vals = c.value as string[]
+      return acc.filter((l) => vals.includes(l.status))
+    }
+    if (c.field === 'vencimento') {
+      if (typeof c.value === 'string') {
+        if (c.value === 'sem_vencimento') return acc.filter((l) => l.sem_vencimento)
+        if (c.value === 'vence_hoje')
+          return acc.filter(
+            (l) =>
+              !l.sem_vencimento && l.expiration_date && getDaysRemaining(l.expiration_date) === 0,
+          )
+        if (c.value === 'vence_30')
+          return acc.filter((l) => {
+            if (l.sem_vencimento || !l.expiration_date) return false
+            const d = getDaysRemaining(l.expiration_date)
+            return d !== null && d >= 0 && d <= 30
+          })
+      } else if (c.value && typeof c.value === 'object') {
+        const { start, end } = c.value as { start: string; end: string }
+        return acc.filter(
+          (l) =>
+            l.expiration_date &&
+            (!start || l.expiration_date >= start) &&
+            (!end || l.expiration_date <= end),
+        )
+      }
+    }
+    return acc
+  }, data)
+}
 
 export default function Licenses() {
   const [licenses, setLicenses] = useState<License[]>([])
@@ -41,6 +114,7 @@ export default function Licenses() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingLicense, setEditingLicense] = useState<License | null>(null)
   const [search, setSearch] = useState('')
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
   const [renewing, setRenewing] = useState<string | null>(null)
   const { isAdmin } = useAuth()
 
@@ -71,37 +145,37 @@ export default function Licenses() {
     loadData()
     loadClients()
   }, [loadData, loadClients])
-
   useRealtime('licenses', () => loadData())
   useRealtime('clients', () => loadClients())
 
   const activeLicenses = useMemo(() => licenses.filter((l) => l.status === 'Ativo'), [licenses])
-
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase()
-    return licenses.filter((l) => {
-      const clientName = (l.expand?.client?.name || '').toLowerCase()
-      const clientCnpj = l.expand?.client?.cnpj || ''
-      const licenseName = (l.name || '').toLowerCase()
-      return clientName.includes(q) || clientCnpj.includes(q) || licenseName.includes(q)
-    })
-  }, [licenses, search])
-
   const nearExpirationCount = useMemo(
     () => licenses.filter((l) => l.status === 'Próxima ao Vencimento').length,
     [licenses],
   )
-
   const vencidasCount = useMemo(
     () => licenses.filter((l) => l.status === 'Vencido').length,
     [licenses],
   )
 
+  const filtered = useMemo(() => {
+    let result = licenses
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter((l) => {
+        const name = (l.expand?.client?.name || '').toLowerCase()
+        const cnpj = l.expand?.client?.cnpj || ''
+        const licName = (l.name || '').toLowerCase()
+        return name.includes(q) || cnpj.includes(q) || licName.includes(q)
+      })
+    }
+    return applyConditions(result, filterConditions)
+  }, [licenses, search, filterConditions])
+
   const openCreate = () => {
     setEditingLicense(null)
     setDialogOpen(true)
   }
-
   const openEdit = (license: License) => {
     setEditingLicense(license)
     setDialogOpen(true)
@@ -207,18 +281,14 @@ export default function Licenses() {
       </div>
 
       <Card className="p-4 shadow-sm border-t-4 border-t-accent">
-        <div className="relative flex-1 w-full">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={18}
-          />
-          <Input
-            placeholder="Buscar por cliente, CNPJ ou licença..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <FilterBar
+          searchValue={search}
+          onSearchChange={setSearch}
+          fields={FILTER_FIELDS}
+          conditions={filterConditions}
+          onConditionsChange={setFilterConditions}
+          searchPlaceholder="Buscar por cliente, CNPJ ou licença..."
+        />
       </Card>
 
       <Card className="border-t-4 border-t-accent overflow-hidden">
