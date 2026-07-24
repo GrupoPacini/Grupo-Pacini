@@ -52,6 +52,17 @@ const FILTER_FIELDS: FilterFieldConfig[] = [
     ],
   },
   {
+    field: 'status',
+    label: 'Status',
+    type: 'multiselect',
+    operators: [],
+    options: [
+      { value: 'Renovando', label: 'Renovando' },
+      { value: 'Vencido', label: 'Vencido' },
+      { value: 'Pendente', label: 'Pendente' },
+    ],
+  },
+  {
     field: 'prioridade',
     label: 'Prioridade',
     type: 'multiselect',
@@ -88,6 +99,10 @@ function applyConditions(data: License[], conditions: FilterCondition[]): Licens
         const cnpj = l.expand?.client?.cnpj || ''
         return c.operator === 'eq' ? name === q || cnpj === q : name.includes(q) || cnpj.includes(q)
       })
+    }
+    if (c.field === 'status') {
+      const vals = c.value as string[]
+      return acc.filter((l) => vals.includes(l.status))
     }
     if (c.field === 'prioridade')
       return acc.filter((l) => (c.value as string[]).includes(l.prioridade))
@@ -132,7 +147,9 @@ export default function Renewals() {
   const [licenses, setLicenses] = useState<License[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([
+    { id: 'default-status', field: 'status', operator: '', value: ['Renovando'] },
+  ])
   const [editOpen, setEditOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [selectedLicense, setSelectedLicense] = useState<License | null>(null)
