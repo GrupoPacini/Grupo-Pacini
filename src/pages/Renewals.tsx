@@ -12,19 +12,19 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Pencil,
   ShieldCheck,
   AlertTriangle,
   FileWarning,
   RefreshCw,
-  XCircle,
   CheckCircle2,
   Clock,
   Calendar,
 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useSorting } from '@/hooks/use-sorting'
+import { SortIcon } from '@/components/SortIcon'
 import { License, getLicenses } from '@/services/licenses'
 import { RenewalEditDialog } from '@/components/RenewalEditDialog'
 import { RenewalCompleteDialog } from '@/components/RenewalCompleteDialog'
@@ -59,7 +59,6 @@ const FILTER_FIELDS: FilterFieldConfig[] = [
     options: [
       { value: 'Renovando', label: 'Renovando' },
       { value: 'Vencido', label: 'Vencido' },
-      { value: 'Pendente', label: 'Pendente' },
     ],
   },
   {
@@ -143,17 +142,37 @@ function applyConditions(data: License[], conditions: FilterCondition[]): Licens
   }, data)
 }
 
+function getSortValue(l: License, field: string): string {
+  switch (field) {
+    case 'cliente':
+      return (l.expand?.client?.razao_social || l.expand?.client?.name || '').toLowerCase()
+    case 'licenca':
+      return (l.name || '').toLowerCase()
+    case 'vencimento':
+      return l.sem_vencimento ? '9999-12-31' : l.expiration_date || ''
+    case 'prioridade': {
+      const order: Record<string, string> = { Baixa: '0', Média: '1', Alta: '2' }
+      return order[l.prioridade] || ''
+    }
+    case 'etapa':
+      return l.etapa_renovacao || ''
+    case 'inicio':
+      return l.data_renovacao_inicio || ''
+    default:
+      return ''
+  }
+}
+
 export default function Renewals() {
   const [licenses, setLicenses] = useState<License[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([
-    { id: 'default-status', field: 'status', operator: '', value: ['Renovando'] },
-  ])
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
   const [editOpen, setEditOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [selectedLicense, setSelectedLicense] = useState<License | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { sortField, sortDirection, toggleSort } = useSorting()
 
   const loadData = useCallback(async () => {
     try {
@@ -171,10 +190,7 @@ export default function Renewals() {
   useRealtime('licenses', () => loadData())
 
   const renewalLicenses = useMemo(
-    () =>
-      licenses.filter(
-        (l) => l.status === 'Renovando' || l.status === 'Vencido' || l.status === 'Pendente',
-      ),
+    () => licenses.filter((l) => l.status === 'Renovando'),
     [licenses],
   )
 
@@ -192,18 +208,30 @@ export default function Renewals() {
     return applyConditions(result, filterConditions)
   }, [renewalLicenses, search, filterConditions])
 
+  const sorted = useMemo(() => {
+    if (!sortField || !sortDirection) return filtered
+    return [...filtered].sort((a, b) => {
+      const aVal = getSortValue(a, sortField)
+      const bVal = getSortValue(b, sortField)
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filtered, sortField, sortDirection])
+
   const counts = useMemo(
     () => ({
-      vencidas: renewalLicenses.filter((l) => l.status === 'Vencido').length,
-      emRenovacao: renewalLicenses.filter((l) => l.status === 'Renovando').length,
-      pendentes: renewalLicenses.filter((l) => l.status === 'Pendente').length,
       total: renewalLicenses.length,
+      altaPrioridade: renewalLicenses.filter((l) => l.prioridade === 'Alta').length,
+      docPendente: renewalLicenses.filter((l) => !!l.documentos_pendentes?.trim()).length,
+      aguardandoCliente: renewalLicenses.filter((l) => l.etapa_renovacao === 'Aguardando Cliente')
+        .length,
     }),
     [renewalLicenses],
   )
 
-  const allChecked = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id))
-  const someChecked = filtered.some((l) => selectedIds.has(l.id)) && !allChecked
+  const allChecked = sorted.length > 0 && sorted.every((l) => selectedIds.has(l.id))
+  const someChecked = sorted.some((l) => selectedIds.has(l.id)) && !allChecked
 
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
@@ -218,13 +246,13 @@ export default function Renewals() {
     if (allChecked) {
       setSelectedIds((prev) => {
         const next = new Set(prev)
-        filtered.forEach((l) => next.delete(l.id))
+        sorted.forEach((l) => next.delete(l.id))
         return next
       })
     } else {
       setSelectedIds((prev) => {
         const next = new Set(prev)
-        filtered.forEach((l) => next.add(l.id))
+        sorted.forEach((l) => next.add(l.id))
         return next
       })
     }
@@ -241,32 +269,32 @@ export default function Renewals() {
 
   const summaryCards = [
     {
-      label: 'Vencidas',
-      value: counts.vencidas,
-      icon: XCircle,
-      iconColor: 'text-destructive',
-      bg: 'bg-red-100 dark:bg-red-900/20',
-    },
-    {
-      label: 'Em Renovação',
-      value: counts.emRenovacao,
+      label: 'Total em Renovação',
+      value: counts.total,
       icon: RefreshCw,
       iconColor: 'text-blue-600',
       bg: 'bg-blue-100 dark:bg-blue-900/20',
     },
     {
-      label: 'Pendentes',
-      value: counts.pendentes,
+      label: 'Alta Prioridade',
+      value: counts.altaPrioridade,
+      icon: AlertTriangle,
+      iconColor: 'text-red-600',
+      bg: 'bg-red-100 dark:bg-red-900/20',
+    },
+    {
+      label: 'Doc. Pendente',
+      value: counts.docPendente,
+      icon: FileWarning,
+      iconColor: 'text-orange-600',
+      bg: 'bg-orange-100 dark:bg-orange-900/20',
+    },
+    {
+      label: 'Aguardando Cliente',
+      value: counts.aguardandoCliente,
       icon: Clock,
       iconColor: 'text-yellow-600',
       bg: 'bg-yellow-100 dark:bg-yellow-900/20',
-    },
-    {
-      label: 'Total em Renovação',
-      value: counts.total,
-      icon: AlertTriangle,
-      iconColor: 'text-amber-600',
-      bg: 'bg-amber-100 dark:bg-amber-900/20',
     },
   ]
 
@@ -322,7 +350,7 @@ export default function Renewals() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               Nenhuma renovação pendente.
             </div>
@@ -338,25 +366,66 @@ export default function Renewals() {
                         aria-label="Selecionar todos"
                       />
                     </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Licença</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Vencimento
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('cliente')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Cliente{' '}
+                        <SortIcon active={sortField === 'cliente'} direction={sortDirection} />
+                      </span>
                     </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Prioridade
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('licenca')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Licença{' '}
+                        <SortIcon active={sortField === 'licenca'} direction={sortDirection} />
+                      </span>
                     </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Etapa</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Início</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Obs.</TableHead>
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('vencimento')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Vencimento{' '}
+                        <SortIcon active={sortField === 'vencimento'} direction={sortDirection} />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('prioridade')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Prioridade{' '}
+                        <SortIcon active={sortField === 'prioridade'} direction={sortDirection} />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('etapa')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Etapa <SortIcon active={sortField === 'etapa'} direction={sortDirection} />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('inicio')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Início{' '}
+                        <SortIcon active={sortField === 'inicio'} direction={sortDirection} />
+                      </span>
+                    </TableHead>
                     <TableHead className="text-right font-semibold text-muted-foreground pr-4">
                       Ações
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((l) => {
-                    const hasPendingDocs = !!l.documentos_pendentes?.trim()
+                  {sorted.map((l) => {
                     const isConcluida = l.etapa_renovacao === 'Concluída'
                     return (
                       <TableRow key={l.id} className="transition-colors">
@@ -421,30 +490,6 @@ export default function Renewals() {
                                 {format(new Date(l.data_renovacao_inicio), 'dd/MM/yyyy')}
                               </span>
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-4">
-                          {hasPendingDocs ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="inline-flex items-center justify-center">
-                                    <FileWarning
-                                      size={18}
-                                      className="text-orange-600 dark:text-orange-400 cursor-help"
-                                    />
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs">
-                                  <p className="text-xs font-semibold mb-1">Observações:</p>
-                                  <p className="text-xs whitespace-pre-wrap">
-                                    {l.documentos_pendentes}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}

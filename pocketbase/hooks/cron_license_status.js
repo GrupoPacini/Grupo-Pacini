@@ -12,7 +12,7 @@ cronAdd('license_status_automation', '0 2 * * *', () => {
 
     for (const lic of licenses) {
       const currentStatus = lic.getString('status')
-      if (currentStatus === 'Renovando' || currentStatus === 'Pendente') continue
+      if (currentStatus === 'Renovando') continue
 
       const semVencimento = lic.getBool('sem_vencimento')
       const expDate = lic.getString('expiration_date')
@@ -20,7 +20,7 @@ cronAdd('license_status_automation', '0 2 * * *', () => {
       let newStatus = ''
 
       if (semVencimento || !expDate) {
-        newStatus = 'Ativo'
+        newStatus = 'Sem Vencimento'
       } else {
         const expDateStr = expDate.substring(0, 10)
         if (expDateStr < todayStr) {
@@ -28,7 +28,7 @@ cronAdd('license_status_automation', '0 2 * * *', () => {
         } else if (expDateStr <= thirtyStr) {
           newStatus = 'Próxima ao Vencimento'
         } else {
-          newStatus = 'Ativo'
+          newStatus = 'Regular'
         }
       }
 

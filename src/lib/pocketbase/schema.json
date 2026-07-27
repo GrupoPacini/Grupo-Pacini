@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-24T19:36:26.811Z",
+  "generatedAt": "2026-07-27T15:42:38.159Z",
   "collections": [
     {
       "name": "users",
@@ -484,7 +484,14 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Ativo", "Pendente", "Vencido", "Renovando", "Próxima ao Vencimento"]
+          "selectValues": [
+            "Ativo",
+            "Vencido",
+            "Renovando",
+            "Próxima ao Vencimento",
+            "Regular",
+            "Sem Vencimento"
+          ]
         }
       ],
       "indexes": ["CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"]

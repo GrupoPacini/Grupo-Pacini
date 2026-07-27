@@ -26,7 +26,6 @@ import {
   Plus,
   Pencil,
   ShieldCheck,
-  AlertTriangle,
   CheckCircle2,
   Clock,
   RefreshCw,
@@ -34,8 +33,11 @@ import {
   AlertCircle,
   PlayCircle,
   Trash2,
+  Loader2,
 } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useSorting } from '@/hooks/use-sorting'
+import { SortIcon } from '@/components/SortIcon'
 import { Client, getClients } from '@/services/api'
 import { License, getLicenses, startRenewal, deleteLicense } from '@/services/licenses'
 import { LicenseFormDialog } from '@/components/LicenseFormDialog'
@@ -120,6 +122,21 @@ function applyConditions(data: License[], conditions: FilterCondition[]): Licens
   }, data)
 }
 
+function getSortValue(l: License, field: string): string {
+  switch (field) {
+    case 'cliente':
+      return (l.expand?.client?.razao_social || l.expand?.client?.name || '').toLowerCase()
+    case 'licenca':
+      return (l.name || '').toLowerCase()
+    case 'vencimento':
+      return l.sem_vencimento ? '9999-12-31' : l.expiration_date || ''
+    case 'status':
+      return l.status || ''
+    default:
+      return ''
+  }
+}
+
 export default function Licenses() {
   const [licenses, setLicenses] = useState<License[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -134,6 +151,9 @@ export default function Licenses() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleteTarget, setDeleteTarget] = useState<License | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false)
+  const { sortField, sortDirection, toggleSort } = useSorting()
   const { isAdmin } = useAuth()
 
   const loadClients = useCallback(async () => {
@@ -188,6 +208,17 @@ export default function Licenses() {
     return applyConditions(result, filterConditions)
   }, [licenses, search, filterConditions])
 
+  const sorted = useMemo(() => {
+    if (!sortField || !sortDirection) return filtered
+    return [...filtered].sort((a, b) => {
+      const aVal = getSortValue(a, sortField)
+      const bVal = getSortValue(b, sortField)
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filtered, sortField, sortDirection])
+
   const openCreate = () => {
     setEditingLicense(null)
     setDialogOpen(true)
@@ -230,6 +261,27 @@ export default function Licenses() {
     }
   }
 
+  const handleBatchDelete = async () => {
+    setIsBatchDeleting(true)
+    const ids = Array.from(selectedIds)
+    let success = 0
+    let failed = 0
+    for (const id of ids) {
+      try {
+        await deleteLicense(id)
+        success++
+      } catch {
+        failed++
+      }
+    }
+    if (success > 0) toast.success(`${success} licença(s) excluída(s) com sucesso`)
+    if (failed > 0) toast.error(`Erro ao excluir ${failed} licença(s)`)
+    setSelectedIds(new Set())
+    setBatchDeleteOpen(false)
+    setIsBatchDeleting(false)
+    loadData()
+  }
+
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
@@ -239,20 +291,20 @@ export default function Licenses() {
     })
   }
 
-  const allChecked = filtered.length > 0 && filtered.every((l) => selectedIds.has(l.id))
-  const someChecked = filtered.some((l) => selectedIds.has(l.id)) && !allChecked
+  const allChecked = sorted.length > 0 && sorted.every((l) => selectedIds.has(l.id))
+  const someChecked = sorted.some((l) => selectedIds.has(l.id)) && !allChecked
 
   const toggleAll = () => {
     if (allChecked) {
       setSelectedIds((prev) => {
         const next = new Set(prev)
-        filtered.forEach((l) => next.delete(l.id))
+        sorted.forEach((l) => next.delete(l.id))
         return next
       })
     } else {
       setSelectedIds((prev) => {
         const next = new Set(prev)
-        filtered.forEach((l) => next.add(l.id))
+        sorted.forEach((l) => next.add(l.id))
         return next
       })
     }
@@ -268,12 +320,20 @@ export default function Licenses() {
       border: 'border-l-green-500',
     },
     {
-      label: 'Pendente',
-      value: statusCounts['Pendente'] || 0,
-      icon: Clock,
-      iconColor: 'text-yellow-600',
-      bg: 'bg-yellow-500/10 backdrop-blur-sm',
-      border: 'border-l-yellow-500',
+      label: 'Regular',
+      value: statusCounts['Regular'] || 0,
+      icon: ShieldCheck,
+      iconColor: 'text-emerald-600',
+      bg: 'bg-emerald-500/10 backdrop-blur-sm',
+      border: 'border-l-emerald-500',
+    },
+    {
+      label: 'Próx. Vencimento',
+      value: statusCounts['Próxima ao Vencimento'] || 0,
+      icon: AlertCircle,
+      iconColor: 'text-orange-600',
+      bg: 'bg-orange-500/10 backdrop-blur-sm',
+      border: 'border-l-orange-500',
     },
     {
       label: 'Vencido',
@@ -292,12 +352,12 @@ export default function Licenses() {
       border: 'border-l-blue-500',
     },
     {
-      label: 'Próximo ao Vencimento',
-      value: statusCounts['Próxima ao Vencimento'] || 0,
-      icon: AlertCircle,
-      iconColor: 'text-orange-600',
-      bg: 'bg-orange-500/10 backdrop-blur-sm',
-      border: 'border-l-orange-500',
+      label: 'Sem Vencimento',
+      value: statusCounts['Sem Vencimento'] || 0,
+      icon: Clock,
+      iconColor: 'text-gray-600',
+      bg: 'bg-gray-500/10 backdrop-blur-sm',
+      border: 'border-l-gray-500',
     },
   ]
 
@@ -308,14 +368,25 @@ export default function Licenses() {
           <ShieldCheck size={18} className="text-primary" />
           <span className="text-sm">Controle de licenças e vencimentos</span>
         </div>
-        {isAdmin && (
-          <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
-            <Plus size={16} /> Nova Licença
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => setBatchDeleteOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 size={16} /> Excluir Selecionadas ({selectedIds.size})
+            </Button>
+          )}
+          {isAdmin && (
+            <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
+              <Plus size={16} /> Nova Licença
+            </Button>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {summaryCards.map((card) => {
           const Icon = card.icon
           return (
@@ -364,7 +435,7 @@ export default function Licenses() {
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               Nenhuma licença encontrada.
             </div>
@@ -380,19 +451,49 @@ export default function Licenses() {
                         aria-label="Selecionar todos"
                       />
                     </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Licença</TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">
-                      Vencimento
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('cliente')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Cliente{' '}
+                        <SortIcon active={sortField === 'cliente'} direction={sortDirection} />
+                      </span>
                     </TableHead>
-                    <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('licenca')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Licença{' '}
+                        <SortIcon active={sortField === 'licenca'} direction={sortDirection} />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('vencimento')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Vencimento{' '}
+                        <SortIcon active={sortField === 'vencimento'} direction={sortDirection} />
+                      </span>
+                    </TableHead>
+                    <TableHead
+                      className="font-semibold text-muted-foreground cursor-pointer select-none"
+                      onClick={() => toggleSort('status')}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        Status{' '}
+                        <SortIcon active={sortField === 'status'} direction={sortDirection} />
+                      </span>
+                    </TableHead>
                     <TableHead className="text-right font-semibold text-muted-foreground pr-4">
                       Ações
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((l) => {
+                  {sorted.map((l) => {
                     const nearExpiry = l.status === 'Próxima ao Vencimento'
                     const isExpired = l.status === 'Vencido'
                     return (
@@ -471,7 +572,11 @@ export default function Licenses() {
                                 onClick={() => handleStartRenewal(l)}
                                 disabled={renewing === l.id}
                               >
-                                <PlayCircle size={16} />
+                                {renewing === l.id ? (
+                                  <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                  <PlayCircle size={16} />
+                                )}
                                 <span className="hidden sm:inline">Iniciar Renovação</span>
                               </Button>
                             </div>
@@ -521,6 +626,34 @@ export default function Licenses() {
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isDeleting ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Licenças Selecionadas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedIds.size} licença(s)? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBatchDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBatchDelete}
+              disabled={isBatchDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isBatchDeleting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin" /> Excluindo...
+                </span>
+              ) : (
+                'Excluir'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
