@@ -146,7 +146,7 @@ export default function Index() {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg text-primary text-title-case">
-            Funil De Onboarding De Clientes
+            Funil DeOnboarding De Clientes
           </CardTitle>
         </CardHeader>
         <CardContent>
