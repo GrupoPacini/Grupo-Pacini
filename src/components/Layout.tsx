@@ -174,21 +174,20 @@ export default function Layout() {
             <span className="font-medium text-title-case">Configurações</span>
           </NavLink>
         </div>
-          <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-sidebar-accent/30">
-            <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-primary shrink-0">
-              {(user?.name || 'U')[0].toUpperCase()}
-            </div>
-            <span className="text-sm font-medium text-primary-foreground truncate flex-1">
-              {user?.name || 'Usuário'}
-            </span>
-            <button
-              onClick={signOut}
-              className="text-primary-foreground/60 hover:text-primary-foreground p-1.5 rounded-md hover:bg-destructive/20 transition-colors"
-              title="Sair"
-            >
-              <LogOut size={16} />
-            </button>
+        <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-sidebar-accent/30">
+          <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-primary shrink-0">
+            {(user?.name || 'U')[0].toUpperCase()}
           </div>
+          <span className="text-sm font-medium text-primary-foreground truncate flex-1">
+            {user?.name || 'Usuário'}
+          </span>
+          <button
+            onClick={signOut}
+            className="text-primary-foreground/60 hover:text-primary-foreground p-1.5 rounded-md hover:bg-destructive/20 transition-colors"
+            title="Sair"
+          >
+            <LogOut size={16} />
+          </button>
         </div>
       </aside>
 
