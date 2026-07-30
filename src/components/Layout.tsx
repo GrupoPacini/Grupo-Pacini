@@ -94,17 +94,8 @@ export default function Layout() {
         )}
       >
         <div className="flex items-center justify-between p-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-sm bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
-              <img
-                src="/pacini-logo.svg"
-                alt="Grupo Pacini"
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-primary-foreground">
-              Grupo Pacini
-            </h1>
+          <div className="flex items-center">
+            <img src="/pacini-logo.svg" alt="Grupo Pacini" className="h-10 w-auto" />
           </div>
           <button
             className="lg:hidden text-primary-foreground/70"

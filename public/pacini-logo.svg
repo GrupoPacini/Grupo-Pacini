@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
-  <rect width="128" height="128" rx="28" fill="#22286E"/>
-  <rect x="4" y="4" width="120" height="120" rx="24" stroke="#C28200" stroke-width="1.5" stroke-opacity="0.25"/>
-  <path d="M42 36h24c9.94 0 18 8.06 18 18s-8.06 18-18 18H50v20h-8V36zm8 8v20h16c5.52 0 10-4.48 10-10s-4.48-10-10-10H50z" fill="#C28200"/>
-  <circle cx="64" cy="64" r="56" stroke="#C28200" stroke-width="1" stroke-opacity="0.12"/>
-  <rect x="86" y="36" width="3" height="56" rx="1.5" fill="#C28200" fill-opacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 72" fill="none">
+  <rect x="2" y="8" width="56" height="56" rx="14" fill="white" fill-opacity="0.12"/>
+  <rect x="2.5" y="8.5" width="55" height="55" rx="13.5" stroke="white" stroke-opacity="0.25" stroke-width="1"/>
+  <path d="M20 24 L20 50 M20 24 L36 24 C41.5 24 45 27.5 45 33 C45 38.5 41.5 42 36 42 L20 42" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M38 47 L41 44 L44 47 L48 41" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.8"/>
+  <text x="70" y="30" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="600" fill="white" fill-opacity="0.6" letter-spacing="2.5">GRUPO</text>
+  <text x="70" y="54" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="800" fill="white" letter-spacing="0.5">PACINI</text>
 </svg>
