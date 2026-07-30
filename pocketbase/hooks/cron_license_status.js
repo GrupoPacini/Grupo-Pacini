@@ -14,6 +14,7 @@ cronAdd('license_status_automation', '0 2 * * *', () => {
       const currentStatus = lic.getString('status')
       if (currentStatus === 'Renovando') continue
       if (currentStatus === 'Pendente') continue
+      if (currentStatus === 'Em Processo') continue
 
       const semVencimento = lic.getBool('sem_vencimento')
       const expDate = lic.getString('expiration_date')

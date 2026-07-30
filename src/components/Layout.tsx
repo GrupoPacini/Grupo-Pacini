@@ -38,16 +38,16 @@ export default function Layout() {
 
   const navSections: NavSection[] = [
     {
-      title: 'Operações',
+      title: 'Geral',
       items: [
         { name: 'Painel De Controle', path: '/', icon: LayoutDashboard },
-        { name: 'Gestão De Processos', path: '/processos', icon: FileText },
+        { name: 'Gestão De Tarefas', path: '/processos', icon: FileText },
+        { name: 'Gestão De Clientes', path: '/clientes', icon: Users },
       ],
     },
     {
-      title: 'Diretório',
+      title: 'Societário',
       items: [
-        { name: 'Gestão De Clientes', path: '/clientes', icon: Users },
         { name: 'Licenças', path: '/licencas', icon: ShieldCheck },
         { name: 'Renovações', path: '/renovacoes', icon: RefreshCw },
       ],

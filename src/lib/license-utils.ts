@@ -8,6 +8,7 @@ export const LICENSE_STATUS = [
   'Próxima ao Vencimento',
   'Sem Vencimento',
   'Pendente',
+  'Em Processo',
 ]
 export const STATUS_OPERACIONAL = [
   'Regular',
@@ -47,6 +48,8 @@ export function licenseStatusBadge(status: string) {
       'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
     'Sem Vencimento':
       'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800',
+    'Em Processo':
+      'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
   }
   return (
     map[status] ||

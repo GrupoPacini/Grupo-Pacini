@@ -362,6 +362,14 @@ export default function Licenses() {
       bg: 'bg-gray-500/10 backdrop-blur-sm',
       border: 'border-l-gray-500',
     },
+    {
+      label: 'Em Processo',
+      value: statusCounts['Em Processo'] || 0,
+      icon: PlayCircle,
+      iconColor: 'text-cyan-600',
+      bg: 'bg-cyan-500/10 backdrop-blur-sm',
+      border: 'border-l-cyan-500',
+    },
   ]
 
   return (
