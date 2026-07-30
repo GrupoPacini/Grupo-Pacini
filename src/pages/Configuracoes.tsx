@@ -1,28 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ShieldCheck, Settings } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
+import { Settings } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
-import { getUsers, updateUserRole, type UserRecord } from '@/services/users'
+import { getUsers, type UserRecord } from '@/services/users'
+import { getDepartments, type DepartmentRecord } from '@/services/departments'
 import { toast } from 'sonner'
 import { StatsCards } from '@/components/Configuracoes/StatsCards'
 import { PermissionCards } from '@/components/Configuracoes/PermissionCards'
 import { UserManagement } from '@/components/Configuracoes/UserManagement'
-import { NewUserModal } from '@/components/Configuracoes/NewUserModal'
 import { PermissionsModal } from '@/components/Configuracoes/PermissionsModal'
 
 export default function Configuracoes() {
+  const { isAdmin, loading: authLoading } = useAuth()
   const [users, setUsers] = useState<UserRecord[]>([])
+  const [departments, setDepartments] = useState<DepartmentRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [updatingId, setUpdatingId] = useState<string | null>(null)
-  const [newUserOpen, setNewUserOpen] = useState(false)
   const [permissionsRole, setPermissionsRole] = useState<'admin' | 'colaborador' | null>(null)
-  const { isAdmin } = useAuth()
 
   const loadData = useCallback(async () => {
     try {
-      setUsers(await getUsers())
+      const [u, d] = await Promise.all([getUsers(), getDepartments()])
+      setUsers(u)
+      setDepartments(d)
     } catch {
-      toast.error('Erro Ao Carregar Usuários')
+      toast.error('Erro Ao Carregar Dados')
     } finally {
       setLoading(false)
     }
@@ -41,21 +43,16 @@ export default function Configuracoes() {
     return { total, admins, colaboradores, ativos: total }
   }, [users])
 
-  const handleRoleChange = async (userId: string, role: 'admin' | 'colaborador') => {
-    setUpdatingId(userId)
-    try {
-      await updateUserRole(userId, role)
-      toast.success('Função Do Usuário Atualizada')
-      loadData()
-    } catch {
-      toast.error('Erro Ao Atualizar Função')
-    } finally {
-      setUpdatingId(null)
-    }
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-pulse text-primary font-medium">Carregando...</div>
+      </div>
+    )
   }
 
-  const handleViewPermissions = (role: 'admin' | 'colaborador') => {
-    setPermissionsRole(role)
+  if (!isAdmin) {
+    return <Navigate to="/" replace />
   }
 
   return (
@@ -80,27 +77,15 @@ export default function Configuracoes() {
       <PermissionCards
         adminCount={stats.admins}
         colaboradorCount={stats.colaboradores}
-        onViewPermissions={handleViewPermissions}
+        onViewPermissions={setPermissionsRole}
       />
 
-      {isAdmin ? (
-        <UserManagement
-          users={users}
-          loading={loading}
-          updatingId={updatingId}
-          onRoleChange={handleRoleChange}
-          onNewUser={() => setNewUserOpen(true)}
-        />
-      ) : (
-        !loading && (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm py-8 justify-center">
-            <ShieldCheck size={16} className="text-primary" />
-            Apenas administradores podem gerenciar usuários.
-          </div>
-        )
-      )}
-
-      <NewUserModal open={newUserOpen} onOpenChange={setNewUserOpen} onSuccess={loadData} />
+      <UserManagement
+        users={users}
+        departments={departments}
+        loading={loading}
+        onRefresh={loadData}
+      />
 
       <PermissionsModal
         open={permissionsRole !== null}

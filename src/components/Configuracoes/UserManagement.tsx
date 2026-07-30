@@ -1,50 +1,84 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useMemo, useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Users, UserPlus, Loader2 } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 import type { UserRecord } from '@/services/users'
+import type { DepartmentRecord } from '@/services/departments'
+import { UserFilters } from './UserFilters'
+import { UserTable, type UserAction } from './UserTable'
+import { ViewUserModal } from './ViewUserModal'
+import { EditUserModal } from './EditUserModal'
+import { RoleChangeModal } from './RoleChangeModal'
+import { StatusChangeModal } from './StatusChangeModal'
+import { ResetPasswordModal } from './ResetPasswordModal'
+import { DeactivateUserModal } from './DeactivateUserModal'
+import { NewUserModal } from './NewUserModal'
 
 interface UserManagementProps {
   users: UserRecord[]
+  departments: DepartmentRecord[]
   loading: boolean
-  updatingId: string | null
-  onRoleChange: (userId: string, role: 'admin' | 'colaborador') => void
-  onNewUser: () => void
+  onRefresh: () => void
 }
 
-export function UserManagement({
-  users,
-  loading,
-  updatingId,
-  onRoleChange,
-  onNewUser,
-}: UserManagementProps) {
+export function UserManagement({ users, departments, loading, onRefresh }: UserManagementProps) {
+  const [search, setSearch] = useState('')
+  const [profileFilter, setProfileFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [deptFilter, setDeptFilter] = useState('all')
+  const [activeUser, setActiveUser] = useState<UserRecord | null>(null)
+  const [activeAction, setActiveAction] = useState<UserAction | null>(null)
+  const [newUserOpen, setNewUserOpen] = useState(false)
+
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase()
+    return users.filter((u) => {
+      const matchSearch =
+        !s || u.name?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s)
+      const matchProfile = profileFilter === 'all' || u.role === profileFilter
+      const matchStatus = statusFilter === 'all' || (u.status || 'Ativo') === statusFilter
+      const matchDept = deptFilter === 'all' || u.department === deptFilter
+      return matchSearch && matchProfile && matchStatus && matchDept
+    })
+  }, [users, search, profileFilter, statusFilter, deptFilter])
+
+  const hasFilters =
+    !!search || profileFilter !== 'all' || statusFilter !== 'all' || deptFilter !== 'all'
+
+  const clearFilters = () => {
+    setSearch('')
+    setProfileFilter('all')
+    setStatusFilter('all')
+    setDeptFilter('all')
+  }
+
+  const handleAction = (action: UserAction, user: UserRecord) => {
+    setActiveUser(user)
+    setActiveAction(action)
+  }
+
+  const closeModal = () => {
+    setActiveUser(null)
+    setActiveAction(null)
+  }
+
+  const getActiveUser = (a: UserAction) => (activeAction === a ? activeUser : null)
+
   return (
-    <Card className="border-t-4 border-t-primary shadow-sm overflow-hidden">
+    <Card className="border-t-4 border-t-primary shadow-sm">
       <CardHeader className="bg-primary text-primary-foreground">
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <CardTitle className="flex items-center gap-2 text-title-case">
-            <Users size={18} />
-            Gestão de Usuários
-          </CardTitle>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus size={18} />
+              Gerenciamento de Usuários
+            </CardTitle>
+            <CardDescription className="text-primary-foreground/80 mt-1">
+              Gerencie usuários, perfis e permissões da plataforma.
+            </CardDescription>
+          </div>
           <Button
-            onClick={onNewUser}
+            onClick={() => setNewUserOpen(true)}
             size="sm"
             variant="secondary"
             className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
@@ -54,78 +88,46 @@ export function UserManagement({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        {loading ? (
-          <div className="p-6 space-y-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        ) : users.length === 0 ? (
-          <div className="py-12 text-center text-muted-foreground">Nenhum usuário encontrado.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-semibold text-muted-foreground pl-6">Nome</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground">E-mail</TableHead>
-                  <TableHead className="font-semibold text-muted-foreground">
-                    Função Atual
-                  </TableHead>
-                  <TableHead className="font-semibold text-muted-foreground text-right pr-6">
-                    Alterar Função
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((u) => (
-                  <TableRow key={u.id} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="pl-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-primary">
-                            {(u.name || u.email || '?')[0].toUpperCase()}
-                          </span>
-                        </div>
-                        <span className="font-medium text-foreground">{u.name || '—'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 text-muted-foreground text-sm">{u.email}</TableCell>
-                    <TableCell className="py-4">
-                      <Badge
-                        variant={u.role === 'admin' ? 'default' : 'secondary'}
-                        className={u.role === 'admin' ? 'bg-primary text-primary-foreground' : ''}
-                      >
-                        {u.role === 'admin' ? 'Administrador' : 'Colaborador'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right py-4 pr-6">
-                      <div className="flex items-center justify-end gap-2">
-                        {updatingId === u.id && (
-                          <Loader2 size={14} className="animate-spin text-muted-foreground" />
-                        )}
-                        <Select
-                          value={u.role || 'colaborador'}
-                          onValueChange={(v) => onRoleChange(u.id, v as 'admin' | 'colaborador')}
-                          disabled={updatingId === u.id}
-                        >
-                          <SelectTrigger className="w-[180px] ml-auto">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Administrador</SelectItem>
-                            <SelectItem value="colaborador">Colaborador</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+      <CardContent className="p-6">
+        <UserFilters
+          search={search}
+          onSearchChange={setSearch}
+          profileFilter={profileFilter}
+          onProfileFilterChange={setProfileFilter}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          departmentFilter={deptFilter}
+          onDepartmentFilterChange={setDeptFilter}
+          departments={departments}
+          onClear={clearFilters}
+          hasFilters={hasFilters}
+        />
+        <UserTable users={filtered} loading={loading} onAction={handleAction} />
+        <ViewUserModal user={getActiveUser('view')} onClose={closeModal} />
+        <EditUserModal
+          user={getActiveUser('edit')}
+          departments={departments}
+          onClose={closeModal}
+          onSuccess={onRefresh}
+        />
+        <RoleChangeModal user={getActiveUser('role')} onClose={closeModal} onSuccess={onRefresh} />
+        <StatusChangeModal
+          user={getActiveUser('status')}
+          onClose={closeModal}
+          onSuccess={onRefresh}
+        />
+        <ResetPasswordModal user={getActiveUser('resetPassword')} onClose={closeModal} />
+        <DeactivateUserModal
+          user={getActiveUser('deactivate')}
+          onClose={closeModal}
+          onSuccess={onRefresh}
+        />
+        <NewUserModal
+          open={newUserOpen}
+          onOpenChange={setNewUserOpen}
+          onSuccess={onRefresh}
+          departments={departments}
+        />
       </CardContent>
     </Card>
   )

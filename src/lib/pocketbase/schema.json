@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-07-30T20:23:56.999Z",
+  "generatedAt": "2026-07-30T20:36:50.847Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "",
-        "update": "id = @request.auth.id || @request.auth.role = 'admin'",
-        "delete": "id = @request.auth.id"
+        "list": "@request.auth.role = 'admin'",
+        "view": "@request.auth.role = 'admin'",
+        "create": "@request.auth.role = 'admin'",
+        "update": "@request.auth.role = 'admin'",
+        "delete": "@request.auth.role = 'admin'"
       },
       "fields": [
         {
@@ -44,6 +44,26 @@
           "required": false,
           "system": false,
           "selectValues": ["admin", "colaborador"]
+        },
+        {
+          "name": "department",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "departments"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo", "Bloqueado", "Convite pendente"]
+        },
+        {
+          "name": "last_access",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

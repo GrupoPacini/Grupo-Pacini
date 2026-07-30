@@ -49,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       await pb.collection('users').authWithPassword(email, password)
+      pb.send('/backend/v1/track-access', { method: 'POST' }).catch(() => {})
       return { error: null }
     } catch (error) {
       return { error }

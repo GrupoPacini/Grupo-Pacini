@@ -21,18 +21,22 @@ import { Loader2, UserPlus } from 'lucide-react'
 import { createUser } from '@/services/users'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
+import type { DepartmentRecord } from '@/services/departments'
 
 interface NewUserModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  departments: DepartmentRecord[]
 }
 
-export function NewUserModal({ open, onOpenChange, onSuccess }: NewUserModalProps) {
+export function NewUserModal({ open, onOpenChange, onSuccess, departments }: NewUserModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'admin' | 'colaborador'>('colaborador')
+  const [department, setDepartment] = useState<string>('none')
+  const [status, setStatus] = useState<string>('Ativo')
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
@@ -41,6 +45,8 @@ export function NewUserModal({ open, onOpenChange, onSuccess }: NewUserModalProp
     setEmail('')
     setPassword('')
     setRole('colaborador')
+    setDepartment('none')
+    setStatus('Ativo')
     setFieldErrors({})
   }
 
@@ -60,6 +66,8 @@ export function NewUserModal({ open, onOpenChange, onSuccess }: NewUserModalProp
         password,
         passwordConfirm: password,
         role,
+        department: department === 'none' ? null : department,
+        status,
       })
       toast.success('Usuário criado com sucesso')
       resetForm()
@@ -122,15 +130,47 @@ export function NewUserModal({ open, onOpenChange, onSuccess }: NewUserModalProp
             />
             {fieldErrors.password && <p className="text-sm text-red-500">{fieldErrors.password}</p>}
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Função</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as 'admin' | 'colaborador')}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="colaborador">Colaborador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Inativo">Inativo</SelectItem>
+                  <SelectItem value="Bloqueado">Bloqueado</SelectItem>
+                  <SelectItem value="Convite pendente">Convite pendente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="space-y-2">
-            <Label>Função</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as 'admin' | 'colaborador')}>
+            <Label>Departamento</Label>
+            <Select value={department} onValueChange={setDepartment}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="colaborador">Colaborador</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
