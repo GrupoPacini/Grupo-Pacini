@@ -13,6 +13,7 @@ import Licenses from './pages/Licenses'
 import Renewals from './pages/Renewals'
 import Chat from './pages/Chat'
 import Configuracoes from './pages/Configuracoes'
+import GestaoUsuarios from './pages/GestaoUsuarios'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/renovacoes" element={<Renewals />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
+              <Route path="/configuracoes/usuarios" element={<GestaoUsuarios />} />
             </Route>
           </Route>
 
