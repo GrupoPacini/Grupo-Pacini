@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Navigate, useLocation } from 'react-router-dom'
+import { useNavigate, Navigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast'
 
 export default function Login() {
-  const [email, setEmail] = useState('patricia@grupopacini.com.br')
-  const [password, setPassword] = useState('Skip@Pass')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { signIn, isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
@@ -19,7 +19,7 @@ export default function Login() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-primary">
+      <div className="min-h-screen flex items-center justify-center login-bg">
         <div className="animate-pulse text-primary-foreground font-medium">
           Carregando Sistema...
         </div>
@@ -50,15 +50,20 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary p-4">
-      <div className="absolute inset-0 bg-[url('https://img.usecurling.com/p/1200/800?q=office&color=black')] opacity-10 bg-cover bg-center mix-blend-overlay"></div>
+    <div className="login-bg min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="login-glow login-glow-top" />
+      <div className="login-glow login-glow-bottom" />
 
-      <Card className="w-full max-w-md z-10 shadow-2xl border-none">
+      <Card className="w-full max-w-md z-10 shadow-2xl border-none animate-fade-in-up">
         <CardHeader className="space-y-3 text-center pb-8">
-          <div className="mx-auto w-16 h-16 rounded-lg bg-pacini-gradient flex items-center justify-center mb-2">
-            <span className="text-primary text-3xl font-bold">P</span>
+          <div className="mx-auto w-16 h-16 rounded-sm flex items-center justify-center mb-2 overflow-hidden">
+            <img
+              src="/pacini-logo.svg"
+              alt="Grupo Pacini"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-primary text-title-case">
+          <CardTitle className="text-2xl font-bold tracking-tight text-primary">
             Grupo Pacini
           </CardTitle>
           <CardDescription className="text-muted-foreground">
@@ -80,9 +85,7 @@ export default function Login() {
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Senha</Label>
-              </div>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -91,10 +94,18 @@ export default function Login() {
                 required
                 className="bg-background"
               />
+              <div className="flex justify-end">
+                <Link
+                  to="/recuperar-senha"
+                  className="text-sm text-accent hover:text-accent/80 transition-colors font-medium"
+                >
+                  Esqueci minha senha
+                </Link>
+              </div>
             </div>
             <Button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white transition-all"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground transition-all"
               disabled={isLoading}
             >
               {isLoading ? 'Entrando...' : 'Acessar Portal'}
