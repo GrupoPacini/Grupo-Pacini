@@ -95,8 +95,12 @@ export default function Layout() {
       >
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-sm bg-pacini-gradient flex items-center justify-center font-bold text-primary">
-              P
+            <div className="w-8 h-8 rounded-sm bg-white/10 flex items-center justify-center overflow-hidden shrink-0">
+              <img
+                src="/pacini-logo.svg"
+                alt="Grupo Pacini"
+                className="w-full h-full object-contain"
+              />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-primary-foreground">
               Grupo Pacini

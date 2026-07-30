@@ -56,11 +56,14 @@ export default function Login() {
 
       <Card className="w-full max-w-md z-10 shadow-2xl border-none animate-fade-in-up">
         <CardHeader className="space-y-3 text-center pb-8">
-          <div className="mx-auto w-16 h-16 rounded-sm flex items-center justify-center mb-2 overflow-hidden">
+          <div className="mx-auto w-16 h-16 rounded-sm flex items-center justify-center mb-2 overflow-hidden p-1">
             <img
               src="/pacini-logo.svg"
               alt="Grupo Pacini"
               className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
             />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-primary">
