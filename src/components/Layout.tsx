@@ -13,6 +13,7 @@ import {
   Bot,
   RefreshCw,
   Search,
+  Settings,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -156,7 +157,23 @@ export default function Layout() {
           )}
         </nav>
 
-        <div className="p-3 mt-auto">
+        <div className="p-3 mt-auto space-y-1">
+          <NavLink
+            to="/configuracoes"
+            onClick={() => setSidebarOpen(false)}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 mb-2',
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-4 border-l-accent'
+                  : 'text-primary-foreground/70 hover:bg-sidebar-accent/50 hover:text-primary-foreground',
+              )
+            }
+          >
+            <Settings size={20} />
+            <span className="font-medium text-title-case">Configurações</span>
+          </NavLink>
+        </div>
           <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-sidebar-accent/30">
             <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-primary shrink-0">
               {(user?.name || 'U')[0].toUpperCase()}
