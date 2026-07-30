@@ -55,7 +55,7 @@ export const startLicensing = (clientId: string) =>
   pb.collection('licenses').create({
     client: clientId,
     name: 'Nova Licença',
-    status: 'Regular',
+    status: 'Pendente',
     status_operacional: 'Pendente',
   })
 

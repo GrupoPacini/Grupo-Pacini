@@ -6,8 +6,8 @@ export const LICENSE_STATUS = [
   'Vencido',
   'Renovando',
   'Próxima ao Vencimento',
-  'Regular',
   'Sem Vencimento',
+  'Pendente',
 ]
 export const STATUS_OPERACIONAL = [
   'Regular',
@@ -37,8 +37,8 @@ export function licenseStatusBadge(status: string) {
   const map: Record<string, string> = {
     Ativo:
       'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
-    Regular:
-      'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+    Pendente:
+      'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800',
     Vencido:
       'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
     Renovando:

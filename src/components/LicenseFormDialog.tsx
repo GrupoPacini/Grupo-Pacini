@@ -38,7 +38,7 @@ interface FormState {
 const emptyForm: FormState = {
   name: '',
   client: '',
-  status: 'Ativo',
+  status: 'Pendente',
   numero_protocolo: '',
   expiration_date: '',
   sem_vencimento: false,

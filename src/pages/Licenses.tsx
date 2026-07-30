@@ -41,6 +41,8 @@ import { SortIcon } from '@/components/SortIcon'
 import { Client, getClients } from '@/services/api'
 import { License, getLicenses, startRenewal, deleteLicense } from '@/services/licenses'
 import { LicenseFormDialog } from '@/components/LicenseFormDialog'
+import { LicenseBatchEditDialog } from '@/components/LicenseBatchEditDialog'
+import { Pencil as EditIcon } from 'lucide-react'
 import { FilterBar } from '@/components/FilterBar'
 import { DueDateCell } from '@/components/DueDateCell'
 import { getDaysRemaining, licenseStatusBadge, LICENSE_STATUS } from '@/lib/license-utils'
@@ -153,6 +155,7 @@ export default function Licenses() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false)
   const [isBatchDeleting, setIsBatchDeleting] = useState(false)
+  const [batchEditOpen, setBatchEditOpen] = useState(false)
   const { sortField, sortDirection, toggleSort } = useSorting()
   const { isAdmin } = useAuth()
 
@@ -320,12 +323,12 @@ export default function Licenses() {
       border: 'border-l-green-500',
     },
     {
-      label: 'Regular',
-      value: statusCounts['Regular'] || 0,
-      icon: ShieldCheck,
-      iconColor: 'text-emerald-600',
-      bg: 'bg-emerald-500/10 backdrop-blur-sm',
-      border: 'border-l-emerald-500',
+      label: 'Pendente',
+      value: statusCounts['Pendente'] || 0,
+      icon: Clock,
+      iconColor: 'text-gray-600',
+      bg: 'bg-gray-500/10 backdrop-blur-sm',
+      border: 'border-l-gray-500',
     },
     {
       label: 'Próx. Vencimento',
@@ -370,13 +373,18 @@ export default function Licenses() {
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
-            <Button
-              variant="destructive"
-              onClick={() => setBatchDeleteOpen(true)}
-              className="gap-2"
-            >
-              <Trash2 size={16} /> Excluir Selecionadas ({selectedIds.size})
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setBatchEditOpen(true)} className="gap-2">
+                <EditIcon size={16} /> Editar Selecionadas ({selectedIds.size})
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => setBatchDeleteOpen(true)}
+                className="gap-2"
+              >
+                <Trash2 size={16} /> Excluir Selecionadas ({selectedIds.size})
+              </Button>
+            </>
           )}
           {isAdmin && (
             <Button onClick={openCreate} className="gap-2 bg-primary hover:bg-primary/90">
@@ -630,6 +638,13 @@ export default function Licenses() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <LicenseBatchEditDialog
+        open={batchEditOpen}
+        onOpenChange={setBatchEditOpen}
+        selectedLicenses={sorted.filter((l) => selectedIds.has(l.id))}
+        onSuccess={loadData}
+      />
 
       <AlertDialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
         <AlertDialogContent>
