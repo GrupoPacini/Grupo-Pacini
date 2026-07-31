@@ -244,7 +244,6 @@ export default function Clientes() {
                       <TableHead className="font-semibold">Cliente</TableHead>
                       <TableHead className="font-semibold">CNPJ</TableHead>
                       <TableHead className="font-semibold">Regime</TableHead>
-                      <TableHead className="font-semibold">Responsável</TableHead>
                       <TableHead className="font-semibold">Status</TableHead>
                       <TableHead className="font-semibold">Atualização</TableHead>
                       <TableHead className="text-right font-semibold pr-4">Ações</TableHead>
@@ -288,11 +287,6 @@ export default function Clientes() {
                           ) : (
                             <span className="text-muted-foreground text-sm">—</span>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-foreground">
-                            {c.expand?.responsavel_interno?.name || '—'}
-                          </span>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={getClientStatusBadgeClass(c)}>
