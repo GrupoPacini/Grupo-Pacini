@@ -65,7 +65,7 @@ export async function getAllClientsForIndicators(): Promise<ClientRecord[]> {
     sort: 'name',
     expand: 'responsavel_interno',
     fields:
-      'id,name,cnpj,tax_regime,code,razao_social,nome_fantasia,client_status,responsavel_interno,situacao_cadastral,created,updated',
+      'id,name,cnpj,tax_regime,code,codigo_acesso,razao_social,nome_fantasia,client_status,responsavel_interno,situacao_cadastral,created,updated',
   })) as unknown as ClientRecord[]
 }
 

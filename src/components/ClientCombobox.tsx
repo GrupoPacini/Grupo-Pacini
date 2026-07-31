@@ -39,18 +39,20 @@ export function ClientCombobox({
 
   const filtered = clients.filter((c) => {
     const q = query.toLowerCase()
+    const name = c.razao_social || c.name || ''
+    const fantasia = c.nome_fantasia || c.alias || ''
     return (
-      c.name?.toLowerCase().includes(q) ||
-      c.alias?.toLowerCase().includes(q) ||
+      name.toLowerCase().includes(q) ||
+      fantasia.toLowerCase().includes(q) ||
       c.code?.toLowerCase().includes(q) ||
       c.cnpj?.toLowerCase().includes(q)
     )
   })
 
   const displayLabel = selected
-    ? selected.alias
-      ? `${selected.name} (${selected.alias})`
-      : selected.name
+    ? selected.nome_fantasia || selected.alias
+      ? `${selected.razao_social || selected.name} (${selected.nome_fantasia || selected.alias})`
+      : selected.razao_social || selected.name
     : 'Selecione o cliente'
 
   return (
@@ -110,10 +112,10 @@ export function ClientCombobox({
                       className={cn('mr-2 h-4 w-4', value === c.id ? 'opacity-100' : 'opacity-0')}
                     />
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium">{c.name}</span>
-                      {(c.alias || c.code) && (
+                      <span className="text-sm font-medium">{c.razao_social || c.name}</span>
+                      {(c.nome_fantasia || c.alias || c.code) && (
                         <span className="text-xs text-muted-foreground">
-                          {[c.alias, c.code].filter(Boolean).join(' • ')}
+                          {[c.nome_fantasia || c.alias, c.code].filter(Boolean).join(' • ')}
                         </span>
                       )}
                     </div>

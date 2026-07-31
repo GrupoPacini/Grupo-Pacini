@@ -6,6 +6,7 @@ export interface ClientRecord {
   cnpj: string
   tax_regime: string
   code: string
+  codigo_acesso: string
   alias: string
   onboarding_status: string
   razao_social: string
@@ -78,7 +79,7 @@ export function formatCnpj(cnpj: string): string {
 }
 
 export function isClientIncomplete(client: Client): boolean {
-  return !client.cnpj || !client.razao_social || !client.tax_regime || !client.responsavel_interno
+  return !client.cnpj || !client.razao_social || !client.tax_regime
 }
 
 export function getClientStatusLabel(client: Client): string {

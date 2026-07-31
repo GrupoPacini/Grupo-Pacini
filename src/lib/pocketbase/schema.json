@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-31T13:25:40.676Z",
+  "generatedAt": "2026-07-31T19:37:55.199Z",
   "collections": [
     {
       "name": "users",
@@ -402,6 +402,12 @@
         },
         {
           "name": "nome_contato",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "codigo_acesso",
           "type": "text",
           "required": false,
           "system": false

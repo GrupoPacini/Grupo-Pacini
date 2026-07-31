@@ -79,9 +79,6 @@ export function ClientTable({
             <TableHead className="font-semibold text-muted-foreground">Cliente</TableHead>
             <TableHead className="font-semibold text-muted-foreground">CNPJ</TableHead>
             <TableHead className="font-semibold text-muted-foreground">Regime Tributário</TableHead>
-            <TableHead className="font-semibold text-muted-foreground">
-              Responsável Interno
-            </TableHead>
             <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
             <TableHead className="font-semibold text-muted-foreground">Atualização</TableHead>
             <TableHead className="text-right font-semibold text-muted-foreground pr-4">
@@ -92,7 +89,6 @@ export function ClientTable({
         <TableBody>
           {clients.map((c) => {
             const displayStatus = getDisplayStatus(c)
-            const responsavel = c.expand?.responsavel_interno?.name
             return (
               <TableRow
                 key={c.id}
@@ -127,9 +123,6 @@ export function ClientTable({
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-foreground">{responsavel || '—'}</span>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className={statusBadgeClass(displayStatus)}>

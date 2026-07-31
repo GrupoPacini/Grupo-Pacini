@@ -22,7 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { getUsers, type UserRecord } from '@/services/users'
 import {
   getClientById,
   createClientRecord,
@@ -40,12 +39,12 @@ const TAX_REGIMES = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real']
 interface ClientFormData {
   razao_social: string
   nome_fantasia: string
-  cnpj: string
   code: string
+  codigo_acesso: string
+  cnpj: string
   tax_regime: string
   situacao_cadastral: string
   data_abertura: string
-  responsavel_interno: string
   client_status: string
   nome_contato: string
   email_principal: string
@@ -56,12 +55,12 @@ interface ClientFormData {
 const emptyForm: ClientFormData = {
   razao_social: '',
   nome_fantasia: '',
-  cnpj: '',
   code: '',
+  codigo_acesso: '',
+  cnpj: '',
   tax_regime: '',
   situacao_cadastral: '',
   data_abertura: '',
-  responsavel_interno: '',
   client_status: 'Ativo',
   nome_contato: '',
   email_principal: '',
@@ -73,12 +72,12 @@ function mapClientToForm(c: ClientRecord): ClientFormData {
   return {
     razao_social: c.razao_social || c.name || '',
     nome_fantasia: c.nome_fantasia || c.alias || '',
-    cnpj: c.cnpj ? maskCNPJ(c.cnpj) : '',
     code: c.code || '',
+    codigo_acesso: (c.codigo_acesso as string) || '',
+    cnpj: c.cnpj ? maskCNPJ(c.cnpj) : '',
     tax_regime: c.tax_regime || '',
     situacao_cadastral: c.situacao_cadastral || '',
     data_abertura: c.data_abertura || '',
-    responsavel_interno: c.responsavel_interno || '',
     client_status: c.client_status || 'Ativo',
     nome_contato: c.nome_contato || '',
     email_principal: c.email_principal || '',
@@ -102,7 +101,6 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
   const [errors, setErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(mode === 'edit' && !initialClient)
   const [submitting, setSubmitting] = useState(false)
-  const [users, setUsers] = useState<UserRecord[]>([])
   const savedRef = useRef(false)
 
   const isDirty = JSON.stringify(form) !== initialForm
@@ -140,9 +138,6 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
         setInitialForm(JSON.stringify(emptyForm))
         setLoading(false)
       }
-      getUsers()
-        .then(setUsers)
-        .catch(() => {})
     }
     loadData()
   }, [mode, clientId, initialClient, navigate])
@@ -236,10 +231,10 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
         alias: form.nome_fantasia.trim(),
         cnpj: form.cnpj ? unmaskCNPJ(form.cnpj) : '',
         code: form.code.trim(),
+        codigo_acesso: form.codigo_acesso.trim(),
         tax_regime: form.tax_regime || null,
         situacao_cadastral: form.situacao_cadastral.trim() || null,
         data_abertura: form.data_abertura || null,
-        responsavel_interno: form.responsavel_interno || null,
         client_status: form.client_status || 'Ativo',
         nome_contato: form.nome_contato.trim(),
         email_principal: form.email_principal.trim(),
@@ -298,9 +293,22 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
                   className="font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Informe o código utilizado no sistema externo.
+                  Informe o mesmo código utilizado no sistema externo.
                 </p>
                 {errors.code && <p className="text-sm text-destructive">{errors.code}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="codigo-acesso">Código de Acesso</Label>
+                <Input
+                  id="codigo-acesso"
+                  value={form.codigo_acesso}
+                  onChange={(e) => set('codigo_acesso')(e.target.value)}
+                  placeholder="Ex: ACC-001"
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Informe o código utilizado para acesso ou identificação em outro sistema.
+                </p>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="razao-social">Razão Social *</Label>
@@ -408,25 +416,6 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
                 {errors.client_status && (
                   <p className="text-sm text-destructive">{errors.client_status}</p>
                 )}
-              </div>
-              <div className="space-y-2">
-                <Label>Responsável Interno</Label>
-                <Select
-                  value={form.responsavel_interno || '__none__'}
-                  onValueChange={(v) => set('responsavel_interno')(v === '__none__' ? '' : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um responsável" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">— Nenhum —</SelectItem>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardContent>
