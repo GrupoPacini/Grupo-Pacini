@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-30T20:52:15.443Z",
+  "generatedAt": "2026-07-31T00:13:58.398Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,29 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["admin", "colaborador"]
+          "selectValues": [
+            "admin",
+            "colaborador"
+          ]
         },
         {
           "name": "department",
@@ -57,7 +65,12 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Ativo", "Inativo", "Bloqueado", "Convite pendente"]
+          "selectValues": [
+            "Ativo",
+            "Inativo",
+            "Bloqueado",
+            "Convite pendente"
+          ]
         },
         {
           "name": "last_access",
@@ -93,14 +106,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": []
@@ -133,21 +151,30 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Simples Nacional", "Lucro Presumido", "Lucro Real"]
+          "selectValues": [
+            "Simples Nacional",
+            "Lucro Presumido",
+            "Lucro Real"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "code",
@@ -166,7 +193,12 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Lead", "Documentação", "Configuração", "Ativo"]
+          "selectValues": [
+            "Lead",
+            "Documentação",
+            "Configuração",
+            "Ativo"
+          ]
         },
         {
           "name": "razao_social",
@@ -253,7 +285,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX `idx_clients_code` ON `clients` (code)"]
+      "indexes": [
+        "CREATE INDEX `idx_clients_code` ON `clients` (code)"
+      ]
     },
     {
       "name": "processes",
@@ -291,7 +325,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Pendente", "Em Andamento", "Concluído", "Atrasado"]
+          "selectValues": [
+            "Pendente",
+            "Em Andamento",
+            "Concluído",
+            "Atrasado"
+          ]
         },
         {
           "name": "due_date",
@@ -325,14 +364,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": []
@@ -380,14 +424,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": []
@@ -439,7 +488,11 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Baixa", "Média", "Alta"]
+          "selectValues": [
+            "Baixa",
+            "Média",
+            "Alta"
+          ]
         },
         {
           "name": "sem_vencimento",
@@ -452,14 +505,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "etapa_renovacao",
@@ -515,7 +573,9 @@
           ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"]
+      "indexes": [
+        "CREATE INDEX idx_licenses_client_expiry ON licenses (client, expiration_date)"
+      ]
     }
   ]
 }
