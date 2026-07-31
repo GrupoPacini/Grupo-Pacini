@@ -1,3 +1,5 @@
+import type { Client } from '@/services/api'
+
 export interface ClientRecord {
   id: string
   name: string
@@ -9,8 +11,7 @@ export interface ClientRecord {
   razao_social: string
   nome_fantasia: string
   client_status: string
-  motivo_inativacao: string
-  responsavel_interno: string | null
+  responsavel_interno: string
   nome_contato: string
   email_principal: string
   telefone: string
@@ -20,16 +21,17 @@ export interface ClientRecord {
   created: string
   updated: string
   expand?: {
-    responsavel_interno?: { id: string; name: string; email: string }
+    responsavel_interno?: { id: string; name: string }
   }
+  [key: string]: unknown
 }
 
 export function maskCNPJ(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 14)
   return digits
-    .replace(/^(\d{2})(\d)/, '$1.$2')
-    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{2})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1/$2')
     .replace(/(\d{4})(\d)/, '$1-$2')
 }
 
@@ -38,61 +40,61 @@ export function unmaskCNPJ(value: string): string {
 }
 
 export function validateCNPJ(cnpj: string): boolean {
-  const clean = unmaskCNPJ(cnpj)
+  const clean = cnpj.replace(/\D/g, '')
   if (clean.length !== 14) return false
   if (/^(\d)\1+$/.test(clean)) return false
 
+  let size = clean.length - 2
+  let numbers = clean.substring(0, size)
+  const digits = clean.substring(size)
   let sum = 0
-  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-  for (let i = 0; i < 12; i++) sum += parseInt(clean[i]) * w1[i]
-  let d1 = sum % 11
-  d1 = d1 < 2 ? 0 : 11 - d1
-  if (parseInt(clean[12]) !== d1) return false
+  let pos = size - 7
 
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--
+    if (pos < 2) pos = 9
+  }
+  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11)
+  if (result !== parseInt(digits.charAt(0))) return false
+
+  size = size + 1
+  numbers = clean.substring(0, size)
   sum = 0
-  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-  for (let i = 0; i < 13; i++) sum += parseInt(clean[i]) * w2[i]
-  let d2 = sum % 11
-  d2 = d2 < 2 ? 0 : 11 - d2
-  return parseInt(clean[13]) === d2
+  pos = size - 7
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--
+    if (pos < 2) pos = 9
+  }
+  result = sum % 11 < 2 ? 0 : 11 - (sum % 11)
+  if (result !== parseInt(digits.charAt(1))) return false
+  return true
 }
 
-export function isClientIncomplete(client: ClientRecord): boolean {
-  return (
-    !client.cnpj?.trim() ||
-    !(client.razao_social?.trim() || client.name?.trim()) ||
-    !client.tax_regime ||
-    !client.situacao_cadastral?.trim() ||
-    !client.responsavel_interno
-  )
+export function formatCnpj(cnpj: string): string {
+  if (!cnpj) return '—'
+  const digits = cnpj.replace(/\D/g, '')
+  if (digits.length !== 14) return cnpj
+  return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
 }
 
-export function getDisplayStatus(client: ClientRecord): string {
+export function isClientIncomplete(client: Client): boolean {
+  return !client.cnpj || !client.razao_social || !client.tax_regime || !client.responsavel_interno
+}
+
+export function getClientStatusLabel(client: Client): string {
   if (isClientIncomplete(client)) return 'Cadastro incompleto'
-  return client.client_status || 'Ativo'
+  return client.client_status === 'Inativo' ? 'Inativo' : 'Ativo'
 }
 
-export function statusBadgeClass(status: string): string {
-  switch (status) {
+export function getClientStatusBadgeClass(client: Client): string {
+  const label = getClientStatusLabel(client)
+  switch (label) {
     case 'Ativo':
       return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-400'
     case 'Inativo':
-      return 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-900/30 dark:text-gray-400'
+      return 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400'
     case 'Cadastro incompleto':
       return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400'
-    default:
-      return 'bg-gray-50 text-gray-700 border-gray-200'
-  }
-}
-
-export function regimeBadgeClass(regime: string): string {
-  switch (regime) {
-    case 'Simples Nacional':
-      return 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400'
-    case 'Lucro Presumido':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400'
-    case 'Lucro Real':
-      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400'
     default:
       return 'bg-gray-50 text-gray-700 border-gray-200'
   }

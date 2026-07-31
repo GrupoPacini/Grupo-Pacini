@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -10,6 +10,7 @@ import Index from './pages/Index'
 import Processos from './pages/Processos'
 import Clientes from './pages/Clientes'
 import ClientDetail from './pages/ClientDetail'
+import ClientFormPage from './pages/ClientFormPage'
 import Playbooks from './pages/Playbooks'
 import Licenses from './pages/Licenses'
 import Renewals from './pages/Renewals'
@@ -23,38 +24,43 @@ import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
+const router = createBrowserRouter([
+  { path: '/login', element: <Login /> },
+  {
+    element: <ProtectedRoute />,
+    children: [
+      { path: '/access-denied', element: <AccessDenied /> },
+      { path: '/perfil-inativo', element: <PerfilInativo /> },
+      {
+        element: <Layout />,
+        children: [
+          { path: '/', element: <Index /> },
+          { path: '/processos', element: <Processos /> },
+          { path: '/clientes', element: <Clientes /> },
+          { path: '/clientes/novo', element: <ClientFormPage /> },
+          { path: '/clientes/:id', element: <ClientDetail /> },
+          { path: '/playbooks', element: <Playbooks /> },
+          { path: '/licencas', element: <Licenses /> },
+          { path: '/renovacoes', element: <Renewals /> },
+          { path: '/chat', element: <Chat /> },
+          { path: '/configuracoes', element: <Configuracoes /> },
+          { path: '/configuracoes/usuarios', element: <GestaoUsuarios /> },
+          { path: '/configuracoes/perfis', element: <PerfisAcesso /> },
+        ],
+      },
+    ],
+  },
+  { path: '*', element: <NotFound /> },
+])
+
 const App = () => (
   <AuthProvider>
     <PermissionProvider>
-      <BrowserRouter>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-
-            <Route element={<ProtectedRoute />}>
-              <Route path="/access-denied" element={<AccessDenied />} />
-              <Route path="/perfil-inativo" element={<PerfilInativo />} />
-              <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/processos" element={<Processos />} />
-                <Route path="/clientes" element={<Clientes />} />
-                <Route path="/clientes/:id" element={<ClientDetail />} />
-                <Route path="/playbooks" element={<Playbooks />} />
-                <Route path="/licencas" element={<Licenses />} />
-                <Route path="/renovacoes" element={<Renewals />} />
-                <Route path="/chat" element={<Chat />} />
-                <Route path="/configuracoes" element={<Configuracoes />} />
-                <Route path="/configuracoes/usuarios" element={<GestaoUsuarios />} />
-                <Route path="/configuracoes/perfis" element={<PerfisAcesso />} />
-              </Route>
-            </Route>
-
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TooltipProvider>
-      </BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <RouterProvider router={router} />
+      </TooltipProvider>
     </PermissionProvider>
   </AuthProvider>
 )

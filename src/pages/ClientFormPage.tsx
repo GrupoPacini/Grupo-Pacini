@@ -9,7 +9,7 @@ import { Navigate } from 'react-router-dom'
 export default function ClientFormPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { can, loading } = usePermissions()
+  const { can, canView, loading } = usePermissions()
   const mode = id ? 'edit' : 'create'
 
   if (loading) {
@@ -21,7 +21,8 @@ export default function ClientFormPage() {
     )
   }
 
-  const canAccess = mode === 'create' ? can('Clientes', 'criar') : can('Clientes', 'editar')
+  const canAccess =
+    mode === 'create' ? can('Clientes', 'criar') && canView('Clientes') : can('Clientes', 'editar')
   if (!canAccess) return <Navigate to="/access-denied" replace />
 
   return (
@@ -46,7 +47,7 @@ export default function ClientFormPage() {
         mode={mode}
         clientId={id}
         onSuccess={(clientId) => navigate(`/clientes/${clientId}`)}
-        onCancel={() => navigate(-1)}
+        onCancel={() => navigate('/clientes')}
       />
     </div>
   )

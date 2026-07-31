@@ -18,11 +18,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { updateClientRecord } from '@/services/clients'
-import { type ClientRecord, statusBadgeClass } from '@/lib/client-utils'
+import { type ClientRecord } from '@/lib/client-utils'
 import { toast } from 'sonner'
 import { AlertTriangle } from 'lucide-react'
 
 const STATUSES = ['Ativo', 'Inativo']
+
+function statusBadgeClass(status: string) {
+  if (status === 'Ativo')
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+  if (status === 'Inativo')
+    return 'bg-gray-100 text-gray-600 dark:bg-gray-900/40 dark:text-gray-400'
+  return ''
+}
 
 interface Props {
   open: boolean

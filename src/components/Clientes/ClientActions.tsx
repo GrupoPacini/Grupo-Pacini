@@ -9,16 +9,23 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { MoreHorizontal, Eye, Pencil, RefreshCw, FileText, ShieldCheck } from 'lucide-react'
-import type { ClientRecord } from '@/lib/client-utils'
+import type { Client } from '@/services/api'
 
 interface ClientActionsProps {
-  client: ClientRecord
-  onStatusChange: (client: ClientRecord) => void
+  client: Client
+  onEdit: (client: Client) => void
+  onStatusChange: (client: Client) => void
   canEdit: boolean
   canManage: boolean
 }
 
-export function ClientActions({ client, onStatusChange, canEdit, canManage }: ClientActionsProps) {
+export function ClientActions({
+  client,
+  onEdit,
+  onStatusChange,
+  canEdit,
+  canManage,
+}: ClientActionsProps) {
   const navigate = useNavigate()
 
   return (
@@ -36,11 +43,11 @@ export function ClientActions({ client, onStatusChange, canEdit, canManage }: Cl
       <DropdownMenuContent align="end" className="w-52" onClick={(e) => e.stopPropagation()}>
         <DropdownMenuLabel className="text-xs text-muted-foreground">Ações</DropdownMenuLabel>
         <DropdownMenuItem onClick={() => navigate(`/clientes/${client.id}`)}>
-          <Eye size={14} className="mr-2" /> Visualizar cliente
+          <Eye size={14} className="mr-2" /> Visualizar
         </DropdownMenuItem>
         {canEdit && (
-          <DropdownMenuItem onClick={() => navigate(`/clientes/${client.id}/editar`)}>
-            <Pencil size={14} className="mr-2" /> Editar dados cadastrais
+          <DropdownMenuItem onClick={() => onEdit(client)}>
+            <Pencil size={14} className="mr-2" /> Editar
           </DropdownMenuItem>
         )}
         {canManage && (
@@ -50,10 +57,10 @@ export function ClientActions({ client, onStatusChange, canEdit, canManage }: Cl
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => navigate(`/processos?clientId=${client.id}`)}>
-          <FileText size={14} className="mr-2" /> Abrir processos
+          <FileText size={14} className="mr-2" /> Abrir Processos
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate(`/licencas?clientId=${client.id}`)}>
-          <ShieldCheck size={14} className="mr-2" /> Abrir licenças
+          <ShieldCheck size={14} className="mr-2" /> Abrir Licenças
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -37,8 +37,11 @@ export interface Client {
   observacoes_internas: string
   observacoes_atualizado_em: string
   observacoes_atualizado_por: string
+  client_status: string
+  responsavel_interno: string
   expand?: {
     observacoes_atualizado_por?: { id: string; name: string }
+    responsavel_interno?: { id: string; name: string }
   }
 }
 
@@ -85,7 +88,11 @@ export const updateProcessStatus = (id: string, status: Process['status']) =>
 export const updateProcessNotes = (id: string, notes: string) =>
   pb.collection('processes').update(id, { notes })
 
-export const getClients = () => pb.collection<Client>('clients').getFullList({ sort: 'name' })
+export const getClients = () =>
+  pb.collection<Client>('clients').getFullList({
+    sort: 'name',
+    expand: 'responsavel_interno',
+  })
 
 export const createClient = (data: Partial<Omit<Client, 'id' | 'created'>>) =>
   pb.collection('clients').create(data)

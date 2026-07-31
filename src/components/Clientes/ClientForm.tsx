@@ -155,21 +155,37 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
   const set = (k: keyof ClientFormData) => (v: string) => {
     savedRef.current = false
     setForm((prev) => ({ ...prev, [k]: v }))
+    setErrors((prev) => {
+      if (!prev[k]) return prev
+      const next = { ...prev }
+      delete next[k]
+      return next
+    })
   }
 
   const handleCnpjChange = (v: string) => {
     savedRef.current = false
     setForm((prev) => ({ ...prev, cnpj: maskCNPJ(v) }))
+    setErrors((prev) => {
+      if (!prev.cnpj) return prev
+      const next = { ...prev }
+      delete next.cnpj
+      return next
+    })
   }
 
   const validate = (): boolean => {
     const errs: FieldErrors = {}
-    if (!form.razao_social.trim()) errs.razao_social = 'Razão social é obrigatória'
-    if (form.cnpj) {
+    if (!form.razao_social.trim()) errs.razao_social = 'Razão Social é obrigatória'
+    if (!form.cnpj.trim()) {
+      errs.cnpj = 'CNPJ é obrigatório'
+    } else {
       const clean = unmaskCNPJ(form.cnpj)
       if (clean.length !== 14) errs.cnpj = 'CNPJ deve ter 14 dígitos'
       else if (!validateCNPJ(clean)) errs.cnpj = 'CNPJ inválido'
     }
+    if (!form.tax_regime) errs.tax_regime = 'Regime Tributário é obrigatório'
+    if (!form.client_status) errs.client_status = 'Status do Cliente é obrigatório'
     if (form.email_principal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email_principal)) {
       errs.email_principal = 'E-mail inválido'
     }
@@ -185,7 +201,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
         const clean = unmaskCNPJ(form.cnpj)
         const isDup = await checkCNPJDuplicate(clean, mode === 'edit' ? clientId : undefined)
         if (isDup) {
-          setErrors({ cnpj: 'CNPJ já cadastrado para outro cliente' })
+          setErrors({ cnpj: 'Este CNPJ já está cadastrado' })
           setSubmitting(false)
           return
         }
@@ -213,7 +229,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
         payload.code = await generateClientCode()
         const result = await createClientRecord(payload)
         resultId = result.id
-        toast.success('Cliente criado com sucesso')
+        toast.success('Cliente cadastrado com sucesso')
       } else {
         await updateClientRecord(clientId!, payload)
         resultId = clientId!
@@ -225,7 +241,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
       onSuccess(resultId)
     } catch (err) {
       setErrors(extractFieldErrors(err))
-      toast.error('Erro ao salvar cliente')
+      toast.error('Erro ao cadastrar cliente. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
@@ -272,7 +288,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cnpj">CNPJ</Label>
+                <Label htmlFor="cnpj">CNPJ *</Label>
                 <Input
                   id="cnpj"
                   value={form.cnpj}
@@ -303,7 +319,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Regime Tributário</Label>
+                <Label>Regime Tributário *</Label>
                 <Select
                   value={form.tax_regime || '__none__'}
                   onValueChange={(v) => set('tax_regime')(v === '__none__' ? '' : v)}
@@ -320,6 +336,9 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.tax_regime && (
+                  <p className="text-sm text-destructive">{errors.tax_regime}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="situacao">Situação Cadastral</Label>
@@ -369,7 +388,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Status do Cliente</Label>
+                <Label>Status do Cliente *</Label>
                 <Select value={form.client_status} onValueChange={set('client_status')}>
                   <SelectTrigger>
                     <SelectValue />
@@ -440,7 +459,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || Object.keys(errors).length > 0}
             className="bg-primary hover:bg-primary/90 min-w-[140px]"
           >
             {submitting ? (
@@ -459,7 +478,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Descartar alterações?</AlertDialogTitle>
             <AlertDialogDescription>
-              Você possui alterações não salvas. Deseja realmente sair sem salvar?
+              Existem alterações não salvas. Deseja realmente sair?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
