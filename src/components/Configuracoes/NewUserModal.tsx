@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select'
 import { Loader2, UserPlus } from 'lucide-react'
 import { createUser } from '@/services/users'
+import type { AccessProfileRecord } from '@/services/access-profiles'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
 import type { DepartmentRecord } from '@/services/departments'
@@ -28,15 +29,22 @@ interface NewUserModalProps {
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   departments: DepartmentRecord[]
+  profiles: AccessProfileRecord[]
 }
 
-export function NewUserModal({ open, onOpenChange, onSuccess, departments }: NewUserModalProps) {
+export function NewUserModal({
+  open,
+  onOpenChange,
+  onSuccess,
+  departments,
+  profiles,
+}: NewUserModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<'admin' | 'colaborador'>('colaborador')
-  const [department, setDepartment] = useState<string>('none')
+  const [accessProfile, setAccessProfile] = useState<string>('none')
   const [status, setStatus] = useState<string>('Ativo')
+  const [department, setDepartment] = useState<string>('none')
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
@@ -44,7 +52,7 @@ export function NewUserModal({ open, onOpenChange, onSuccess, departments }: New
     setName('')
     setEmail('')
     setPassword('')
-    setRole('colaborador')
+    setAccessProfile('none')
     setDepartment('none')
     setStatus('Ativo')
     setFieldErrors({})
@@ -57,6 +65,12 @@ export function NewUserModal({ open, onOpenChange, onSuccess, departments }: New
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (accessProfile === 'none') {
+      setFieldErrors({ access_profile: 'Selecione um perfil de acesso' })
+      return
+    }
+    const selectedProfile = profiles.find((p) => p.id === accessProfile)
+    const role = selectedProfile?.name === 'Administrador' ? 'admin' : 'colaborador'
     setLoading(true)
     setFieldErrors({})
     try {
@@ -67,6 +81,7 @@ export function NewUserModal({ open, onOpenChange, onSuccess, departments }: New
         passwordConfirm: password,
         role,
         department: department === 'none' ? null : department,
+        access_profile: accessProfile,
         status,
       })
       toast.success('Usuário criado com sucesso')
@@ -130,19 +145,25 @@ export function NewUserModal({ open, onOpenChange, onSuccess, departments }: New
             />
             {fieldErrors.password && <p className="text-sm text-red-500">{fieldErrors.password}</p>}
           </div>
+          <div className="space-y-2">
+            <Label>Perfil de Acesso</Label>
+            <Select value={accessProfile} onValueChange={setAccessProfile}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione um perfil" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {fieldErrors.access_profile && (
+              <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Função</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as 'admin' | 'colaborador')}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="colaborador">Colaborador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
@@ -157,22 +178,22 @@ export function NewUserModal({ open, onOpenChange, onSuccess, departments }: New
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Departamento</Label>
-            <Select value={department} onValueChange={setDepartment}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label>Departamento</Label>
+              <Select value={department} onValueChange={setDepartment}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button

@@ -28,15 +28,15 @@ const adminCards: SettingsCardItem[] = [
     icon: UserCog,
     href: '/configuracoes/usuarios',
   },
-]
-
-const placeholderCards: SettingsCardItem[] = [
   {
     title: 'Perfis de Acesso',
     description: 'Configure perfis detalhados e permissões granulares por módulo.',
     icon: KeyRound,
-    soon: true,
+    href: '/configuracoes/perfis',
   },
+]
+
+const placeholderCards: SettingsCardItem[] = [
   {
     title: 'Auditoria',
     description: 'Acompanhe logs de alterações e atividades dos usuários no sistema.',

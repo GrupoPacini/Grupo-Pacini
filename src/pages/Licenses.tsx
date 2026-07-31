@@ -49,7 +49,7 @@ import { getDaysRemaining, licenseStatusBadge, LICENSE_STATUS } from '@/lib/lice
 import { type FilterCondition, type FilterFieldConfig, isConditionEmpty } from '@/lib/filter-types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/hooks/use-auth'
+import { usePermissions } from '@/hooks/use-permissions'
 
 const FILTER_FIELDS: FilterFieldConfig[] = [
   {

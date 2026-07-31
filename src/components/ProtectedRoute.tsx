@@ -1,11 +1,14 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
+import { usePermissions } from '@/hooks/use-permissions'
+import { getModuleFromPath } from '@/lib/permissions'
 
 export const ProtectedRoute = () => {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { loading: permsLoading, profileInactive, canView } = usePermissions()
   const location = useLocation()
 
-  if (loading) {
+  if (authLoading || permsLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
         <div className="animate-pulse text-primary font-medium">Carregando Sistema...</div>
@@ -15,6 +18,15 @@ export const ProtectedRoute = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
+  }
+
+  if (profileInactive && location.pathname !== '/perfil-inativo') {
+    return <Navigate to="/perfil-inativo" replace />
+  }
+
+  const module = getModuleFromPath(location.pathname)
+  if (module && !canView(module) && location.pathname !== '/access-denied') {
+    return <Navigate to="/access-denied" replace />
   }
 
   return <Outlet />

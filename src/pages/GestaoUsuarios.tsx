@@ -6,6 +6,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 import { getUsers, type UserRecord } from '@/services/users'
 import { getDepartments, type DepartmentRecord } from '@/services/departments'
+import { getActiveAccessProfiles, type AccessProfileRecord } from '@/services/access-profiles'
 import { toast } from 'sonner'
 import { StatsCards } from '@/components/Configuracoes/StatsCards'
 import { PermissionCards } from '@/components/Configuracoes/PermissionCards'
@@ -13,17 +14,19 @@ import { UserManagement } from '@/components/Configuracoes/UserManagement'
 import { PermissionsModal } from '@/components/Configuracoes/PermissionsModal'
 
 export default function GestaoUsuarios() {
-  const { isAdmin, loading: authLoading } = useAuth()
+  const { user, isAdmin, loading: authLoading } = useAuth()
   const [users, setUsers] = useState<UserRecord[]>([])
   const [departments, setDepartments] = useState<DepartmentRecord[]>([])
+  const [profiles, setProfiles] = useState<AccessProfileRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [permissionsRole, setPermissionsRole] = useState<'admin' | 'colaborador' | null>(null)
 
   const loadData = useCallback(async () => {
     try {
-      const [u, d] = await Promise.all([getUsers(), getDepartments()])
+      const [u, d, p] = await Promise.all([getUsers(), getDepartments(), getActiveAccessProfiles()])
       setUsers(u)
       setDepartments(d)
+      setProfiles(p)
     } catch {
       toast.error('Erro Ao Carregar Dados')
     } finally {
@@ -91,6 +94,8 @@ export default function GestaoUsuarios() {
       <UserManagement
         users={users}
         departments={departments}
+        profiles={profiles}
+        currentUserId={user?.id || ''}
         loading={loading}
         onRefresh={loadData}
       />

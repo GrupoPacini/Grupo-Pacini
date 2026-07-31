@@ -9,6 +9,37 @@ export interface Client {
   alias: string
   onboarding_status: string
   created: string
+  updated: string
+  razao_social: string
+  nome_fantasia: string
+  municipio: string
+  estado: string
+  cnae_principal: string
+  cnaes_secundarios: string[] | null
+  objeto_social: string
+  inscricao_estadual: string
+  inscricao_municipal: string
+  ccm: string
+  natureza_juridica: string
+  porte: string
+  data_abertura: string
+  cep: string
+  logradouro: string
+  numero: string
+  complemento: string
+  bairro: string
+  telefone: string
+  celular: string
+  whatsapp: string
+  email_principal: string
+  site: string
+  situacao_cadastral: string
+  observacoes_internas: string
+  observacoes_atualizado_em: string
+  observacoes_atualizado_por: string
+  expand?: {
+    observacoes_atualizado_por?: { id: string; name: string }
+  }
 }
 
 export interface Department {
@@ -63,6 +94,22 @@ export const updateClient = (id: string, data: Partial<Omit<Client, 'id' | 'crea
   pb.collection('clients').update(id, data)
 
 export const deleteClient = (id: string) => pb.collection('clients').delete(id)
+
+export const getClient = (id: string) =>
+  pb.collection<Client>('clients').getOne(id, { expand: 'observacoes_atualizado_por' })
+
+export const getProcessesByClient = (clientId: string) =>
+  pb.collection<Process>('processes').getFullList({
+    filter: `client = '${clientId}'`,
+    expand: 'department,responsible',
+    sort: '-created',
+  })
+
+export const getLicensesByClient = (clientId: string) =>
+  pb.collection('licenses').getFullList({
+    filter: `client = '${clientId}'`,
+    sort: '-created',
+  })
 
 export const getDepartments = () =>
   pb.collection<Department>('departments').getFullList({ sort: 'name' })

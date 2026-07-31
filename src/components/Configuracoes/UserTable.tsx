@@ -28,6 +28,7 @@ interface UserTableProps {
   users: UserRecord[]
   loading: boolean
   onAction: (action: UserAction, user: UserRecord) => void
+  currentUserId: string
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -37,7 +38,7 @@ const STATUS_STYLES: Record<string, string> = {
   'Convite pendente': 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30',
 }
 
-export function UserTable({ users, loading, onAction }: UserTableProps) {
+export function UserTable({ users, loading, onAction, currentUserId }: UserTableProps) {
   const baseUrl = import.meta.env.VITE_POCKETBASE_URL
 
   if (loading) {
@@ -62,7 +63,7 @@ export function UserTable({ users, loading, onAction }: UserTableProps) {
             <TableHead className="pl-6">Usuário</TableHead>
             <TableHead>E-mail</TableHead>
             <TableHead>Departamento</TableHead>
-            <TableHead>Perfil</TableHead>
+            <TableHead>Perfil de Acesso</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Último acesso</TableHead>
             <TableHead className="text-right pr-6">Ações</TableHead>
@@ -72,11 +73,13 @@ export function UserTable({ users, loading, onAction }: UserTableProps) {
           {users.map((u) => {
             const status = u.status || 'Ativo'
             const deptName = u.expand?.department?.name || '—'
+            const profileName = u.expand?.access_profile?.name || '—'
             const lastAccess = u.last_access
               ? format(new Date(u.last_access), 'dd/MM/yyyy HH:mm', { locale: ptBR })
               : 'Nunca'
             const avatarUrl = u.avatar ? `${baseUrl}/api/files/users/${u.id}/${u.avatar}` : null
             const initials = (u.name || u.email || '?')[0]?.toUpperCase() || '?'
+            const isSelf = u.id === currentUserId
 
             return (
               <TableRow key={u.id} className="hover:bg-muted/30 transition-colors">
@@ -95,12 +98,14 @@ export function UserTable({ users, loading, onAction }: UserTableProps) {
                 <TableCell className="py-4 text-muted-foreground text-sm">{deptName}</TableCell>
                 <TableCell className="py-4">
                   <Badge
-                    variant={u.role === 'admin' ? 'default' : 'secondary'}
+                    variant="outline"
                     className={
-                      u.role === 'admin' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
+                      profileName === 'Administrador'
+                        ? 'bg-blue-500/15 text-blue-700 border-blue-500/30'
+                        : 'bg-gray-100 text-gray-700 border-gray-300'
                     }
                   >
-                    {u.role === 'admin' ? 'Administrador' : 'Colaborador'}
+                    {profileName}
                   </Badge>
                 </TableCell>
                 <TableCell className="py-4">
@@ -127,7 +132,7 @@ export function UserTable({ users, loading, onAction }: UserTableProps) {
                         <Pencil size={14} className="mr-2" /> Editar
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onAction('role', u)}>
+                      <DropdownMenuItem onClick={() => onAction('role', u)} disabled={isSelf}>
                         <ShieldCheck size={14} className="mr-2" /> Alterar perfil
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onAction('status', u)}>
@@ -140,6 +145,7 @@ export function UserTable({ users, loading, onAction }: UserTableProps) {
                       <DropdownMenuItem
                         onClick={() => onAction('deactivate', u)}
                         className="text-red-600 focus:text-red-600"
+                        disabled={isSelf}
                       >
                         <UserX size={14} className="mr-2" /> Desativar usuário
                       </DropdownMenuItem>

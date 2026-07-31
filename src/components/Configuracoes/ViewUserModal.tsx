@@ -27,7 +27,12 @@ export function ViewUserModal({ user, onClose }: ViewUserModalProps) {
     { label: 'Nome', value: user?.name || '—' },
     { label: 'E-mail', value: user?.email || '—' },
     { label: 'Departamento', value: deptName },
-    { label: 'Perfil', value: user?.role === 'admin' ? 'Administrador' : 'Colaborador' },
+    {
+      label: 'Perfil',
+      value:
+        user?.expand?.access_profile?.name ||
+        (user?.role === 'admin' ? 'Administrador' : 'Colaborador'),
+    },
     { label: 'Status', value: user?.status || 'Ativo' },
     { label: 'Último acesso', value: lastAccess },
     { label: 'Criado em', value: created },

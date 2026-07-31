@@ -35,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ProcessCreateDialog } from '@/components/ProcessCreateDialog'
 import { KanbanBoard } from '@/components/KanbanBoard'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/hooks/use-auth'
+import { usePermissions } from '@/hooks/use-permissions'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -54,7 +54,7 @@ export default function Processos() {
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const { toast } = useToast()
-  const { isAdmin } = useAuth()
+  const { can } = usePermissions()
 
   const loadData = async () => {
     try {
@@ -154,7 +154,7 @@ export default function Processos() {
             >
               <List size={16} className="mr-1" /> Lista
             </Button>
-            {isAdmin && (
+            {can('Processos', 'editar') && (
               <Button
                 variant={viewMode === 'kanban' ? 'default' : 'ghost'}
                 size="sm"
@@ -165,7 +165,7 @@ export default function Processos() {
               </Button>
             )}
           </div>
-          {isAdmin && (
+          {can('Processos', 'criar') && (
             <Button
               onClick={() => setCreateOpen(true)}
               className="bg-primary hover:bg-primary/90 gap-2"
@@ -311,7 +311,7 @@ export default function Processos() {
           {selectedProcess && (
             <div className="space-y-8">
               {/* Status Section */}
-              {isAdmin && (
+              {can('Processos', 'editar') && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
                     Mudar Status
@@ -351,7 +351,7 @@ export default function Processos() {
               </div>
 
               {/* Notes Section */}
-              {isAdmin && (
+              {can('Processos', 'editar') && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">
                     Anotações Internas

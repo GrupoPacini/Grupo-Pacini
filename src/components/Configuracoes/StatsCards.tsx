@@ -52,22 +52,16 @@ export function StatsCards({ total, admins, colaboradores, ativos }: StatsCardsP
       {cards.map((card) => {
         const Icon = card.icon
         return (
-          <Card
-            key={card.key}
-            className={cn(
-              'p-5 shadow-sm border-l-4 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
-              card.border,
-            )}
-          >
+          <Card key={card.key} className={cn('p-4 shadow-sm border-l-4', card.border)}>
             <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <div>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                   {card.label}
                 </p>
-                <p className="text-3xl font-bold text-foreground">{values[card.key]}</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{values[card.key]}</p>
               </div>
               <div className={cn('rounded-full p-3', card.bg)}>
-                <Icon size={22} className={card.iconColor} />
+                <Icon size={20} className={card.iconColor} />
               </div>
             </div>
           </Card>

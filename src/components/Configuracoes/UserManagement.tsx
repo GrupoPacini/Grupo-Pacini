@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { UserPlus } from 'lucide-react'
 import type { UserRecord } from '@/services/users'
 import type { DepartmentRecord } from '@/services/departments'
+import type { AccessProfileRecord } from '@/services/access-profiles'
 import { UserFilters } from './UserFilters'
 import { UserTable, type UserAction } from './UserTable'
 import { ViewUserModal } from './ViewUserModal'
@@ -17,11 +18,20 @@ import { NewUserModal } from './NewUserModal'
 interface UserManagementProps {
   users: UserRecord[]
   departments: DepartmentRecord[]
+  profiles: AccessProfileRecord[]
+  currentUserId: string
   loading: boolean
   onRefresh: () => void
 }
 
-export function UserManagement({ users, departments, loading, onRefresh }: UserManagementProps) {
+export function UserManagement({
+  users,
+  departments,
+  profiles,
+  currentUserId,
+  loading,
+  onRefresh,
+}: UserManagementProps) {
   const [search, setSearch] = useState('')
   const [profileFilter, setProfileFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -102,15 +112,27 @@ export function UserManagement({ users, departments, loading, onRefresh }: UserM
           onClear={clearFilters}
           hasFilters={hasFilters}
         />
-        <UserTable users={filtered} loading={loading} onAction={handleAction} />
+        <UserTable
+          users={filtered}
+          loading={loading}
+          onAction={handleAction}
+          currentUserId={currentUserId}
+        />
         <ViewUserModal user={getActiveUser('view')} onClose={closeModal} />
         <EditUserModal
           user={getActiveUser('edit')}
           departments={departments}
+          profiles={profiles}
+          currentUserId={currentUserId}
           onClose={closeModal}
           onSuccess={onRefresh}
         />
-        <RoleChangeModal user={getActiveUser('role')} onClose={closeModal} onSuccess={onRefresh} />
+        <RoleChangeModal
+          user={getActiveUser('role')}
+          profiles={profiles}
+          onClose={closeModal}
+          onSuccess={onRefresh}
+        />
         <StatusChangeModal
           user={getActiveUser('status')}
           onClose={closeModal}
@@ -127,6 +149,7 @@ export function UserManagement({ users, departments, loading, onRefresh }: UserM
           onOpenChange={setNewUserOpen}
           onSuccess={onRefresh}
           departments={departments}
+          profiles={profiles}
         />
       </CardContent>
     </Card>

@@ -43,39 +43,31 @@ export function PermissionCards({
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {items.map(({ role, count }) => {
         const info = ROLE_INFO[role]
         const Icon = info.icon
         return (
-          <Card
-            key={role}
-            className={cn(
-              'border-l-4 shadow-sm transition-all duration-200 hover:shadow-md',
-              info.border,
-            )}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <div className={cn('rounded-full p-2', info.bg)}>
-                    <Icon size={18} className={info.iconColor} />
-                  </div>
-                  {info.title}
-                </CardTitle>
-                <span className="text-2xl font-bold text-foreground">{count}</span>
+          <Card key={role} className={cn('border-l-4 shadow-sm', info.border)}>
+            <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+              <div className={cn('rounded-full p-2.5', info.bg)}>
+                <Icon className={info.iconColor} size={20} />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">{info.title}</CardTitle>
+                <p className="text-xs text-muted-foreground">{count} usuário(s)</p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground leading-relaxed">{info.description}</p>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">{info.description}</p>
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2 w-full sm:w-auto"
+                className="w-full gap-2"
                 onClick={() => onViewPermissions(role)}
               >
                 <Eye size={14} />
-                Visualizar permissões
+                Ver Permissões
               </Button>
             </CardContent>
           </Card>
