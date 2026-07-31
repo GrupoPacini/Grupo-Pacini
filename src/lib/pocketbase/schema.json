@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-31T11:40:23.484Z",
+  "generatedAt": "2026-07-31T11:59:57.011Z",
   "collections": [
     {
       "name": "users",
@@ -379,9 +379,39 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "client_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo"]
+        },
+        {
+          "name": "motivo_inativacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "responsavel_interno",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "nome_contato",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
-      "indexes": ["CREATE INDEX `idx_clients_code` ON `clients` (code)"]
+      "indexes": [
+        "CREATE INDEX `idx_clients_code` ON `clients` (code)",
+        "CREATE INDEX `idx_clients_status` ON `clients` (client_status)",
+        "CREATE INDEX `idx_clients_responsavel` ON `clients` (responsavel_interno)"
+      ]
     },
     {
       "name": "processes",
