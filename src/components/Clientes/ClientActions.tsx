@@ -13,19 +13,12 @@ import type { Client } from '@/services/api'
 
 interface ClientActionsProps {
   client: Client
-  onEdit: (client: Client) => void
   onStatusChange: (client: Client) => void
   canEdit: boolean
   canManage: boolean
 }
 
-export function ClientActions({
-  client,
-  onEdit,
-  onStatusChange,
-  canEdit,
-  canManage,
-}: ClientActionsProps) {
+export function ClientActions({ client, onStatusChange, canEdit, canManage }: ClientActionsProps) {
   const navigate = useNavigate()
 
   return (
@@ -46,7 +39,7 @@ export function ClientActions({
           <Eye size={14} className="mr-2" /> Visualizar
         </DropdownMenuItem>
         {canEdit && (
-          <DropdownMenuItem onClick={() => onEdit(client)}>
+          <DropdownMenuItem onClick={() => navigate(`/clientes/${client.id}/editar`)}>
             <Pencil size={14} className="mr-2" /> Editar
           </DropdownMenuItem>
         )}

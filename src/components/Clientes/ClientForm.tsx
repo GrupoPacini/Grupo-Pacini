@@ -28,7 +28,7 @@ import {
   createClientRecord,
   updateClientRecord,
   checkCNPJDuplicate,
-  generateClientCode,
+  checkCodeDuplicate,
 } from '@/services/clients'
 import { maskCNPJ, unmaskCNPJ, validateCNPJ, type ClientRecord } from '@/lib/client-utils'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
@@ -69,19 +69,38 @@ const emptyForm: ClientFormData = {
   whatsapp: '',
 }
 
+function mapClientToForm(c: ClientRecord): ClientFormData {
+  return {
+    razao_social: c.razao_social || c.name || '',
+    nome_fantasia: c.nome_fantasia || c.alias || '',
+    cnpj: c.cnpj ? maskCNPJ(c.cnpj) : '',
+    code: c.code || '',
+    tax_regime: c.tax_regime || '',
+    situacao_cadastral: c.situacao_cadastral || '',
+    data_abertura: c.data_abertura || '',
+    responsavel_interno: c.responsavel_interno || '',
+    client_status: c.client_status || 'Ativo',
+    nome_contato: c.nome_contato || '',
+    email_principal: c.email_principal || '',
+    telefone: c.telefone || '',
+    whatsapp: c.whatsapp || '',
+  }
+}
+
 interface Props {
   mode: 'create' | 'edit'
   clientId?: string
+  initialClient?: ClientRecord | null
   onSuccess: (clientId: string) => void
   onCancel: () => void
 }
 
-export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
+export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel }: Props) {
   const navigate = useNavigate()
   const [form, setForm] = useState<ClientFormData>(emptyForm)
   const [initialForm, setInitialForm] = useState(JSON.stringify(emptyForm))
   const [errors, setErrors] = useState<FieldErrors>({})
-  const [loading, setLoading] = useState(mode === 'edit')
+  const [loading, setLoading] = useState(mode === 'edit' && !initialClient)
   const [submitting, setSubmitting] = useState(false)
   const [users, setUsers] = useState<UserRecord[]>([])
   const savedRef = useRef(false)
@@ -97,38 +116,25 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
   )
 
   useEffect(() => {
-    if (blocker.state === 'blocked' && !savedRef.current) {
-      // Blocker dialog is rendered below
-    }
-  }, [blocker.state])
-
-  useEffect(() => {
     const loadData = async () => {
-      if (mode === 'edit' && clientId) {
-        try {
-          const c = await getClientById(clientId)
-          const mapped: ClientFormData = {
-            razao_social: c.razao_social || c.name || '',
-            nome_fantasia: c.nome_fantasia || c.alias || '',
-            cnpj: c.cnpj ? maskCNPJ(c.cnpj) : '',
-            code: c.code || '',
-            tax_regime: c.tax_regime || '',
-            situacao_cadastral: c.situacao_cadastral || '',
-            data_abertura: c.data_abertura || '',
-            responsavel_interno: c.responsavel_interno || '',
-            client_status: c.client_status || 'Ativo',
-            nome_contato: c.nome_contato || '',
-            email_principal: c.email_principal || '',
-            telefone: c.telefone || '',
-            whatsapp: c.whatsapp || '',
-          }
+      if (mode === 'edit') {
+        if (initialClient) {
+          const mapped = mapClientToForm(initialClient)
           setForm(mapped)
           setInitialForm(JSON.stringify(mapped))
-        } catch {
-          toast.error('Erro ao carregar cliente')
-          navigate('/clientes')
-        } finally {
           setLoading(false)
+        } else if (clientId) {
+          try {
+            const c = await getClientById(clientId)
+            const mapped = mapClientToForm(c)
+            setForm(mapped)
+            setInitialForm(JSON.stringify(mapped))
+          } catch {
+            toast.error('Erro ao carregar cliente')
+            navigate('/clientes')
+          } finally {
+            setLoading(false)
+          }
         }
       } else {
         setInitialForm(JSON.stringify(emptyForm))
@@ -139,7 +145,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
         .catch(() => {})
     }
     loadData()
-  }, [mode, clientId, navigate])
+  }, [mode, clientId, initialClient, navigate])
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -176,6 +182,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
 
   const validate = (): boolean => {
     const errs: FieldErrors = {}
+    if (!form.code.trim()) errs.code = 'Código Interno é obrigatório'
     if (!form.razao_social.trim()) errs.razao_social = 'Razão Social é obrigatória'
     if (!form.cnpj.trim()) {
       errs.cnpj = 'CNPJ é obrigatório'
@@ -195,6 +202,10 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
 
   const handleSubmit = async () => {
     if (!validate()) return
+    if (!isDirty && mode === 'edit') {
+      toast.info('Nenhuma alteração detectada')
+      return
+    }
     setSubmitting(true)
     try {
       if (form.cnpj) {
@@ -206,6 +217,17 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
           return
         }
       }
+      if (form.code.trim()) {
+        const isCodeDup = await checkCodeDuplicate(
+          form.code.trim(),
+          mode === 'edit' ? clientId : undefined,
+        )
+        if (isCodeDup) {
+          setErrors({ code: 'Já existe um cliente cadastrado com este Código Interno.' })
+          setSubmitting(false)
+          return
+        }
+      }
 
       const payload: Record<string, unknown> = {
         name: form.razao_social.trim(),
@@ -213,6 +235,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
         nome_fantasia: form.nome_fantasia.trim(),
         alias: form.nome_fantasia.trim(),
         cnpj: form.cnpj ? unmaskCNPJ(form.cnpj) : '',
+        code: form.code.trim(),
         tax_regime: form.tax_regime || null,
         situacao_cadastral: form.situacao_cadastral.trim() || null,
         data_abertura: form.data_abertura || null,
@@ -226,7 +249,6 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
 
       let resultId: string
       if (mode === 'create') {
-        payload.code = await generateClientCode()
         const result = await createClientRecord(payload)
         resultId = result.id
         toast.success('Cliente cadastrado com sucesso')
@@ -241,7 +263,7 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
       onSuccess(resultId)
     } catch (err) {
       setErrors(extractFieldErrors(err))
-      toast.error('Erro ao cadastrar cliente. Tente novamente.')
+      toast.error('Erro ao salvar cliente. Tente novamente.')
     } finally {
       setSubmitting(false)
     }
@@ -266,6 +288,20 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="code">Código Interno *</Label>
+                <Input
+                  id="code"
+                  value={form.code}
+                  onChange={(e) => set('code')(e.target.value)}
+                  placeholder="Ex: 0001 ou CLI-001"
+                  className="font-mono"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Informe o código utilizado no sistema externo.
+                </p>
+                {errors.code && <p className="text-sm text-destructive">{errors.code}</p>}
+              </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="razao-social">Razão Social *</Label>
                 <Input
@@ -297,16 +333,6 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
                   className="font-mono"
                 />
                 {errors.cnpj && <p className="text-sm text-destructive">{errors.cnpj}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="code">Código Interno</Label>
-                <Input
-                  id="code"
-                  value={form.code}
-                  readOnly
-                  placeholder="Gerado automaticamente"
-                  className="bg-muted/50 font-mono"
-                />
               </div>
             </div>
           </CardContent>
@@ -364,10 +390,25 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Gestão Interna</CardTitle>
+            <CardTitle>Situação</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status do Cliente *</Label>
+                <Select value={form.client_status} onValueChange={set('client_status')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Inativo">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.client_status && (
+                  <p className="text-sm text-destructive">{errors.client_status}</p>
+                )}
+              </div>
               <div className="space-y-2">
                 <Label>Responsável Interno</Label>
                 <Select
@@ -384,18 +425,6 @@ export function ClientForm({ mode, clientId, onSuccess, onCancel }: Props) {
                         {u.name}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Status do Cliente *</Label>
-                <Select value={form.client_status} onValueChange={set('client_status')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ativo">Ativo</SelectItem>
-                    <SelectItem value="Inativo">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

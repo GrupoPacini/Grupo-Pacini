@@ -26,7 +26,6 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { PermissionGuard } from '@/components/PermissionGuard'
 import { ClientActions } from '@/components/Clientes/ClientActions'
 import { ClientesIndicatorCards } from '@/components/Clientes/ClientesIndicatorCards'
-import { ClientFormDialog } from '@/components/Clientes/ClientFormDialog'
 import { StatusChangeDialog } from '@/components/Clientes/StatusChangeDialog'
 import { formatCnpj, getClientStatusLabel, getClientStatusBadgeClass } from '@/lib/client-utils'
 import { toast } from 'sonner'
@@ -57,8 +56,6 @@ export default function Clientes() {
   const [regimeFilter, setRegimeFilter] = useState('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [statusTarget, setStatusTarget] = useState<Client | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -125,10 +122,6 @@ export default function Clientes() {
 
   const openCreate = () => {
     navigate('/clientes/novo')
-  }
-  const openEdit = (client: Client) => {
-    setEditingClient(client)
-    setDialogOpen(true)
   }
   const openStatusChange = (client: Client) => {
     setStatusTarget(client)
@@ -318,7 +311,6 @@ export default function Clientes() {
                         <TableCell className="text-right pr-4">
                           <ClientActions
                             client={c}
-                            onEdit={openEdit}
                             onStatusChange={openStatusChange}
                             canEdit={can('Clientes', 'editar')}
                             canManage={can('Clientes', 'gerenciar')}
@@ -382,12 +374,6 @@ export default function Clientes() {
         </CardContent>
       </Card>
 
-      <ClientFormDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        editingClient={editingClient}
-        onSuccess={loadData}
-      />
       <StatusChangeDialog
         open={statusDialogOpen}
         onOpenChange={setStatusDialogOpen}

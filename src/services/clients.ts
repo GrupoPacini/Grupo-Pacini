@@ -97,6 +97,16 @@ export async function checkCNPJDuplicate(cnpj: string, excludeId?: string): Prom
   })
 }
 
+export async function checkCodeDuplicate(code: string, excludeId?: string): Promise<boolean> {
+  const clean = code.trim().toLowerCase()
+  if (!clean) return false
+  const all = await pb.collection('clients').getFullList({ fields: 'id,code' })
+  return all.some((item: any) => {
+    if (excludeId && item.id === excludeId) return false
+    return (item.code || '').trim().toLowerCase() === clean
+  })
+}
+
 export async function generateClientCode(): Promise<string> {
   const all = await pb.collection('clients').getFullList({ fields: 'code' })
   const codes = all

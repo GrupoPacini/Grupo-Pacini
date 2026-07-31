@@ -38,6 +38,7 @@ const router = createBrowserRouter([
           { path: '/processos', element: <Processos /> },
           { path: '/clientes', element: <Clientes /> },
           { path: '/clientes/novo', element: <ClientFormPage /> },
+          { path: '/clientes/:id/editar', element: <ClientFormPage /> },
           { path: '/clientes/:id', element: <ClientDetail /> },
           { path: '/playbooks', element: <Playbooks /> },
           { path: '/licencas', element: <Licenses /> },

@@ -1,18 +1,36 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft } from 'lucide-react'
 import { ClientForm } from '@/components/Clientes/ClientForm'
 import { usePermissions } from '@/hooks/use-permissions'
-import { Navigate } from 'react-router-dom'
+import { getClientById } from '@/services/clients'
+import { formatCnpj, type ClientRecord } from '@/lib/client-utils'
 
 export default function ClientFormPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { can, canView, loading } = usePermissions()
   const mode = id ? 'edit' : 'create'
+  const [client, setClient] = useState<ClientRecord | null>(null)
+  const [clientLoading, setClientLoading] = useState(mode === 'edit')
 
-  if (loading) {
+  useEffect(() => {
+    if (mode === 'edit' && id) {
+      getClientById(id)
+        .then((c) => {
+          setClient(c)
+          setClientLoading(false)
+        })
+        .catch(() => {
+          navigate('/clientes')
+          setClientLoading(false)
+        })
+    }
+  }, [mode, id, navigate])
+
+  if (loading || clientLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-64" />
@@ -35,19 +53,29 @@ export default function ClientFormPage() {
           <h1 className="text-2xl font-bold text-foreground">
             {mode === 'edit' ? 'Editar Cliente' : 'Novo Cliente'}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {mode === 'edit'
-              ? 'Atualize os dados cadastrais do cliente'
-              : 'Cadastre uma nova empresa no sistema'}
-          </p>
+          {mode === 'edit' && client ? (
+            <>
+              <p className="text-sm font-medium text-foreground">
+                {client.razao_social || client.name}
+              </p>
+              <p className="text-sm text-muted-foreground font-mono">{formatCnpj(client.cnpj)}</p>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {mode === 'edit'
+                ? 'Atualize os dados cadastrais do cliente'
+                : 'Cadastre uma nova empresa no sistema'}
+            </p>
+          )}
         </div>
       </div>
 
       <ClientForm
         mode={mode}
         clientId={id}
+        initialClient={client}
         onSuccess={(clientId) => navigate(`/clientes/${clientId}`)}
-        onCancel={() => navigate('/clientes')}
+        onCancel={() => navigate(-1)}
       />
     </div>
   )
