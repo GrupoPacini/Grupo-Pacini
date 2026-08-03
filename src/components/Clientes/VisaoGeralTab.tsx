@@ -42,59 +42,6 @@ export function VisaoGeralTab({ client }: Props) {
 
   useRealtime('client_contacts', () => load())
 
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <InfoCard label="Código Interno" value={client.code} />
-        <InfoCard label="Regime Tributário" value={client.tax_regime} />
-        <InfoCard label="Situação Cadastral" value={client.situacao_cadastral} />
-        <InfoCard
-          label="Data de Abertura"
-          value={
-            client.data_abertura
-              ? format(new Date(client.data_abertura), 'dd/MM/yyyy')
-              : 'Não informado'
-          }
-        />
-        <InfoCard
-          label="Última Atualização"
-          value={
-            client.updated
-              ? format(new Date(client.updated), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-              : 'Não informado'
-          }
-        />
-      </div>
-
-      <Card>
-        <CardContent className="p-4">
-          <p className="text-xs text-muted-foreground mb-3">Contatos</p>
-          {loading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
-            </div>
-          ) : contacts.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-2 text-center">
-              Nenhum contato cadastrado.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {contacts.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 py-2 border-b border-border last:border-0"
-                >
-                  <p className="text-sm font-medium text-foreground flex-1">{c.nome || '—'}</p>
-                  <p className="text-sm text-muted-foreground flex-1">{c.email || '—'}</p>
-                  <p className="text-sm text-muted-foreground flex-1">{c.telefone || '—'}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
+  return
+  null
 }
