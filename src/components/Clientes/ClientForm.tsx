@@ -591,40 +591,6 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={form.telefone}
-                  onChange={(e) => set('telefone')(e.target.value)}
-                  placeholder="(00) 0000-0000"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="celular">Celular</Label>
-                <Input
-                  id="celular"
-                  value={form.celular}
-                  onChange={(e) => set('celular')(e.target.value)}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email_principal">E-mail Principal</Label>
-                <Input
-                  id="email_principal"
-                  type="email"
-                  value={form.email_principal}
-                  onChange={(e) => set('email_principal')(e.target.value)}
-                  placeholder="empresa@dominio.com.br"
-                />
-                {errors.email_principal && (
-                  <p className="text-sm text-destructive">{errors.email_principal}</p>
-                )}
-              </div>
-
               <div className="space-y-2 md:col-span-2 lg:col-span-3">
                 <Label htmlFor="observacoes_internas">Observações Internas</Label>
                 <Textarea
