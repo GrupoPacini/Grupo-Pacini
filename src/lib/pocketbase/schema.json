@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-31T19:37:55.199Z",
+  "generatedAt": "2026-07-31T20:32:11.605Z",
   "collections": [
     {
       "name": "users",
@@ -991,6 +991,61 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_client_events_client ON client_events (client, created DESC)"]
+    },
+    {
+      "name": "client_contacts",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "client",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "clients"
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_client_contacts_client ON client_contacts (client, created DESC)"
+      ]
     }
   ]
 }

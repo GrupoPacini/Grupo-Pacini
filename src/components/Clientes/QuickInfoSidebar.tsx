@@ -66,16 +66,6 @@ export function QuickInfoSidebar({ client, responsibles, canEdit, canView, onNav
           <CardTitle className="text-sm">Acesso Rápido</CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-2">
-          {canEdit && (
-            <Button
-              variant="default"
-              size="sm"
-              className="w-full gap-2"
-              onClick={() => onNavigate('dados')}
-            >
-              <Pencil size={14} /> Editar Cadastro
-            </Button>
-          )}
           {canView('Processos') && (
             <Button variant="outline" size="sm" className="w-full gap-2" asChild>
               <Link to={`/processos?clientId=${client.id}`}>

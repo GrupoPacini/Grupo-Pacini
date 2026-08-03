@@ -106,13 +106,6 @@ export default function ClientDetail() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {canEdit && (
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/clientes/${client.id}/editar`}>
-              <Pencil size={16} className="mr-2" /> Editar cadastro
-            </Link>
-          </Button>
-        )}
         {canView('Processos') && (
           <Button variant="outline" size="sm" asChild>
             <Link to={`/processos?clientId=${client.id}`}>
