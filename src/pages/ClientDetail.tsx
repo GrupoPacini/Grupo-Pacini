@@ -131,7 +131,6 @@ export default function ClientDetail() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex flex-wrap h-auto">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="dados">Dados Cadastrais</TabsTrigger>
           <TabsTrigger value="socios">Sócios</TabsTrigger>
           <TabsTrigger value="cnaes">CNAEs</TabsTrigger>
