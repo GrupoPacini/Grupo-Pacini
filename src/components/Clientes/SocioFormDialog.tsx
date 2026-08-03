@@ -148,15 +148,7 @@ export function SocioFormDialog({ open, onOpenChange, clientId, editingSocio, on
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">E-mail</Label>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="socio@email.com"
-            />
-          </div>
+
           <div className="flex items-center space-x-2">
             <Checkbox
               id="socio-admin"
