@@ -34,6 +34,7 @@ export function getModuleFromPath(pathname: string): string | null {
   if (pathname === '/renovacoes') return 'Renovações'
   if (pathname === '/playbooks') return 'Playbooks'
   if (pathname === '/chat') return 'Assistente IA'
+  if (pathname === '/relatorio-financeiro') return 'Relatório Financeiro'
   if (pathname === '/configuracoes') return 'Configurações'
   return null
 }

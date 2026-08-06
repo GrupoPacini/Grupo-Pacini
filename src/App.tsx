@@ -14,6 +14,7 @@ import ClientFormPage from './pages/ClientFormPage'
 import Playbooks from './pages/Playbooks'
 import Licenses from './pages/Licenses'
 import Renewals from './pages/Renewals'
+import RelatorioFinanceiro from './pages/RelatorioFinanceiro'
 import Chat from './pages/Chat'
 import Configuracoes from './pages/Configuracoes'
 import GestaoUsuarios from './pages/GestaoUsuarios'
@@ -43,6 +44,7 @@ const router = createBrowserRouter([
           { path: '/playbooks', element: <Playbooks /> },
           { path: '/licencas', element: <Licenses /> },
           { path: '/renovacoes', element: <Renewals /> },
+          { path: '/relatorio-financeiro', element: <RelatorioFinanceiro /> },
           { path: '/chat', element: <Chat /> },
           { path: '/configuracoes', element: <Configuracoes /> },
           { path: '/configuracoes/usuarios', element: <GestaoUsuarios /> },

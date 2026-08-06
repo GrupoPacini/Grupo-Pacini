@@ -20,6 +20,7 @@ export const MODULE_CONFIGS: ModuleConfig[] = [
     actions: ['visualizar', 'criar', 'editar', 'excluir', 'exportar', 'gerenciar'],
   },
   { module: 'Renovações', actions: ['visualizar', 'criar', 'editar', 'exportar', 'gerenciar'] },
+  { module: 'Relatório Financeiro', actions: ['visualizar', 'importar', 'substituir', 'excluir'] },
   {
     module: 'Playbooks',
     actions: ['visualizar', 'criar', 'editar', 'excluir', 'exportar', 'gerenciar'],

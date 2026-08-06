@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Search,
   Settings,
+  DollarSign,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -55,6 +56,10 @@ export default function Layout() {
         { name: 'Licenças', path: '/licencas', icon: ShieldCheck },
         { name: 'Renovações', path: '/renovacoes', icon: RefreshCw },
       ],
+    },
+    {
+      title: 'BPO Financeiro',
+      items: [{ name: 'Relatório Financeiro', path: '/relatorio-financeiro', icon: DollarSign }],
     },
     {
       title: 'Conhecimento',
