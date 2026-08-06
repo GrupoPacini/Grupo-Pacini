@@ -5,10 +5,7 @@ import {
   type FinancialTransaction,
   type FinancialFilterOptions,
 } from '@/services/financial-transactions'
-import {
-  getFinancialReportImports,
-  type FinancialReportImport,
-} from '@/services/financial-report-imports'
+import { getImportedReports, type FinancialReportImport } from '@/services/financial-report-imports'
 import { useRealtime } from '@/hooks/use-realtime'
 
 export interface FinancialFilters {
@@ -39,7 +36,7 @@ export function useFinancialData(appliedFilters: FinancialFilters) {
 
   const refreshImports = useCallback(async () => {
     try {
-      const data = await getFinancialReportImports()
+      const data = await getImportedReports()
       setImports(data)
     } catch {
       /* noop */

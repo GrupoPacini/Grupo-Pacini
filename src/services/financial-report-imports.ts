@@ -11,6 +11,22 @@ export interface ImportReportPayload {
   replace?: boolean
 }
 
+export interface FinancialReportImport {
+  id: string
+  client: string
+  month: number
+  year: number
+  file_name: string
+  file_type: string
+  status: string
+  notes: string
+  record_count: number
+  imported_by: string
+  imported_at: string
+  created: string
+  updated: string
+}
+
 export const importFinancialReport = (data: ImportReportPayload) =>
   pb.send('/backend/v1/financial-reports/import', {
     method: 'POST',

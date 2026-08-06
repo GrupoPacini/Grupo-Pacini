@@ -36,7 +36,7 @@ import { useFinancialData, EMPTY_FILTERS, type FinancialFilters } from '@/hooks/
 import { usePermissions } from '@/hooks/use-permissions'
 import { type DataState, MONTHS } from '@/lib/financial-utils'
 import type { FinancialReportImport } from '@/services/financial-report-imports'
-import { deleteFinancialReportImport } from '@/services/financial-report-imports'
+import { deleteImportReport } from '@/services/financial-report-imports'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { toast } from '@/hooks/use-toast'
 import {
@@ -167,7 +167,7 @@ export default function RelatorioFinanceiro() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await deleteFinancialReportImport(deleteTarget.id)
+      await deleteImportReport(deleteTarget.id)
       setDeleteTarget(null)
       refreshImports()
       retry()
