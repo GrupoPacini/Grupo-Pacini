@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -17,274 +17,231 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ClientCombobox } from '@/components/ClientCombobox'
-import { AlertCircle, Loader2, Upload, AlertTriangle } from 'lucide-react'
-import { MONTHS } from '@/lib/financial-utils'
-import { checkDuplicateImport, importFinancialReport } from '@/services/financial-report-imports'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
-import type { ClientRecord } from '@/services/clients'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Upload, Loader2, FileText } from 'lucide-react'
+import { toast } from 'sonner'
+import { importFinancialReport } from '@/services/financial-report-imports'
+
+const MONTHS = [
+  { value: '1', label: 'Janeiro' },
+  { value: '2', label: 'Fevereiro' },
+  { value: '3', label: 'Março' },
+  { value: '4', label: 'Abril' },
+  { value: '5', label: 'Maio' },
+  { value: '6', label: 'Junho' },
+  { value: '7', label: 'Julho' },
+  { value: '8', label: 'Agosto' },
+  { value: '9', label: 'Setembro' },
+  { value: '10', label: 'Outubro' },
+  { value: '11', label: 'Novembro' },
+  { value: '12', label: 'Dezembro' },
+]
 
 interface ImportReportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  clients: ClientRecord[]
-  prefill?: { client?: string; month?: string; year?: string } | null
+  clients: Array<{ id: string; name: string }>
   onImported: () => void
 }
-
-const VALID_EXTENSIONS = ['.xlsx', '.xls', '.csv']
-const CURRENT_YEAR = new Date().getFullYear()
-const YEARS = Array.from({ length: 5 }, (_, i) => String(CURRENT_YEAR - i))
 
 export function ImportReportDialog({
   open,
   onOpenChange,
   clients,
-  prefill,
   onImported,
 }: ImportReportDialogProps) {
   const [clientId, setClientId] = useState('')
   const [month, setMonth] = useState('')
-  const [year, setYear] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+  const [year, setYear] = useState(String(new Date().getFullYear()))
   const [fileData, setFileData] = useState('')
+  const [fileName, setFileName] = useState('')
   const [notes, setNotes] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [showReplace, setShowReplace] = useState(false)
-  const [errorMsg, setErrorMsg] = useState('')
+  const [replace, setReplace] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (open) {
-      setClientId(prefill?.client || '')
-      setMonth(prefill?.month || '')
-      setYear(prefill?.year || '')
-      setFile(null)
+    if (!open) {
+      setClientId('')
+      setMonth('')
+      setYear(String(new Date().getFullYear()))
       setFileData('')
+      setFileName('')
       setNotes('')
-      setFieldErrors({})
-      setShowReplace(false)
-      setErrorMsg('')
+      setReplace(false)
+      setLoading(false)
     }
-  }, [open, prefill])
+  }, [open])
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const ext = f.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
-    if (!VALID_EXTENSIONS.includes(ext)) {
-      setFieldErrors((p) => ({ ...p, file: 'Formato inválido. Use .xlsx, .xls ou .csv.' }))
-      setFile(null)
-      setFileData('')
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo 5MB.')
       return
     }
-    if (f.size === 0) {
-      setFieldErrors((p) => ({ ...p, file: 'O arquivo está vazio.' }))
-      setFile(null)
-      setFileData('')
-      return
-    }
-    setFile(f)
-    setFieldErrors((p) => ({ ...p, file: '' }))
     const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      setFileData(result.split(',')[1])
+    reader.onload = (event) => {
+      setFileData(event.target?.result as string)
+      setFileName(file.name)
     }
-    reader.readAsDataURL(f)
-  }, [])
+    reader.readAsText(file)
+  }
 
-  const validate = useCallback(() => {
-    const errors: Record<string, string> = {}
-    if (!clientId) errors.client = 'Cliente é obrigatório.'
-    if (!month) errors.month = 'Mês é obrigatório.'
-    if (!year) errors.year = 'Ano é obrigatório.'
-    if (!file) errors.file = 'Arquivo é obrigatório.'
-    setFieldErrors(errors)
-    return Object.keys(errors).length === 0
-  }, [clientId, month, year, file])
+  const handleImport = async () => {
+    if (!clientId) {
+      toast.error('Selecione um cliente.')
+      return
+    }
+    if (!month) {
+      toast.error('Selecione um mês.')
+      return
+    }
+    if (!fileData) {
+      toast.error('Selecione um arquivo CSV.')
+      return
+    }
 
-  const doImport = useCallback(
-    async (replace: boolean) => {
-      if (!file) return
-      setSubmitting(true)
-      setErrorMsg('')
-      try {
-        const ext = file.name.toLowerCase().match(/\.[^.]+$/)?.[0] || ''
-        await importFinancialReport({
-          client: clientId,
-          month: parseInt(month, 10),
-          year: parseInt(year, 10),
-          notes: notes || undefined,
-          replace,
-          fileName: file.name,
-          fileType: ext,
-          fileData,
-        })
-        onImported()
-        onOpenChange(false)
-      } catch (err) {
-        setErrorMsg(getErrorMessage(err))
-      } finally {
-        setSubmitting(false)
-      }
-    },
-    [file, clientId, month, year, notes, fileData, onImported, onOpenChange],
-  )
-
-  const handleSubmit = useCallback(async () => {
-    if (!validate()) return
-    setSubmitting(true)
-    setErrorMsg('')
+    setLoading(true)
     try {
-      const duplicate = await checkDuplicateImport(
-        clientId,
-        parseInt(month, 10),
-        parseInt(year, 10),
-      )
-      setSubmitting(false)
-      if (duplicate) {
-        setShowReplace(true)
-        return
+      const result = await importFinancialReport({
+        client: clientId,
+        month: Number(month),
+        year: Number(year),
+        fileData,
+        fileName,
+        fileType: '.csv',
+        notes,
+        replace,
+      })
+      toast.success(`${result.record_count} transações importadas com sucesso.`)
+      onImported()
+      onOpenChange(false)
+    } catch (err: any) {
+      const status = err?.status || err?.originalStatus
+      const data = err?.response || {}
+      if (status === 409) {
+        toast.error('Já existe um relatório para este mês. Marque "Substituir" para sobrescrever.')
+      } else if (status === 400) {
+        toast.error(data.message || 'Erro ao processar o arquivo.')
+      } else if (status === 403) {
+        toast.error('Você não tem permissão para importar relatórios.')
+      } else {
+        toast.error(data.message || 'Erro ao importar relatório.')
       }
-      await doImport(false)
-    } catch (err) {
-      setSubmitting(false)
-      setErrorMsg(getErrorMessage(err))
+    } finally {
+      setLoading(false)
     }
-  }, [validate, clientId, month, year, doImport])
+  }
+
+  const currentYear = new Date().getFullYear()
+  const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Importar Relatório Mensal</DialogTitle>
+          <DialogTitle>Importar Relatório Financeiro</DialogTitle>
+          <DialogDescription>
+            Selecione um arquivo CSV para importar as transações.
+          </DialogDescription>
         </DialogHeader>
-
-        {showReplace ? (
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-900/30 dark:bg-orange-900/10">
-              <AlertTriangle size={20} className="text-orange-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-foreground">
-                Já existe um relatório financeiro importado para este cliente neste mês. Deseja
-                substituir o relatório atual?
-              </p>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowReplace(false)} disabled={submitting}>
-                Cancelar
-              </Button>
-              <Button onClick={() => doImport(true)} disabled={submitting} className="gap-2">
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
-                Substituir
-              </Button>
-            </DialogFooter>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label>Cliente</Label>
+            <Select value={clientId} onValueChange={setClientId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
-              <ClientCombobox
-                clients={clients}
-                value={clientId}
-                onChange={setClientId}
-                invalid={!!fieldErrors.client}
-              />
-              {fieldErrors.client && (
-                <p className="text-xs text-destructive">{fieldErrors.client}</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>Mês</Label>
+              <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      {m.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Ano</Label>
+              <Select value={year} onValueChange={setYear}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label>Arquivo CSV</Label>
+            <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-input p-4 hover:bg-accent transition-colors">
+              <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
+              {fileName ? (
+                <FileText className="h-4 w-4 text-primary" />
+              ) : (
+                <Upload className="h-4 w-4 text-muted-foreground" />
               )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
-                <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger className={fieldErrors.month ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>
-                        {m.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.month && (
-                  <p className="text-xs text-destructive">{fieldErrors.month}</p>
-                )}
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Ano</Label>
-                <Select value={year} onValueChange={setYear}>
-                  <SelectTrigger className={fieldErrors.year ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {YEARS.map((y) => (
-                      <SelectItem key={y} value={y}>
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.year && <p className="text-xs text-destructive">{fieldErrors.year}</p>}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Arquivo</Label>
-              <div className="flex items-center gap-2">
-                <label className="flex-1 cursor-pointer">
-                  <div
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md border border-dashed ${fieldErrors.file ? 'border-destructive' : 'border-input'} hover:bg-muted/50 transition-colors`}
-                  >
-                    <Upload size={16} className="text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground truncate">
-                      {file ? file.name : 'Selecionar arquivo (.xlsx, .xls, .csv)'}
-                    </span>
-                  </div>
-                  <Input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              {fieldErrors.file && <p className="text-xs text-destructive">{fieldErrors.file}</p>}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">
-                Observação (opcional)
-              </Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={2}
-                className="resize-none"
-              />
-            </div>
-
-            {errorMsg && (
-              <div className="flex items-center gap-2 p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-                <AlertCircle size={16} className="text-destructive shrink-0" />
-                <span className="text-sm text-destructive">{errorMsg}</span>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSubmit} disabled={submitting} className="gap-2">
-                {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
-                Importar
-              </Button>
-            </DialogFooter>
+              <span className="text-sm text-muted-foreground truncate">
+                {fileName || 'Clique para selecionar um arquivo CSV'}
+              </span>
+            </label>
           </div>
-        )}
+          <div className="grid gap-2">
+            <Label>Observações</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Observações sobre a importação..."
+              rows={2}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="replace"
+              checked={replace}
+              onCheckedChange={(v) => setReplace(v === true)}
+            />
+            <Label htmlFor="replace" className="text-sm font-normal cursor-pointer">
+              Substituir relatório existente para este mês
+            </Label>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={handleImport} disabled={loading || !fileData || !clientId || !month}>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              'Importar'
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

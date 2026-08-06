@@ -1,4 +1,3 @@
-// @deps xlsx@0.18.5
 routerAdd(
   'POST',
   '/backend/v1/financial-reports/import',
@@ -53,9 +52,8 @@ routerAdd(
     if (!year || year < 2000 || year > 2100) return e.badRequestError('Ano inválido')
     if (!fileData) return e.badRequestError('Arquivo é obrigatório')
 
-    var validExtensions = ['.xlsx', '.xls', '.csv']
-    if (validExtensions.indexOf(fileType) === -1) {
-      return e.badRequestError('Formato de arquivo inválido. Use .xlsx, .xls ou .csv')
+    if (fileType !== '.csv') {
+      return e.badRequestError('Formato de arquivo inválido. Use .csv')
     }
 
     var existingImport = null
@@ -97,20 +95,51 @@ routerAdd(
     importRecord.set('record_count', 0)
     $app.save(importRecord)
 
-    var XLSX = require('xlsx')
-    var workbook, rows
-    try {
-      workbook = XLSX.read(fileData, { type: 'base64' })
-      var sheetName = workbook.SheetNames[0]
-      var sheet = workbook.Sheets[sheetName]
-      rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
-    } catch (parseErr) {
-      importRecord.set('status', 'erro_importacao')
-      $app.save(importRecord)
-      return e.json(400, {
-        error: 'parse_error',
-        message: 'Não foi possível ler o arquivo. Verifique o formato.',
-      })
+    var csvText = fileData
+    if (csvText.charCodeAt(0) === 65279) csvText = csvText.substring(1)
+
+    var firstLineEnd = csvText.indexOf('\n')
+    var firstLine = firstLineEnd >= 0 ? csvText.substring(0, firstLineEnd) : csvText
+    var delimiter = ','
+    if (firstLine.split(';').length > firstLine.split(',').length) delimiter = ';'
+
+    var rows = []
+    var currentRow = []
+    var currentField = ''
+    var inQuotes = false
+
+    for (var i = 0; i < csvText.length; i++) {
+      var c = csvText[i]
+      if (inQuotes) {
+        if (c === '"') {
+          if (csvText[i + 1] === '"') {
+            currentField += '"'
+            i++
+          } else {
+            inQuotes = false
+          }
+        } else {
+          currentField += c
+        }
+      } else {
+        if (c === '"') {
+          inQuotes = true
+        } else if (c === delimiter) {
+          currentRow.push(currentField)
+          currentField = ''
+        } else if (c === '\n') {
+          currentRow.push(currentField)
+          currentField = ''
+          rows.push(currentRow)
+          currentRow = []
+        } else if (c !== '\r') {
+          currentField += c
+        }
+      }
+    }
+    if (currentField !== '' || currentRow.length > 0) {
+      currentRow.push(currentField)
+      rows.push(currentRow)
     }
 
     if (!rows || rows.length < 2) {
@@ -155,10 +184,6 @@ routerAdd(
 
     function parseDate(val) {
       if (!val && val !== 0) return ''
-      if (typeof val === 'number') {
-        var d = new Date((val - 25569) * 86400 * 1000)
-        return d.toISOString().split('T')[0]
-      }
       var s = String(val).trim()
       var br = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
       if (br) return br[3] + '-' + br[2].padStart(2, '0') + '-' + br[1].padStart(2, '0')
