@@ -17,6 +17,7 @@ interface MainIndicatorCardProps {
   chartColor: string
   gradientId: string
   resultColor?: string
+  unavailable?: boolean
 }
 
 export function MainIndicatorCard({
@@ -30,9 +31,10 @@ export function MainIndicatorCard({
   chartColor,
   gradientId,
   resultColor,
+  unavailable,
 }: MainIndicatorCardProps) {
   const chartConfig = { value: { label: title } }
-  const hasData = state === 'ready' && data && data.length > 0
+  const hasData = state === 'ready' && !unavailable && data && data.length > 0
 
   return (
     <Card className="border-t-4 border-t-accent shadow-sm">
@@ -48,16 +50,20 @@ export function MainIndicatorCard({
         <div className="space-y-3">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Total</p>
-            <p
-              className={cn(
-                'text-2xl font-bold',
-                state === 'ready' && total != null
-                  ? resultColor || 'text-foreground'
-                  : 'text-muted-foreground/40',
-              )}
-            >
-              {state === 'ready' && total != null ? formatBRL(total) : formatBRL(0)}
-            </p>
+            {state === 'ready' && unavailable ? (
+              <p className="text-base font-medium text-muted-foreground">Saldo não disponível</p>
+            ) : (
+              <p
+                className={cn(
+                  'text-2xl font-bold',
+                  state === 'ready' && total != null
+                    ? resultColor || 'text-foreground'
+                    : 'text-muted-foreground/40',
+                )}
+              >
+                {state === 'ready' && total != null ? formatBRL(total) : formatBRL(0)}
+              </p>
+            )}
           </div>
           <div className="h-32 flex items-center justify-center rounded-lg bg-muted/30 border border-dashed border-muted-foreground/20">
             {hasData ? (

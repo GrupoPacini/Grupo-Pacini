@@ -21,6 +21,7 @@ import {
   Upload,
   Inbox,
   Search,
+  Landmark,
 } from 'lucide-react'
 import { MainIndicatorCard } from '@/components/RelatorioFinanceiro/MainIndicatorCard'
 import { CategoryDonutCard } from '@/components/RelatorioFinanceiro/CategoryDonutCard'
@@ -45,6 +46,7 @@ import {
   computeSaldoEvolution,
   computeAlerts,
   generateAnalysis,
+  computeSaldoFinal,
 } from '@/lib/financial-computations'
 import { exportToPDF, exportToExcel } from '@/lib/financial-export'
 
@@ -118,6 +120,19 @@ export default function RelatorioFinanceiro() {
     [transactions],
   )
   const saldoData = useMemo(() => computeSaldoEvolution(transactions), [transactions])
+  const saldoFinal = useMemo(
+    () => computeSaldoFinal(transactions, receitasTotal, despesasTotal),
+    [transactions, receitasTotal, despesasTotal],
+  )
+  const saldoFinalUnavailable = saldoFinal === null
+  const saldoFinalResultColor =
+    saldoFinal !== null
+      ? saldoFinal > 0
+        ? 'text-green-600'
+        : saldoFinal < 0
+          ? 'text-red-600'
+          : 'text-foreground'
+      : undefined
   const entradasCategoria = useMemo(
     () => groupByCategory(transactions.filter((t) => t.type === 'Receita')),
     [transactions],
@@ -381,7 +396,7 @@ export default function RelatorioFinanceiro() {
 
       {isClientSelected && dataState !== 'empty' && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <MainIndicatorCard
               title="Receitas"
               icon={TrendingUp}
@@ -415,6 +430,19 @@ export default function RelatorioFinanceiro() {
               chartColor="hsl(var(--chart-2))"
               gradientId="grad-resultado"
               resultColor={resultado >= 0 ? 'text-green-600' : 'text-red-600'}
+            />
+            <MainIndicatorCard
+              title="Saldo Final"
+              icon={Landmark}
+              iconColor="text-purple-600"
+              bg="bg-purple-100 dark:bg-purple-900/20"
+              data={saldoFinalUnavailable ? null : saldoData}
+              state={dataState}
+              total={saldoFinal}
+              chartColor="hsl(var(--chart-3))"
+              gradientId="grad-saldo-final"
+              resultColor={saldoFinalResultColor}
+              unavailable={saldoFinalUnavailable}
             />
           </div>
 

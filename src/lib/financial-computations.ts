@@ -138,3 +138,20 @@ export function generateAnalysis(
   }
   return lines.join('\n')
 }
+
+export function computeSaldoFinal(
+  _transactions: Transaction[],
+  _receitasTotal: number,
+  _despesasTotal: number,
+): number | null {
+  // Priority 1: Saldo inicial (opening balance) — not available
+  // The current database schema (financial_transactions, financial_report_imports)
+  // does not include a saldo_inicial or opening_balance field.
+
+  // Priority 2: Balance column from imported file — not available
+  // The current schema does not have a balance field on financial_transactions
+  // or financial_report_imports.
+
+  // Priority 3: Cannot be determined reliably
+  return null
+}
