@@ -1,12 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getAllClientsForIndicators, type ClientRecord } from '@/services/clients'
-import {
-  getFinancialTransactions,
-  type FinancialTransaction,
-  type FinancialFilterOptions,
-} from '@/services/financial-transactions'
-import { getImportedReports, type FinancialReportImport } from '@/services/financial-report-imports'
-import { useRealtime } from '@/hooks/use-realtime'
+import pb from '@/lib/pocketbase/client'
+import type { FinancialReportImport } from '@/services/financial-report-imports'
+import type { Transaction } from '@/lib/financial-utils'
+import type { Client } from '@/services/api'
 
 export interface FinancialFilters {
   cliente: string
@@ -21,100 +17,126 @@ export const EMPTY_FILTERS: FinancialFilters = {
   cliente: 'all',
   mes: 'all',
   ano: 'all',
-  categoria: 'Todas',
-  conta: 'Todas',
-  projeto: 'Todos',
+  categoria: 'all',
+  conta: 'all',
+  projeto: 'all',
 }
 
-export function useFinancialData(appliedFilters: FinancialFilters) {
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
-  const [allTransactions, setAllTransactions] = useState<FinancialTransaction[]>([])
-  const [clients, setClients] = useState<ClientRecord[]>([])
+export function useFinancialData(filters: FinancialFilters) {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [imports, setImports] = useState<FinancialReportImport[]>([])
 
-  const refreshImports = useCallback(async () => {
-    try {
-      const data = await getImportedReports()
-      setImports(data)
-    } catch {
-      /* noop */
+  useEffect(() => {
+    let active = true
+    pb.collection('clients')
+      .getFullList({ sort: 'name,razao_social' })
+      .then((data) => {
+        if (active) setClients(data as unknown as Client[])
+      })
+      .catch(() => {})
+    return () => {
+      active = false
     }
   }, [])
 
-  useEffect(() => {
-    getAllClientsForIndicators()
-      .then(setClients)
-      .catch(() => {})
-    refreshImports()
-    getFinancialTransactions()
-      .then(setAllTransactions)
-      .catch(() => {})
-  }, [refreshImports])
+  const fetchData = useCallback(async () => {
+    if (!filters.cliente || filters.cliente === 'all') {
+      setTransactions([])
+      setAllTransactions([])
+      setImports([])
+      setLoading(false)
+      setError(null)
+      return
+    }
 
-  const loadData = useCallback(async () => {
     setLoading(true)
-    setError(false)
-    try {
-      const hasCompetence =
-        appliedFilters.cliente !== 'all' &&
-        appliedFilters.mes !== 'all' &&
-        appliedFilters.ano !== 'all'
+    setError(null)
 
-      let data: FinancialTransaction[]
-      if (hasCompetence) {
-        const matchingImport = imports.find(
-          (imp) =>
-            imp.client === appliedFilters.cliente &&
-            imp.month === parseInt(appliedFilters.mes, 10) &&
-            imp.year === parseInt(appliedFilters.ano, 10) &&
-            imp.status === 'importacao_concluida',
-        )
-        if (matchingImport) {
-          const opts: FinancialFilterOptions = {
-            financialReportImport: matchingImport.id,
-            category: appliedFilters.categoria,
-            account: appliedFilters.conta,
-            project: appliedFilters.projeto,
-          }
-          data = await getFinancialTransactions(opts)
-        } else {
-          data = []
-        }
-      } else {
-        const opts: FinancialFilterOptions = {
-          client: appliedFilters.cliente !== 'all' ? appliedFilters.cliente : undefined,
-          month: appliedFilters.mes !== 'all' ? appliedFilters.mes : undefined,
-          year: appliedFilters.ano !== 'all' ? appliedFilters.ano : undefined,
-          category: appliedFilters.categoria,
-          account: appliedFilters.conta,
-          project: appliedFilters.projeto,
-        }
-        data = await getFinancialTransactions(opts)
+    try {
+      const filterParts: string[] = [`client = "${filters.cliente}"`]
+
+      if (filters.mes !== 'all' && filters.ano !== 'all') {
+        const m = String(filters.mes).padStart(2, '0')
+        const y = filters.ano
+        const lastDay = new Date(Number(y), Number(m), 0).getDate()
+        filterParts.push(`date >= "${y}-${m}-01 00:00:00"`)
+        filterParts.push(`date <= "${y}-${m}-${String(lastDay).padStart(2, '0')} 23:59:59"`)
+      } else if (filters.ano !== 'all') {
+        filterParts.push(`date >= "${filters.ano}-01-01 00:00:00"`)
+        filterParts.push(`date <= "${filters.ano}-12-31 23:59:59"`)
       }
-      setTransactions(data)
-    } catch {
-      setError(true)
+
+      const txFilterStr = filterParts.join(' && ')
+
+      const txRecords = await pb.collection('financial_transactions').getFullList({
+        filter: txFilterStr,
+        sort: '-date',
+      })
+
+      const mappedTx: Transaction[] = txRecords.map((r: any) => ({
+        id: r.id,
+        client: r.client,
+        date: r.date,
+        description: r.description || '',
+        category: r.category || 'Sem Categoria',
+        account: r.account || 'Principal',
+        project: r.project || 'Geral',
+        type: r.type as 'Receita' | 'Despesa',
+        value: Number(r.value) || 0,
+        status: r.status as 'Pago' | 'Pendente' | 'Atrasado',
+        financial_report_import: r.financial_report_import,
+      }))
+
+      setAllTransactions(mappedTx)
+
+      let filtered = mappedTx
+      if (filters.categoria !== 'all') {
+        filtered = filtered.filter((t) => t.category === filters.categoria)
+      }
+      if (filters.conta !== 'all') {
+        filtered = filtered.filter((t) => t.account === filters.conta)
+      }
+      if (filters.projeto !== 'all') {
+        filtered = filtered.filter((t) => t.project === filters.projeto)
+      }
+
+      setTransactions(filtered)
+
+      const importRecords = await pb.collection('financial_report_imports').getFullList({
+        filter: `client = "${filters.cliente}"`,
+        sort: '-imported_at',
+      })
+      setImports(importRecords as unknown as FinancialReportImport[])
+    } catch (err: any) {
+      setError(err)
     } finally {
       setLoading(false)
     }
-  }, [appliedFilters, imports])
+  }, [filters.cliente, filters.mes, filters.ano, filters.categoria, filters.conta, filters.projeto])
 
   useEffect(() => {
-    loadData()
-  }, [loadData])
+    fetchData()
+  }, [fetchData])
 
-  useRealtime('financial_transactions', () => {
-    loadData()
-    getFinancialTransactions()
-      .then(setAllTransactions)
-      .catch(() => {})
-  })
-
-  useRealtime('financial_report_imports', () => {
-    refreshImports()
-  })
+  const refreshImports = useCallback(async () => {
+    if (!filters.cliente || filters.cliente === 'all') {
+      setImports([])
+      return
+    }
+    try {
+      const records = await pb.collection('financial_report_imports').getFullList({
+        filter: `client = "${filters.cliente}"`,
+        sort: '-imported_at',
+      })
+      setImports(records as unknown as FinancialReportImport[])
+    } catch {
+      /* intentionally ignored */
+    }
+  }, [filters.cliente])
 
   return {
     loading,
@@ -123,7 +145,7 @@ export function useFinancialData(appliedFilters: FinancialFilters) {
     allTransactions,
     clients,
     imports,
-    retry: loadData,
+    retry: fetchData,
     refreshImports,
   }
 }

@@ -21,6 +21,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Upload, Loader2, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { importFinancialReport } from '@/services/financial-report-imports'
+import { ClientCombobox } from '@/components/ClientCombobox'
+import type { Client } from '@/services/api'
 
 const MONTHS = [
   { value: '1', label: 'Janeiro' },
@@ -40,7 +42,12 @@ const MONTHS = [
 interface ImportReportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  clients: Array<{ id: string; name: string }>
+  clients: Client[]
+  prefill?: {
+    client?: string
+    month?: string
+    year?: string
+  } | null
   onImported: () => void
 }
 
@@ -48,6 +55,7 @@ export function ImportReportDialog({
   open,
   onOpenChange,
   clients,
+  prefill,
   onImported,
 }: ImportReportDialogProps) {
   const [clientId, setClientId] = useState('')
@@ -55,36 +63,57 @@ export function ImportReportDialog({
   const [year, setYear] = useState(String(new Date().getFullYear()))
   const [fileData, setFileData] = useState('')
   const [fileName, setFileName] = useState('')
+  const [fileType, setFileType] = useState('.csv')
   const [notes, setNotes] = useState('')
   const [replace, setReplace] = useState(false)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      if (prefill) {
+        if (prefill.client) setClientId(prefill.client)
+        if (prefill.month) setMonth(String(prefill.month))
+        if (prefill.year) setYear(String(prefill.year))
+      }
+    } else {
       setClientId('')
       setMonth('')
       setYear(String(new Date().getFullYear()))
       setFileData('')
       setFileName('')
+      setFileType('.csv')
       setNotes('')
       setReplace(false)
       setLoading(false)
     }
-  }, [open])
+  }, [open, prefill])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Máximo 5MB.')
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo 10MB.')
       return
     }
+
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+    setFileName(file.name)
+    setFileType(ext)
+
     const reader = new FileReader()
     reader.onload = (event) => {
-      setFileData(event.target?.result as string)
-      setFileName(file.name)
+      const content = event.target?.result
+      if (typeof content === 'string') {
+        setFileData(content)
+      } else {
+        toast.error('Não foi possível ler o arquivo.')
+      }
     }
-    reader.readAsText(file)
+    reader.onerror = () => {
+      toast.error('Erro ao ler arquivo.')
+    }
+    reader.readAsText(file, 'UTF-8')
   }
 
   const handleImport = async () => {
@@ -97,7 +126,7 @@ export function ImportReportDialog({
       return
     }
     if (!fileData) {
-      toast.error('Selecione um arquivo CSV.')
+      toast.error('Selecione um arquivo para importação.')
       return
     }
 
@@ -109,11 +138,11 @@ export function ImportReportDialog({
         year: Number(year),
         fileData,
         fileName,
-        fileType: '.csv',
+        fileType,
         notes,
         replace,
       })
-      toast.success(`${result.record_count} transações importadas com sucesso.`)
+      toast.success(`${result.record_count ?? 0} transações importadas com sucesso.`)
       onImported()
       onOpenChange(false)
     } catch (err: any) {
@@ -122,11 +151,11 @@ export function ImportReportDialog({
       if (status === 409) {
         toast.error('Já existe um relatório para este mês. Marque "Substituir" para sobrescrever.')
       } else if (status === 400) {
-        toast.error(data.message || 'Erro ao processar o arquivo.')
+        toast.error(data.message || err.message || 'Erro ao processar o arquivo.')
       } else if (status === 403) {
         toast.error('Você não tem permissão para importar relatórios.')
       } else {
-        toast.error(data.message || 'Erro ao importar relatório.')
+        toast.error(data.message || err.message || 'Erro ao importar relatório.')
       }
     } finally {
       setLoading(false)
@@ -142,31 +171,20 @@ export function ImportReportDialog({
         <DialogHeader>
           <DialogTitle>Importar Relatório Financeiro</DialogTitle>
           <DialogDescription>
-            Selecione um arquivo CSV para importar as transações.
+            Selecione um arquivo (.csv, .xls, .xlsx) para importar as transações.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label>Cliente</Label>
-            <Select value={clientId} onValueChange={setClientId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Cliente *</Label>
+            <ClientCombobox clients={clients} value={clientId} onChange={setClientId} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Mês</Label>
+              <Label>Mês *</Label>
               <Select value={month} onValueChange={setMonth}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Mês" />
+                  <SelectValue placeholder="Selecione o mês" />
                 </SelectTrigger>
                 <SelectContent>
                   {MONTHS.map((m) => (
@@ -178,10 +196,10 @@ export function ImportReportDialog({
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Ano</Label>
+              <Label>Ano *</Label>
               <Select value={year} onValueChange={setYear}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Ano" />
+                  <SelectValue placeholder="Selecione o ano" />
                 </SelectTrigger>
                 <SelectContent>
                   {years.map((y) => (
@@ -194,16 +212,21 @@ export function ImportReportDialog({
             </div>
           </div>
           <div className="grid gap-2">
-            <Label>Arquivo CSV</Label>
+            <Label>Arquivo (.csv, .xls, .xlsx) *</Label>
             <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-input p-4 hover:bg-accent transition-colors">
-              <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
+              <input
+                type="file"
+                accept=".csv,.xls,.xlsx,.txt,.tsv"
+                className="hidden"
+                onChange={handleFileChange}
+              />
               {fileName ? (
                 <FileText className="h-4 w-4 text-primary" />
               ) : (
                 <Upload className="h-4 w-4 text-muted-foreground" />
               )}
               <span className="text-sm text-muted-foreground truncate">
-                {fileName || 'Clique para selecionar um arquivo CSV'}
+                {fileName || 'Clique para selecionar o arquivo (.csv, .xls, .xlsx)'}
               </span>
             </label>
           </div>

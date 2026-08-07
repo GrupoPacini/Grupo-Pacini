@@ -22,6 +22,7 @@ import {
   RefreshCw,
   Upload,
   Inbox,
+  Search,
 } from 'lucide-react'
 import { MainIndicatorCard } from '@/components/RelatorioFinanceiro/MainIndicatorCard'
 import { CategoryDonutCard } from '@/components/RelatorioFinanceiro/CategoryDonutCard'
@@ -32,6 +33,7 @@ import { FinancialAlertsCard } from '@/components/RelatorioFinanceiro/FinancialA
 import { ImportReportDialog } from '@/components/RelatorioFinanceiro/ImportReportDialog'
 import { ImportedReportsTable } from '@/components/RelatorioFinanceiro/ImportedReportsTable'
 import { DeleteReportDialog } from '@/components/RelatorioFinanceiro/DeleteReportDialog'
+import { ClientCombobox } from '@/components/ClientCombobox'
 import { useFinancialData, EMPTY_FILTERS, type FinancialFilters } from '@/hooks/use-financial-data'
 import { usePermissions } from '@/hooks/use-permissions'
 import { type DataState, MONTHS } from '@/lib/financial-utils'
@@ -67,13 +69,17 @@ export default function RelatorioFinanceiro() {
   const { loading, error, transactions, allTransactions, clients, imports, retry, refreshImports } =
     useFinancialData(appliedFilters)
 
-  const dataState: DataState = loading
-    ? 'loading'
-    : error
-      ? 'error'
-      : transactions.length > 0
-        ? 'ready'
-        : 'empty'
+  const isClientSelected = appliedFilters.cliente !== 'all' && Boolean(appliedFilters.cliente)
+
+  const dataState: DataState = !isClientSelected
+    ? 'empty'
+    : loading
+      ? 'loading'
+      : error
+        ? 'error'
+        : transactions.length > 0
+          ? 'ready'
+          : 'empty'
 
   const filterOptions = useMemo(
     () => ({
@@ -124,20 +130,19 @@ export default function RelatorioFinanceiro() {
   )
 
   const hasCompetence =
-    appliedFilters.cliente !== 'all' && appliedFilters.mes !== 'all' && appliedFilters.ano !== 'all'
-  const hasFilters = hasCompetence
+    isClientSelected && appliedFilters.mes !== 'all' && appliedFilters.ano !== 'all'
   const analysis =
-    hasFilters && dataState === 'ready' && transactions.length > 0
+    hasCompetence && dataState === 'ready' && transactions.length > 0
       ? generateAnalysis(receitasTotal, despesasTotal, resultado, transactions.length)
       : null
-  const analysisState: DataState = !hasFilters ? 'empty' : dataState
+  const analysisState: DataState = !isClientSelected ? 'empty' : dataState
   const alerts =
     dataState === 'ready' ? computeAlerts(transactions, receitasTotal, despesasTotal) : null
 
   const selectedClient = clients.find((c) => c.id === appliedFilters.cliente)
   const clienteLabel = selectedClient
     ? selectedClient.razao_social || selectedClient.name
-    : 'Todos os clientes'
+    : 'Nenhum cliente selecionado'
   const periodLabel =
     appliedFilters.mes !== 'all' && appliedFilters.ano !== 'all'
       ? `${MONTHS.find((m) => m.value === appliedFilters.mes)?.label || ''}/${appliedFilters.ano}`
@@ -150,7 +155,7 @@ export default function RelatorioFinanceiro() {
   }
 
   const handleOpenImport = () => {
-    setImportPrefill(null)
+    setImportPrefill(isClientSelected ? { client: appliedFilters.cliente } : null)
     setImportOpen(true)
   }
   const handleReimport = (clientId: string, month: number, year: number) => {
@@ -190,7 +195,7 @@ export default function RelatorioFinanceiro() {
     setAppliedFilters(newFilters)
   }
 
-  const canExport = dataState === 'ready' && transactions.length > 0
+  const canExport = isClientSelected && dataState === 'ready' && transactions.length > 0
   const handleExportPDF = () => {
     if (canExport)
       exportToPDF(
@@ -261,22 +266,11 @@ export default function RelatorioFinanceiro() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
-            <Select
-              value={filters.cliente}
-              onValueChange={(v) => setFilters((f) => ({ ...f, cliente: v }))}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os clientes</SelectItem>
-                {clients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.razao_social || c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <ClientCombobox
+              clients={clients}
+              value={filters.cliente === 'all' ? '' : filters.cliente}
+              onChange={(val) => setFilters((f) => ({ ...f, cliente: val || 'all' }))}
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
@@ -356,13 +350,27 @@ export default function RelatorioFinanceiro() {
         </div>
       )}
 
-      {dataState === 'empty' && (
-        <Card className="p-6 border-t-4 border-t-accent shadow-sm">
-          <div className="flex flex-col items-center justify-center text-center py-8">
-            <div className="rounded-full bg-muted p-4 mb-4">
+      {!isClientSelected && (
+        <Card className="p-8 border-t-4 border-t-primary shadow-sm text-center">
+          <div className="flex flex-col items-center justify-center max-w-md mx-auto space-y-3">
+            <div className="rounded-full bg-primary/10 p-4 text-primary">
+              <Building2 size={36} />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">Selecione um cliente</h3>
+            <p className="text-sm text-muted-foreground">
+              Selecione um cliente para visualizar as informações financeiras.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {isClientSelected && dataState === 'empty' && (
+        <Card className="p-8 border-t-4 border-t-accent shadow-sm">
+          <div className="flex flex-col items-center justify-center text-center py-6">
+            <div className="rounded-full bg-muted p-4 mb-3">
               <Inbox size={32} className="text-muted-foreground/60" />
             </div>
-            <p className="text-sm text-muted-foreground max-w-md mb-4">
+            <p className="text-sm text-muted-foreground max-w-md mb-4 font-medium">
               Nenhum relatório financeiro importado para este cliente no período selecionado.
             </p>
             <Button className="gap-2" onClick={handleOpenImport}>
@@ -372,104 +380,114 @@ export default function RelatorioFinanceiro() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <MainIndicatorCard
-          title="Receitas"
-          icon={TrendingUp}
-          iconColor="text-green-600"
-          bg="bg-green-100 dark:bg-green-900/20"
-          data={receitasData}
-          state={dataState}
-          total={receitasTotal}
-          chartColor="hsl(var(--chart-1))"
-          gradientId="grad-receitas"
-        />
-        <MainIndicatorCard
-          title="Despesas"
-          icon={TrendingDown}
-          iconColor="text-red-600"
-          bg="bg-red-100 dark:bg-red-900/20"
-          data={despesasData}
-          state={dataState}
-          total={despesasTotal}
-          chartColor="hsl(var(--chart-4))"
-          gradientId="grad-despesas"
-        />
-        <MainIndicatorCard
-          title="Resultado"
-          icon={Wallet}
-          iconColor="text-blue-600"
-          bg="bg-blue-100 dark:bg-blue-900/20"
-          data={saldoData}
-          state={dataState}
-          total={resultado}
-          chartColor="hsl(var(--chart-2))"
-          gradientId="grad-resultado"
-          resultColor={resultado >= 0 ? 'text-green-600' : 'text-red-600'}
-        />
-      </div>
+      {isClientSelected && dataState !== 'empty' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <MainIndicatorCard
+              title="Receitas"
+              icon={TrendingUp}
+              iconColor="text-green-600"
+              bg="bg-green-100 dark:bg-green-900/20"
+              data={receitasData}
+              state={dataState}
+              total={receitasTotal}
+              chartColor="hsl(var(--chart-1))"
+              gradientId="grad-receitas"
+            />
+            <MainIndicatorCard
+              title="Despesas"
+              icon={TrendingDown}
+              iconColor="text-red-600"
+              bg="bg-red-100 dark:bg-red-900/20"
+              data={despesasData}
+              state={dataState}
+              total={despesasTotal}
+              chartColor="hsl(var(--chart-4))"
+              gradientId="grad-despesas"
+            />
+            <MainIndicatorCard
+              title="Resultado"
+              icon={Wallet}
+              iconColor="text-blue-600"
+              bg="bg-blue-100 dark:bg-blue-900/20"
+              data={saldoData}
+              state={dataState}
+              total={resultado}
+              chartColor="hsl(var(--chart-2))"
+              gradientId="grad-resultado"
+              resultColor={resultado >= 0 ? 'text-green-600' : 'text-red-600'}
+            />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <CategoryDonutCard
-          title="Entradas por Categoria"
-          data={entradasCategoria}
-          state={dataState}
-        />
-        <CategoryDonutCard title="Saídas por Categoria" data={saidasCategoria} state={dataState} />
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <CategoryDonutCard
+              title="Entradas por Categoria"
+              data={entradasCategoria}
+              state={dataState}
+            />
+            <CategoryDonutCard
+              title="Saídas por Categoria"
+              data={saidasCategoria}
+              state={dataState}
+            />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <EvolutionChartCard
-          title="Evolução do Saldo"
-          icon={LineChart}
-          variant="area"
-          data={saldoData}
-          state={dataState}
-          chartColor="hsl(var(--chart-2))"
-          gradientId="grad-evo-saldo"
-        />
-        <EvolutionChartCard
-          title="Receitas por Mês"
-          icon={BarChart3}
-          variant="bar"
-          data={receitasData}
-          state={dataState}
-          chartColor="hsl(var(--chart-1))"
-        />
-        <EvolutionChartCard
-          title="Evolução das Entradas"
-          icon={TrendingUp}
-          variant="line"
-          data={receitasData}
-          state={dataState}
-          chartColor="hsl(var(--chart-3))"
-        />
-        <EvolutionChartCard
-          title="Evolução das Saídas"
-          icon={TrendingDown}
-          variant="line"
-          data={despesasData}
-          state={dataState}
-          chartColor="hsl(var(--chart-4))"
-        />
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <EvolutionChartCard
+              title="Evolução do Saldo"
+              icon={LineChart}
+              variant="area"
+              data={saldoData}
+              state={dataState}
+              chartColor="hsl(var(--chart-2))"
+              gradientId="grad-evo-saldo"
+            />
+            <EvolutionChartCard
+              title="Receitas por Mês"
+              icon={BarChart3}
+              variant="bar"
+              data={receitasData}
+              state={dataState}
+              chartColor="hsl(var(--chart-1))"
+            />
+            <EvolutionChartCard
+              title="Evolução das Entradas"
+              icon={TrendingUp}
+              variant="line"
+              data={receitasData}
+              state={dataState}
+              chartColor="hsl(var(--chart-3))"
+            />
+            <EvolutionChartCard
+              title="Evolução das Saídas"
+              icon={TrendingDown}
+              variant="line"
+              data={despesasData}
+              state={dataState}
+              chartColor="hsl(var(--chart-4))"
+            />
+          </div>
 
-      <TransactionsTable data={transactions} state={dataState} />
+          <TransactionsTable data={transactions} state={dataState} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <FinancialAnalysisCard state={analysisState} analysis={analysis} />
-        <FinancialAlertsCard state={dataState} alerts={alerts} />
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <FinancialAnalysisCard state={analysisState} analysis={analysis} />
+            <FinancialAlertsCard state={dataState} alerts={alerts} />
+          </div>
+        </>
+      )}
 
-      <ImportedReportsTable
-        imports={imports}
-        clients={clients}
-        loading={loading}
-        canDelete={canDeleteImport}
-        onView={handleView}
-        onReimport={handleReimport}
-        onDelete={setDeleteTarget}
-      />
+      {isClientSelected && (
+        <ImportedReportsTable
+          imports={imports}
+          clients={clients}
+          loading={loading}
+          canDelete={canDeleteImport}
+          onView={handleView}
+          onReimport={handleReimport}
+          onDelete={setDeleteTarget}
+        />
+      )}
 
       <ImportReportDialog
         open={importOpen}
