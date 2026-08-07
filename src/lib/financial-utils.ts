@@ -1,4 +1,29 @@
+import { parseISO, format, isValid } from 'date-fns'
+
 export type DataState = 'loading' | 'empty' | 'error' | 'ready'
+
+function extractDatePart(dateStr: string): string {
+  if (!dateStr) return ''
+  return dateStr.split('T')[0].split(' ')[0]
+}
+
+export function formatDateBR(dateStr: string): string {
+  if (!dateStr) return ''
+  const datePart = extractDatePart(dateStr)
+  if (!datePart) return ''
+  const date = parseISO(datePart)
+  if (!isValid(date)) return dateStr
+  return format(date, 'dd/MM/yyyy')
+}
+
+export function getDayOfMonth(dateStr: string): string {
+  if (!dateStr) return ''
+  const datePart = extractDatePart(dateStr)
+  if (!datePart) return ''
+  const date = parseISO(datePart)
+  if (!isValid(date)) return ''
+  return format(date, 'dd')
+}
 
 export interface FinancialSummary {
   receitas: number

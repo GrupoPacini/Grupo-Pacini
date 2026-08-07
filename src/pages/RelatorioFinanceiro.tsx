@@ -24,6 +24,7 @@ import {
   Landmark,
 } from 'lucide-react'
 import { MainIndicatorCard } from '@/components/RelatorioFinanceiro/MainIndicatorCard'
+import { DailyCashFlowCard } from '@/components/RelatorioFinanceiro/DailyCashFlowCard'
 import { CategoryDonutCard } from '@/components/RelatorioFinanceiro/CategoryDonutCard'
 import { TransactionsTable } from '@/components/RelatorioFinanceiro/TransactionsTable'
 import { FinancialAnalysisCard } from '@/components/RelatorioFinanceiro/FinancialAnalysisCard'
@@ -506,6 +507,8 @@ export default function RelatorioFinanceiro() {
               state={dataState}
             />
           </div>
+
+          <DailyCashFlowCard transactions={transactions} state={dataState} />
 
           <TransactionsTable data={transactions} state={dataState} />
 
