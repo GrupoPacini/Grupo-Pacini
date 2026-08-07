@@ -17,8 +17,6 @@ import {
   FileSpreadsheet,
   Building2,
   CalendarRange,
-  BarChart3,
-  LineChart,
   RefreshCw,
   Upload,
   Inbox,
@@ -26,7 +24,6 @@ import {
 } from 'lucide-react'
 import { MainIndicatorCard } from '@/components/RelatorioFinanceiro/MainIndicatorCard'
 import { CategoryDonutCard } from '@/components/RelatorioFinanceiro/CategoryDonutCard'
-import { EvolutionChartCard } from '@/components/RelatorioFinanceiro/EvolutionChartCard'
 import { TransactionsTable } from '@/components/RelatorioFinanceiro/TransactionsTable'
 import { FinancialAnalysisCard } from '@/components/RelatorioFinanceiro/FinancialAnalysisCard'
 import { FinancialAlertsCard } from '@/components/RelatorioFinanceiro/FinancialAlertsCard'
@@ -429,42 +426,6 @@ export default function RelatorioFinanceiro() {
               title="Saídas por Categoria"
               data={saidasCategoria}
               state={dataState}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <EvolutionChartCard
-              title="Evolução do Saldo"
-              icon={LineChart}
-              variant="area"
-              data={saldoData}
-              state={dataState}
-              chartColor="hsl(var(--chart-2))"
-              gradientId="grad-evo-saldo"
-            />
-            <EvolutionChartCard
-              title="Receitas por Mês"
-              icon={BarChart3}
-              variant="bar"
-              data={receitasData}
-              state={dataState}
-              chartColor="hsl(var(--chart-1))"
-            />
-            <EvolutionChartCard
-              title="Evolução das Entradas"
-              icon={TrendingUp}
-              variant="line"
-              data={receitasData}
-              state={dataState}
-              chartColor="hsl(var(--chart-3))"
-            />
-            <EvolutionChartCard
-              title="Evolução das Saídas"
-              icon={TrendingDown}
-              variant="line"
-              data={despesasData}
-              state={dataState}
-              chartColor="hsl(var(--chart-4))"
             />
           </div>
 
