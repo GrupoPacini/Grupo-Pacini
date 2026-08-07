@@ -32,6 +32,7 @@ import {
 import {
   formatBRL,
   getTransactionStatusBadge,
+  formatDateBR,
   type Transaction,
   type DataState,
 } from '@/lib/financial-utils'
@@ -59,13 +60,6 @@ const COLUMNS: { field: SortField; label: string }[] = [
   { field: 'value', label: 'Valor' },
   { field: 'status', label: 'Status' },
 ]
-
-function formatDateBR(dateStr: string): string {
-  if (!dateStr) return ''
-  const parts = dateStr.split('-')
-  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
-  return dateStr
-}
 
 export function TransactionsTable({
   data,
@@ -110,6 +104,12 @@ export function TransactionsTable({
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
   const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  const totals = useMemo(() => {
+    const entradas = filtered.filter((t) => t.type === 'Receita').reduce((s, t) => s + t.value, 0)
+    const saidas = filtered.filter((t) => t.type === 'Despesa').reduce((s, t) => s + t.value, 0)
+    return { entradas, saidas, saldo: entradas - saidas }
+  }, [filtered])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -268,32 +268,65 @@ export function TransactionsTable({
                 </TableBody>
               </Table>
             </div>
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-xs text-muted-foreground">{sorted.length} lançamento(s)</p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 0}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    <ChevronLeft size={14} />
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    Página {page + 1} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page >= totalPages - 1}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    <ChevronRight size={14} />
-                  </Button>
+            <div className="mt-4 pt-3 border-t border-border/60">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex flex-wrap items-center gap-4 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Total de Entradas:</span>
+                    <span className="text-sm font-semibold text-green-600">
+                      {formatBRL(totals.entradas)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Total de Saídas:</span>
+                    <span className="text-sm font-semibold text-red-600">
+                      {formatBRL(totals.saidas)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Saldo dos Lançamentos:</span>
+                    <span
+                      className={cn(
+                        'text-sm font-semibold',
+                        totals.saldo > 0
+                          ? 'text-green-600'
+                          : totals.saldo < 0
+                            ? 'text-red-600'
+                            : 'text-foreground',
+                      )}
+                    >
+                      {formatBRL(totals.saldo)}
+                    </span>
+                  </div>
                 </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {sorted.length} lançamento(s)
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 0}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
+                      <ChevronLeft size={14} />
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Página {page + 1} de {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= totalPages - 1}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      <ChevronRight size={14} />
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </>
         )}
       </CardContent>
