@@ -18,10 +18,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { Upload, Loader2, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { importFinancialReport } from '@/services/financial-report-imports'
 import { ClientCombobox } from '@/components/ClientCombobox'
+import { numberToBRLInput, formatBRLInput, parseBRLInput } from '@/lib/financial-utils'
 import type { Client } from '@/services/api'
 
 const MONTHS = [
@@ -47,6 +49,7 @@ interface ImportReportDialogProps {
     client?: string
     month?: string
     year?: string
+    openingBalance?: number | null
   } | null
   onImported: () => void
 }
@@ -66,6 +69,7 @@ export function ImportReportDialog({
   const [fileType, setFileType] = useState('.csv')
   const [notes, setNotes] = useState('')
   const [replace, setReplace] = useState(false)
+  const [openingBalanceStr, setOpeningBalanceStr] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -74,6 +78,9 @@ export function ImportReportDialog({
         if (prefill.client) setClientId(prefill.client)
         if (prefill.month) setMonth(String(prefill.month))
         if (prefill.year) setYear(String(prefill.year))
+        if (prefill.openingBalance != null) {
+          setOpeningBalanceStr(numberToBRLInput(prefill.openingBalance))
+        }
       }
     } else {
       setClientId('')
@@ -84,6 +91,7 @@ export function ImportReportDialog({
       setFileType('.csv')
       setNotes('')
       setReplace(false)
+      setOpeningBalanceStr('')
       setLoading(false)
     }
   }, [open, prefill])
@@ -129,6 +137,10 @@ export function ImportReportDialog({
       toast.error('Selecione um arquivo para importação.')
       return
     }
+    if (!openingBalanceStr) {
+      toast.error('Informe o saldo inicial.')
+      return
+    }
 
     setLoading(true)
     try {
@@ -141,6 +153,7 @@ export function ImportReportDialog({
         fileType,
         notes,
         replace,
+        openingBalance: parseBRLInput(openingBalanceStr),
       })
       toast.success(`${result.record_count ?? 0} transações importadas com sucesso.`)
       onImported()
@@ -212,6 +225,18 @@ export function ImportReportDialog({
             </div>
           </div>
           <div className="grid gap-2">
+            <Label>Saldo Inicial *</Label>
+            <Input
+              value={openingBalanceStr}
+              onChange={(e) => setOpeningBalanceStr(formatBRLInput(e.target.value))}
+              placeholder="R$ 0,00"
+              inputMode="numeric"
+            />
+            <p className="text-xs text-muted-foreground">
+              Informe o saldo inicial do período. Aceita valores negativos.
+            </p>
+          </div>
+          <div className="grid gap-2">
             <Label>Arquivo (.csv, .xls, .xlsx) *</Label>
             <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-dashed border-input p-4 hover:bg-accent transition-colors">
               <input
@@ -254,7 +279,10 @@ export function ImportReportDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleImport} disabled={loading || !fileData || !clientId || !month}>
+          <Button
+            onClick={handleImport}
+            disabled={loading || !fileData || !clientId || !month || !openingBalanceStr}
+          >
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

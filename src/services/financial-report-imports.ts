@@ -9,6 +9,7 @@ export interface ImportReportPayload {
   fileType: string
   notes?: string
   replace?: boolean
+  openingBalance?: number | null
 }
 
 export interface FinancialReportImport {
@@ -23,6 +24,7 @@ export interface FinancialReportImport {
   imported_at?: string
   notes?: string
   record_count?: number
+  opening_balance?: number | null
   created?: string
   updated?: string
 }
@@ -57,4 +59,14 @@ export async function deleteImportReport(id: string) {
     .catch(async () => {
       return pb.collection('financial_report_imports').delete(id)
     })
+}
+
+export async function updateOpeningBalance(id: string, openingBalance: number) {
+  return pb.send(`/backend/v1/financial-reports/${id}/opening-balance`, {
+    method: 'PATCH',
+    body: JSON.stringify({ openingBalance }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
 }

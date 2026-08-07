@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-07T14:30:50.813Z",
+  "generatedAt": "2026-08-07T14:44:44.838Z",
   "collections": [
     {
       "name": "users",
@@ -1239,6 +1239,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "opening_balance",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

@@ -114,6 +114,7 @@ export function useFinancialData(filters: FinancialFilters) {
       const importRecords = await pb.collection('financial_report_imports').getFullList({
         filter: `client = "${filters.cliente}"`,
         sort: '-imported_at',
+        expand: 'client,imported_by',
       })
       setImports(importRecords as unknown as FinancialReportImport[])
     } catch (err: any) {
@@ -136,6 +137,7 @@ export function useFinancialData(filters: FinancialFilters) {
       const records = await pb.collection('financial_report_imports').getFullList({
         filter: `client = "${filters.cliente}"`,
         sort: '-imported_at',
+        expand: 'client,imported_by',
       })
       setImports(records as unknown as FinancialReportImport[])
     } catch {

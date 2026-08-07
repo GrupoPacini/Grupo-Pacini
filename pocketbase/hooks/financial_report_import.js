@@ -45,6 +45,13 @@ routerAdd(
     var fileName = body.fileName || ''
     var fileType = (body.fileType || '').toLowerCase()
 
+    var openingBalanceRaw = body.openingBalance
+    var openingBalance = null
+    if (openingBalanceRaw !== undefined && openingBalanceRaw !== null && openingBalanceRaw !== '') {
+      openingBalance = parseFloat(openingBalanceRaw)
+      if (isNaN(openingBalance)) openingBalance = null
+    }
+
     if (!clientId) return e.badRequestError('Cliente é obrigatório')
     if (!month || month < 1 || month > 12) return e.badRequestError('Mês inválido')
     if (!year || year < 2000 || year > 2100) return e.badRequestError('Ano inválido')
@@ -83,7 +90,11 @@ routerAdd(
       })
     }
 
+    var preservedOpeningBalance = null
     if (existingImport && replace) {
+      try {
+        preservedOpeningBalance = existingImport.get('opening_balance')
+      } catch (_) {}
       try {
         var oldTxList = $app.findRecordsByFilter(
           'financial_transactions',
@@ -113,6 +124,11 @@ routerAdd(
     importRecord.set('imported_at', new Date().toISOString())
     importRecord.set('notes', notes)
     importRecord.set('record_count', 0)
+    if (openingBalance !== null) {
+      importRecord.set('opening_balance', openingBalance)
+    } else if (preservedOpeningBalance !== null && preservedOpeningBalance !== undefined) {
+      importRecord.set('opening_balance', preservedOpeningBalance)
+    }
     $app.save(importRecord)
 
     var rows = []

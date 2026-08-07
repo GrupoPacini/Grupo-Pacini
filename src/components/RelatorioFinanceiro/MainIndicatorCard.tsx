@@ -51,7 +51,7 @@ export function MainIndicatorCard({
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Total</p>
             {state === 'ready' && unavailable ? (
-              <p className="text-base font-medium text-muted-foreground">Saldo não disponível</p>
+              <p className="text-base font-medium text-muted-foreground">Saldo não informado</p>
             ) : (
               <p
                 className={cn(

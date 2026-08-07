@@ -104,6 +104,7 @@ export type FinancialReportImport = {
   imported_at: string
   notes: string
   record_count: number
+  opening_balance?: number | null
   created: string
   updated: string
   expand?: {
@@ -117,6 +118,28 @@ export function formatBRL(value: number): string {
     style: 'currency',
     currency: 'BRL',
   }).format(value)
+}
+
+export function numberToBRLInput(value: number | null | undefined): string {
+  if (value === null || value === undefined) return ''
+  const negative = value < 0
+  const absValue = Math.abs(value)
+  const formatted = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(absValue)
+  return `${negative ? '-' : ''}R$ ${formatted}`
+}
+
+export function parseBRLInput(value: string): number {
+  const negative = value.includes('-')
+  const digits = value.replace(/[^\d]/g, '')
+  const num = (parseInt(digits || '0', 10) || 0) / 100
+  return negative ? -num : num
+}
+
+export function formatBRLInput(value: string): string {
+  return numberToBRLInput(parseBRLInput(value))
 }
 
 export function formatPercent(value: number, total: number): string {

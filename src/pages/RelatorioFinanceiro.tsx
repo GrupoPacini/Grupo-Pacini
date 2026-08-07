@@ -29,6 +29,7 @@ import { TransactionsTable } from '@/components/RelatorioFinanceiro/Transactions
 import { FinancialAnalysisCard } from '@/components/RelatorioFinanceiro/FinancialAnalysisCard'
 import { FinancialAlertsCard } from '@/components/RelatorioFinanceiro/FinancialAlertsCard'
 import { ImportReportDialog } from '@/components/RelatorioFinanceiro/ImportReportDialog'
+import { EditOpeningBalanceDialog } from '@/components/RelatorioFinanceiro/EditOpeningBalanceDialog'
 import { MonthMultiSelect } from '@/components/RelatorioFinanceiro/MonthMultiSelect'
 import { ImportedReportsTable } from '@/components/RelatorioFinanceiro/ImportedReportsTable'
 import { DeleteReportDialog } from '@/components/RelatorioFinanceiro/DeleteReportDialog'
@@ -64,6 +65,8 @@ export default function RelatorioFinanceiro() {
   } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<FinancialReportImport | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [editOpeningBalanceTarget, setEditOpeningBalanceTarget] =
+    useState<FinancialReportImport | null>(null)
   const { can } = usePermissions()
 
   const { loading, error, transactions, allTransactions, clients, imports, retry, refreshImports } =
@@ -120,9 +123,36 @@ export default function RelatorioFinanceiro() {
     [transactions],
   )
   const saldoData = useMemo(() => computeSaldoEvolution(transactions), [transactions])
+  const openingBalance = useMemo(() => {
+    if (!isClientSelected) return null
+    const isAllMonths = appliedFilters.mes.includes('all') || appliedFilters.mes.length === 0
+    const selectedMonths = appliedFilters.mes.filter((m) => m !== 'all')
+    if (isAllMonths && appliedFilters.ano === 'all') {
+      const sorted = [...imports].sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year
+        return a.month - b.month
+      })
+      const first = sorted[0]
+      return first?.opening_balance != null ? first.opening_balance : null
+    }
+    if (isAllMonths) {
+      const year = Number(appliedFilters.ano)
+      const yearImports = imports.filter((i) => i.year === year)
+      const sorted = [...yearImports].sort((a, b) => a.month - b.month)
+      const first = sorted[0]
+      return first?.opening_balance != null ? first.opening_balance : null
+    }
+    if (appliedFilters.ano === 'all') return null
+    const year = Number(appliedFilters.ano)
+    const sortedMonths = selectedMonths.map(Number).sort((a, b) => a - b)
+    const firstMonth = sortedMonths[0]
+    const importRecord = imports.find((i) => i.month === firstMonth && i.year === year)
+    return importRecord?.opening_balance != null ? importRecord.opening_balance : null
+  }, [imports, appliedFilters, isClientSelected])
+
   const saldoFinal = useMemo(
-    () => computeSaldoFinal(transactions, receitasTotal, despesasTotal),
-    [transactions, receitasTotal, despesasTotal],
+    () => computeSaldoFinal(transactions, receitasTotal, despesasTotal, openingBalance),
+    [transactions, receitasTotal, despesasTotal, openingBalance],
   )
   const saldoFinalUnavailable = saldoFinal === null
   const saldoFinalResultColor =
@@ -185,13 +215,30 @@ export default function RelatorioFinanceiro() {
     setImportOpen(true)
   }
   const handleReimport = (clientId: string, month: number, year: number) => {
-    setImportPrefill({ client: clientId, month: String(month), year: String(year) })
+    const existingImport = imports.find(
+      (i) => i.client === clientId && i.month === month && i.year === year,
+    )
+    setImportPrefill({
+      client: clientId,
+      month: String(month),
+      year: String(year),
+      openingBalance: existingImport?.opening_balance,
+    })
     setImportOpen(true)
   }
   const handleImported = () => {
     refreshImports()
     retry()
     toast({ title: 'Importação concluída', description: 'O relatório foi importado com sucesso.' })
+  }
+
+  const handleOpeningBalanceUpdated = () => {
+    refreshImports()
+    retry()
+    toast({
+      title: 'Saldo inicial atualizado',
+      description: 'O saldo inicial foi atualizado com sucesso.',
+    })
   }
 
   const handleDeleteConfirm = async () => {
@@ -236,6 +283,7 @@ export default function RelatorioFinanceiro() {
   }
 
   const canDeleteImport = can('Relatório Financeiro', 'excluir')
+  const canEditImport = can('Relatório Financeiro', 'editar')
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -474,8 +522,10 @@ export default function RelatorioFinanceiro() {
           clients={clients}
           loading={loading}
           canDelete={canDeleteImport}
+          canEdit={canEditImport}
           onView={handleView}
           onReimport={handleReimport}
+          onEditOpeningBalance={setEditOpeningBalanceTarget}
           onDelete={setDeleteTarget}
         />
       )}
@@ -495,6 +545,14 @@ export default function RelatorioFinanceiro() {
         clients={clients}
         loading={deleting}
         onConfirm={handleDeleteConfirm}
+      />
+
+      <EditOpeningBalanceDialog
+        open={!!editOpeningBalanceTarget}
+        onOpenChange={(v) => !v && setEditOpeningBalanceTarget(null)}
+        importRecord={editOpeningBalanceTarget}
+        clients={clients}
+        onUpdated={handleOpeningBalanceUpdated}
       />
     </div>
   )

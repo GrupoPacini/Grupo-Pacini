@@ -8,9 +8,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { FileSpreadsheet, Eye, RefreshCw, Trash2, Inbox, Loader2 } from 'lucide-react'
+import { FileSpreadsheet, Eye, RefreshCw, Trash2, Inbox, Loader2, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
+  formatBRL,
   formatCompetence,
   getImportStatusConfig,
   type FinancialReportImport,
@@ -22,8 +23,10 @@ interface ImportedReportsTableProps {
   clients: ClientRecord[]
   loading: boolean
   canDelete: boolean
+  canEdit: boolean
   onView: (clientId: string, month: number, year: number) => void
   onReimport: (clientId: string, month: number, year: number) => void
+  onEditOpeningBalance: (importRecord: FinancialReportImport) => void
   onDelete: (importRecord: FinancialReportImport) => void
 }
 
@@ -56,8 +59,10 @@ export function ImportedReportsTable({
   clients,
   loading,
   canDelete,
+  canEdit,
   onView,
   onReimport,
+  onEditOpeningBalance,
   onDelete,
 }: ImportedReportsTableProps) {
   return (
@@ -86,6 +91,7 @@ export function ImportedReportsTable({
                 <TableRow>
                   <TableHead className="text-xs">Cliente</TableHead>
                   <TableHead className="text-xs">Competência</TableHead>
+                  <TableHead className="text-xs">Saldo Inicial</TableHead>
                   <TableHead className="text-xs">Arquivo</TableHead>
                   <TableHead className="text-xs text-center">Registros</TableHead>
                   <TableHead className="text-xs">Importado por</TableHead>
@@ -104,6 +110,9 @@ export function ImportedReportsTable({
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatCompetence(imp.month, imp.year)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {imp.opening_balance != null ? formatBRL(imp.opening_balance) : '—'}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                         {imp.file_name || '—'}
@@ -145,6 +154,17 @@ export function ImportedReportsTable({
                           >
                             <RefreshCw size={14} />
                           </Button>
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => onEditOpeningBalance(imp)}
+                              title="Editar saldo inicial"
+                            >
+                              <Pencil size={14} />
+                            </Button>
+                          )}
                           {canDelete && (
                             <Button
                               variant="ghost"
