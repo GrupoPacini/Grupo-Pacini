@@ -9,7 +9,6 @@ import { ArrowLeft, Pencil, FileText, ShieldCheck, RefreshCw, Building2 } from '
 import { toast } from 'sonner'
 import { usePermissions } from '@/hooks/use-permissions'
 import { formatCnpj } from '@/lib/client-utils'
-import { VisaoGeralTab } from '@/components/Clientes/VisaoGeralTab'
 import { DadosCadastraisTab } from '@/components/Clientes/DadosCadastraisTab'
 import { SociosTab } from '@/components/Clientes/SociosTab'
 import { CnaesTab } from '@/components/Clientes/CnaesTab'
@@ -22,7 +21,7 @@ export default function ClientDetail() {
   const canEdit = can('Clientes', 'editar')
   const [client, setClient] = useState<Client | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('dados')
 
   const load = useCallback(async () => {
     if (!id) return
@@ -137,9 +136,6 @@ export default function ClientDetail() {
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview">
-          <VisaoGeralTab client={client} />
-        </TabsContent>
         <TabsContent value="dados">
           <DadosCadastraisTab client={client} />
         </TabsContent>
