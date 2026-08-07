@@ -15,12 +15,15 @@ import {
   Search,
   Settings,
   DollarSign,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { usePermissions } from '@/hooks/use-permissions'
 import { getModuleFromPath } from '@/lib/permissions'
-import { Button } from './ui/button'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -34,12 +37,21 @@ interface NavSection {
   items: NavItem[]
 }
 
+const STORAGE_KEY = 'sidebar-collapsed'
+
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true')
   const location = useLocation()
   const { signOut, user, isAdmin } = useAuth()
   const { canView } = usePermissions()
+
+  const toggleCollapse = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    localStorage.setItem(STORAGE_KEY, String(next))
+  }
 
   const navSections: NavSection[] = [
     {
@@ -97,6 +109,61 @@ export default function Layout() {
     return 'Configurações'
   }
 
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    cn(
+      'flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200',
+      isActive
+        ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-4 border-l-accent'
+        : 'text-primary-foreground/70 hover:bg-sidebar-accent/50 hover:text-primary-foreground',
+      collapsed && 'lg:justify-center lg:px-2',
+    )
+
+  const renderNavItem = (item: NavItem) => {
+    const content = (
+      <>
+        <item.icon size={20} className="shrink-0" />
+        <span className={cn('font-medium text-title-case', collapsed && 'lg:hidden')}>
+          {item.name}
+        </span>
+      </>
+    )
+    if (collapsed) {
+      return (
+        <Tooltip key={item.path}>
+          <TooltipTrigger asChild>
+            <NavLink to={item.path} onClick={() => setSidebarOpen(false)} className={navLinkClass}>
+              {content}
+            </NavLink>
+          </TooltipTrigger>
+          <TooltipContent side="right">{item.name}</TooltipContent>
+        </Tooltip>
+      )
+    }
+    return (
+      <NavLink
+        key={item.path}
+        to={item.path}
+        onClick={() => setSidebarOpen(false)}
+        className={navLinkClass}
+      >
+        {content}
+      </NavLink>
+    )
+  }
+
+  const configLink = (
+    <NavLink
+      to="/configuracoes"
+      onClick={() => setSidebarOpen(false)}
+      className={(s) => cn(navLinkClass(s), 'mb-2')}
+    >
+      <Settings size={20} className="shrink-0" />
+      <span className={cn('font-medium text-title-case', collapsed && 'lg:hidden')}>
+        Configurações
+      </span>
+    </NavLink>
+  )
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {sidebarOpen && (
@@ -108,13 +175,36 @@ export default function Layout() {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-primary text-primary-foreground transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-primary text-primary-foreground transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          collapsed ? 'lg:w-20' : 'lg:w-64',
         )}
       >
-        <div className="flex items-center justify-between p-6">
+        <button
+          onClick={toggleCollapse}
+          className="absolute top-20 -right-3 z-50 hidden lg:flex items-center justify-center w-6 h-6 rounded-full bg-accent text-accent-foreground shadow-md hover:bg-accent/90 transition-colors"
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        <div
+          className={cn(
+            'flex items-center justify-between p-6',
+            collapsed && 'lg:justify-center lg:p-4',
+          )}
+        >
           <div className="flex items-center">
-            <img src="/pacini-logo.svg" alt="Grupo Pacini" className="h-10 w-auto" />
+            <img
+              src="/pacini-logo.svg"
+              alt="Grupo Pacini"
+              className={cn('h-10 w-auto', collapsed && 'lg:hidden')}
+            />
+            {collapsed && (
+              <div className="hidden lg:flex w-10 h-10 rounded-lg bg-accent items-center justify-center text-lg font-bold text-primary">
+                P
+              </div>
+            )}
           </div>
           <button
             className="lg:hidden text-primary-foreground/70"
@@ -124,7 +214,7 @@ export default function Layout() {
           </button>
         </div>
 
-        <div className="px-4 pb-2">
+        <div className={cn('px-4 pb-2', collapsed && 'lg:hidden')}>
           <div className="relative">
             <Search
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-primary-foreground/50"
@@ -143,29 +233,15 @@ export default function Layout() {
         <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
           {filteredSections.map((section) => (
             <div key={section.title}>
-              <p className="px-3 py-1.5 text-xs font-semibold text-primary-foreground/40 uppercase tracking-wider">
+              <p
+                className={cn(
+                  'px-3 py-1.5 text-xs font-semibold text-primary-foreground/40 uppercase tracking-wider',
+                  collapsed && 'lg:hidden',
+                )}
+              >
                 {section.title}
               </p>
-              <div className="space-y-1">
-                {section.items.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={({ isActive }) =>
-                      cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200',
-                        isActive
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-4 border-l-accent'
-                          : 'text-primary-foreground/70 hover:bg-sidebar-accent/50 hover:text-primary-foreground',
-                      )
-                    }
-                  >
-                    <item.icon size={20} />
-                    <span className="font-medium text-title-case">{item.name}</span>
-                  </NavLink>
-                ))}
-              </div>
+              <div className="space-y-1">{section.items.map(renderNavItem)}</div>
             </div>
           ))}
           {filteredSections.length === 0 && (
@@ -177,33 +253,37 @@ export default function Layout() {
 
         {canView('Configurações') && (
           <div className="p-3 mt-auto space-y-1">
-            <NavLink
-              to="/configuracoes"
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200 mb-2',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-4 border-l-accent'
-                    : 'text-primary-foreground/70 hover:bg-sidebar-accent/50 hover:text-primary-foreground',
-                )
-              }
-            >
-              <Settings size={20} />
-              <span className="font-medium text-title-case">Configurações</span>
-            </NavLink>
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>{configLink}</TooltipTrigger>
+                <TooltipContent side="right">Configurações</TooltipContent>
+              </Tooltip>
+            ) : (
+              configLink
+            )}
           </div>
         )}
-        <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-sidebar-accent/30">
+
+        <div
+          className={cn(
+            'flex items-center gap-2 px-2 py-2 rounded-lg bg-sidebar-accent/30',
+            collapsed && 'lg:flex-col lg:gap-2 lg:px-1',
+          )}
+        >
           <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-primary shrink-0">
             {(user?.name || 'U')[0].toUpperCase()}
           </div>
-          <span className="text-sm font-medium text-primary-foreground truncate flex-1">
+          <span
+            className={cn(
+              'text-sm font-medium text-primary-foreground truncate flex-1',
+              collapsed && 'lg:hidden',
+            )}
+          >
             {user?.name || 'Usuário'}
           </span>
           <button
             onClick={signOut}
-            className="text-primary-foreground/60 hover:text-primary-foreground p-1.5 rounded-md hover:bg-destructive/20 transition-colors"
+            className="text-primary-foreground/60 hover:text-primary-foreground p-1.5 rounded-md hover:bg-destructive/20 transition-colors shrink-0"
             title="Sair"
           >
             <LogOut size={16} />
