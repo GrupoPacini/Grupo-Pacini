@@ -28,6 +28,7 @@ import { TransactionsTable } from '@/components/RelatorioFinanceiro/Transactions
 import { FinancialAnalysisCard } from '@/components/RelatorioFinanceiro/FinancialAnalysisCard'
 import { FinancialAlertsCard } from '@/components/RelatorioFinanceiro/FinancialAlertsCard'
 import { ImportReportDialog } from '@/components/RelatorioFinanceiro/ImportReportDialog'
+import { MonthMultiSelect } from '@/components/RelatorioFinanceiro/MonthMultiSelect'
 import { ImportedReportsTable } from '@/components/RelatorioFinanceiro/ImportedReportsTable'
 import { DeleteReportDialog } from '@/components/RelatorioFinanceiro/DeleteReportDialog'
 import { ClientCombobox } from '@/components/ClientCombobox'
@@ -127,7 +128,10 @@ export default function RelatorioFinanceiro() {
   )
 
   const hasCompetence =
-    isClientSelected && appliedFilters.mes !== 'all' && appliedFilters.ano !== 'all'
+    isClientSelected &&
+    !appliedFilters.mes.includes('all') &&
+    appliedFilters.mes.length > 0 &&
+    appliedFilters.ano !== 'all'
   const analysis =
     hasCompetence && dataState === 'ready' && transactions.length > 0
       ? generateAnalysis(receitasTotal, despesasTotal, resultado, transactions.length)
@@ -140,10 +144,20 @@ export default function RelatorioFinanceiro() {
   const clienteLabel = selectedClient
     ? selectedClient.razao_social || selectedClient.name
     : 'Nenhum cliente selecionado'
-  const periodLabel =
-    appliedFilters.mes !== 'all' && appliedFilters.ano !== 'all'
-      ? `${MONTHS.find((m) => m.value === appliedFilters.mes)?.label || ''}/${appliedFilters.ano}`
-      : 'Todos os períodos'
+  const periodLabel = (() => {
+    if (appliedFilters.ano === 'all') return 'Todos os períodos'
+    const isAllMonths = appliedFilters.mes.includes('all') || appliedFilters.mes.length === 0
+    const selectedMonths = appliedFilters.mes.filter((m) => m !== 'all')
+    if (isAllMonths) return `Ano ${appliedFilters.ano}`
+    if (selectedMonths.length === 1) {
+      return `${MONTHS.find((m) => m.value === selectedMonths[0])?.label || ''}/${appliedFilters.ano}`
+    }
+    if (selectedMonths.length === 2) {
+      const labels = selectedMonths.map((v) => MONTHS.find((m) => m.value === v)?.label || '')
+      return `${labels.join(', ')}/${appliedFilters.ano}`
+    }
+    return `${selectedMonths.length} meses/${appliedFilters.ano}`
+  })()
 
   const handleApply = () => setAppliedFilters({ ...filters })
   const handleClear = () => {
@@ -185,7 +199,7 @@ export default function RelatorioFinanceiro() {
     const newFilters = {
       ...EMPTY_FILTERS,
       cliente: clientId,
-      mes: String(month),
+      mes: [String(month)],
       ano: String(year),
     }
     setFilters(newFilters)
@@ -271,22 +285,10 @@ export default function RelatorioFinanceiro() {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
-            <Select
+            <MonthMultiSelect
               value={filters.mes}
-              onValueChange={(v) => setFilters((f) => ({ ...f, mes: v }))}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os meses</SelectItem>
-                {MONTHS.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onChange={(val) => setFilters((f) => ({ ...f, mes: val }))}
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Ano</Label>

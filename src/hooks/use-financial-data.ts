@@ -6,7 +6,7 @@ import type { Client } from '@/services/api'
 
 export interface FinancialFilters {
   cliente: string
-  mes: string
+  mes: string[]
   ano: string
   categoria: string
   conta: string
@@ -15,7 +15,7 @@ export interface FinancialFilters {
 
 export const EMPTY_FILTERS: FinancialFilters = {
   cliente: 'all',
-  mes: 'all',
+  mes: ['all'],
   ano: 'all',
   categoria: 'all',
   conta: 'all',
@@ -59,12 +59,17 @@ export function useFinancialData(filters: FinancialFilters) {
     try {
       const filterParts: string[] = [`client = "${filters.cliente}"`]
 
-      if (filters.mes !== 'all' && filters.ano !== 'all') {
-        const m = String(filters.mes).padStart(2, '0')
+      const isAllMonths = filters.mes.includes('all') || filters.mes.length === 0
+      const selectedMonths = filters.mes.filter((m) => m !== 'all')
+
+      if (!isAllMonths && filters.ano !== 'all' && selectedMonths.length > 0) {
         const y = filters.ano
-        const lastDay = new Date(Number(y), Number(m), 0).getDate()
-        filterParts.push(`date >= "${y}-${m}-01 00:00:00"`)
-        filterParts.push(`date <= "${y}-${m}-${String(lastDay).padStart(2, '0')} 23:59:59"`)
+        const monthFilters = selectedMonths.map((m) => {
+          const mm = String(m).padStart(2, '0')
+          const lastDay = new Date(Number(y), Number(m), 0).getDate()
+          return `date >= "${y}-${mm}-01 00:00:00" && date <= "${y}-${mm}-${String(lastDay).padStart(2, '0')} 23:59:59"`
+        })
+        filterParts.push(`(${monthFilters.join(' || ')})`)
       } else if (filters.ano !== 'all') {
         filterParts.push(`date >= "${filters.ano}-01-01 00:00:00"`)
         filterParts.push(`date <= "${filters.ano}-12-31 23:59:59"`)
