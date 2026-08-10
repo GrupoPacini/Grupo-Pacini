@@ -62,8 +62,7 @@ export function DadosCadastraisTab({ client }: Props) {
             <Field label="Telefone" value={client.telefone} />
             <Field label="Celular" value={client.celular} />
             <Field label="E-mail Principal" value={client.email_principal} />
-            <Field label="Site" value={client.site} />
-            <Field label="Observações Internas" value={client.observacoes_internas} />
+            <Field label="Site" value={client.client_status} />
             <Field label="Client Status" value={client.client_status} />
           </div>
         </CardContent>

@@ -13,6 +13,7 @@ import { DadosCadastraisTab } from '@/components/Clientes/DadosCadastraisTab'
 import { SociosTab } from '@/components/Clientes/SociosTab'
 import { CnaesTab } from '@/components/Clientes/CnaesTab'
 import { TimelineTab } from '@/components/Clientes/TimelineTab'
+import { ObservacoesTab } from '@/components/Clientes/ObservacoesTab'
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>()
@@ -35,6 +36,10 @@ export default function ClientDetail() {
       setLoading(false)
     }
   }, [id, navigate])
+
+  const handleObservacoesSuccess = useCallback(() => {
+    load()
+  }, [load])
 
   useEffect(() => {
     load()
@@ -134,6 +139,7 @@ export default function ClientDetail() {
           <TabsTrigger value="socios">Sócios</TabsTrigger>
           <TabsTrigger value="cnaes">CNAEs</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
+          <TabsTrigger value="observacoes">Observações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
@@ -147,6 +153,9 @@ export default function ClientDetail() {
         </TabsContent>
         <TabsContent value="historico">
           <TimelineTab clientId={client.id} />
+        </TabsContent>
+        <TabsContent value="observacoes">
+          <ObservacoesTab client={client} canEdit={canEdit} onSuccess={handleObservacoesSuccess} />
         </TabsContent>
       </Tabs>
     </div>

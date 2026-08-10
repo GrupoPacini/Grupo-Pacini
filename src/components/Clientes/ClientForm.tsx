@@ -62,7 +62,6 @@ interface ClientFormData {
   celular: string
   email_principal: string
   site: string
-  observacoes_internas: string
   client_status: string
   cep: string
   logradouro: string
@@ -98,7 +97,6 @@ const emptyForm: ClientFormData = {
   celular: '',
   email_principal: '',
   site: '',
-  observacoes_internas: '',
   client_status: 'Ativo',
   cep: '',
   logradouro: '',
@@ -128,7 +126,6 @@ function mapClientToForm(c: ClientRecord): ClientFormData {
     celular: c.celular || '',
     email_principal: c.email_principal || '',
     site: c.site || '',
-    observacoes_internas: c.observacoes_internas || '',
     client_status: c.client_status || 'Ativo',
     cep: c.cep || '',
     logradouro: c.logradouro || '',
@@ -363,7 +360,6 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
         celular: form.celular.trim() || null,
         email_principal: form.email_principal.trim() || null,
         site: form.site.trim() || null,
-        observacoes_internas: form.observacoes_internas.trim() || null,
         client_status: form.client_status || 'Ativo',
         cep: form.cep.trim() || null,
         logradouro: form.logradouro.trim() || null,
@@ -589,17 +585,6 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
                 {errors.client_status && (
                   <p className="text-sm text-destructive">{errors.client_status}</p>
                 )}
-              </div>
-
-              <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                <Label htmlFor="observacoes_internas">Observações Internas</Label>
-                <Textarea
-                  id="observacoes_internas"
-                  value={form.observacoes_internas}
-                  onChange={(e) => set('observacoes_internas')(e.target.value)}
-                  placeholder="Anotações internas sobre o cliente..."
-                  rows={3}
-                />
               </div>
             </div>
           </CardContent>
