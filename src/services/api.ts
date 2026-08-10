@@ -151,15 +151,17 @@ export const getUsers = () => pb.collection<User>('users').getFullList({ sort: '
 
 export const createProcess = (data: {
   title: string
-  client: string
-  department: string
-  responsible: string
-  start_date: string
-  due_date: string
-  priority: string
   status: string
+  client?: string
+  department?: string
+  responsible?: string
+  start_date?: string
+  due_date?: string
+  priority?: string
   notes?: string
 }) => pb.collection('processes').create(data)
+
+export const deleteProcess = (id: string) => pb.collection('processes').delete(id)
 
 export const updateProcess = (
   id: string,
