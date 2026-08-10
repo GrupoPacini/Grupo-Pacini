@@ -53,7 +53,6 @@ interface ClientFormData {
   cnae_principal: string
   inscricao_estadual: string
   inscricao_municipal: string
-  ccm: string
   natureza_juridica: string
   porte: string
   data_abertura: string
@@ -88,7 +87,6 @@ const emptyForm: ClientFormData = {
   cnae_principal: '',
   inscricao_estadual: '',
   inscricao_municipal: '',
-  ccm: '',
   natureza_juridica: '',
   porte: '',
   data_abertura: '',
@@ -117,7 +115,6 @@ function mapClientToForm(c: ClientRecord): ClientFormData {
     cnae_principal: c.cnae_principal || '',
     inscricao_estadual: c.inscricao_estadual || '',
     inscricao_municipal: c.inscricao_municipal || '',
-    ccm: c.ccm || '',
     natureza_juridica: c.natureza_juridica || '',
     porte: c.porte || '',
     data_abertura: c.data_abertura ? String(c.data_abertura).slice(0, 10) : '',
@@ -351,7 +348,6 @@ export function ClientForm({ mode, clientId, initialClient, onSuccess, onCancel 
         cnae_principal: form.cnae_principal.trim() || null,
         inscricao_estadual: form.inscricao_estadual.trim() || null,
         inscricao_municipal: form.inscricao_municipal.trim() || null,
-        ccm: form.ccm.trim() || null,
         natureza_juridica: form.natureza_juridica.trim() || null,
         porte: form.porte.trim() || null,
         data_abertura: form.data_abertura || null,

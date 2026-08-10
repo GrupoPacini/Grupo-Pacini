@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Client, getClient } from '@/services/api'
+import { getClientById, type ClientRecord } from '@/services/clients'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ArrowLeft, Pencil, FileText, ShieldCheck, RefreshCw, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useRealtime } from '@/hooks/use-realtime'
 import { formatCnpj } from '@/lib/client-utils'
 import { DadosCadastraisTab } from '@/components/Clientes/DadosCadastraisTab'
 import { SociosTab } from '@/components/Clientes/SociosTab'
@@ -20,14 +21,14 @@ export default function ClientDetail() {
   const navigate = useNavigate()
   const { can, canView } = usePermissions()
   const canEdit = can('Clientes', 'editar')
-  const [client, setClient] = useState<Client | null>(null)
+  const [client, setClient] = useState<ClientRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dados')
 
   const load = useCallback(async () => {
     if (!id) return
     try {
-      const c = await getClient(id)
+      const c = await getClientById(id)
       setClient(c)
     } catch {
       toast.error('Erro ao carregar cliente')
@@ -44,6 +45,10 @@ export default function ClientDetail() {
   useEffect(() => {
     load()
   }, [load])
+
+  useRealtime('clients', (e) => {
+    if (e.record.id === id) load()
+  })
 
   if (loading)
     return (

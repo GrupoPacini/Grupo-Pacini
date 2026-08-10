@@ -27,6 +27,7 @@ import { PermissionGuard } from '@/components/PermissionGuard'
 import { ClientActions } from '@/components/Clientes/ClientActions'
 import { ClientesIndicatorCards } from '@/components/Clientes/ClientesIndicatorCards'
 import { StatusChangeDialog } from '@/components/Clientes/StatusChangeDialog'
+import { ImportClientsDialog } from '@/components/Clientes/ImportClientsDialog'
 import { formatCnpj, getClientStatusLabel, getClientStatusBadgeClass } from '@/lib/client-utils'
 import { toast } from 'sonner'
 import {
@@ -39,6 +40,7 @@ import {
   RefreshCw,
   AlertCircle,
   Users,
+  Upload,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -58,6 +60,7 @@ export default function Clientes() {
   const [error, setError] = useState(false)
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [statusTarget, setStatusTarget] = useState<Client | null>(null)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
   const { can } = usePermissions()
@@ -137,11 +140,18 @@ export default function Clientes() {
             Consulte, cadastre e acompanhe as empresas atendidas pelo escritório.
           </p>
         </div>
-        <PermissionGuard module="Clientes" action="criar">
-          <Button onClick={openCreate} className="gap-2 shrink-0">
-            <Plus size={16} /> Novo cliente
-          </Button>
-        </PermissionGuard>
+        <div className="flex items-center gap-2 shrink-0">
+          <PermissionGuard module="Clientes" action="gerenciar">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)} className="gap-2">
+              <Upload size={16} /> Importar
+            </Button>
+          </PermissionGuard>
+          <PermissionGuard module="Clientes" action="criar">
+            <Button onClick={openCreate} className="gap-2">
+              <Plus size={16} /> Novo cliente
+            </Button>
+          </PermissionGuard>
+        </div>
       </div>
 
       <ClientesIndicatorCards clients={clients} />
@@ -372,6 +382,12 @@ export default function Clientes() {
         open={statusDialogOpen}
         onOpenChange={setStatusDialogOpen}
         client={statusTarget}
+        onSuccess={loadData}
+      />
+
+      <ImportClientsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         onSuccess={loadData}
       />
     </div>

@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Client } from '@/services/api'
 import { getClientContacts, type ClientContact } from '@/services/client-contacts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtime } from '@/hooks/use-realtime'
-import { formatCnpj } from '@/lib/client-utils'
+import { formatCnpj, type ClientRecord } from '@/lib/client-utils'
 
 interface Props {
-  client: Client
+  client: ClientRecord
 }
 
 function Field({ label, value }: { label: string; value?: string }) {
@@ -47,23 +46,18 @@ export function DadosCadastraisTab({ client }: Props) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Field label="Razão Social" value={client.razao_social} />
-            <Field label="Nome Fantasia" value={client.nome_fantasia} />
+            <Field label="Código Interno" value={client.code as string} />
+            <Field label="Razão Social" value={client.razao_social as string} />
+            <Field label="Nome Fantasia" value={client.nome_fantasia as string} />
             <Field label="CNPJ" value={client.cnpj ? formatCnpj(client.cnpj) : ''} />
-            <Field label="Regime Tributário" value={client.tax_regime} />
-            <Field label="CNAE Principal" value={client.cnae_principal} />
-            <Field label="Inscrição Estadual" value={client.inscricao_estadual} />
-            <Field label="Inscrição Municipal" value={client.inscricao_municipal} />
-            <Field label="CCM" value={client.ccm} />
-            <Field label="Natureza Jurídica" value={client.natureza_juridica} />
-            <Field label="Porte" value={client.porte} />
-            <Field label="Data de Abertura" value={client.data_abertura || ''} />
-            <Field label="Situação Cadastral" value={client.situacao_cadastral} />
-            <Field label="Telefone" value={client.telefone} />
-            <Field label="Celular" value={client.celular} />
-            <Field label="E-mail Principal" value={client.email_principal} />
-            <Field label="Site" value={client.client_status} />
-            <Field label="Client Status" value={client.client_status} />
+            <Field label="Regime Tributário" value={client.tax_regime as string} />
+            <Field label="Inscrição Estadual" value={client.inscricao_estadual as string} />
+            <Field label="Inscrição Municipal" value={client.inscricao_municipal as string} />
+            <Field label="Natureza Jurídica" value={client.natureza_juridica as string} />
+            <Field label="Porte" value={client.porte as string} />
+            <Field label="Data de Abertura" value={client.data_abertura as string} />
+            <Field label="Situação Cadastral" value={client.situacao_cadastral as string} />
+            <Field label="Status do Cliente" value={client.client_status as string} />
           </div>
         </CardContent>
       </Card>
@@ -74,13 +68,13 @@ export function DadosCadastraisTab({ client }: Props) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Field label="CEP" value={client.cep} />
-            <Field label="Logradouro" value={client.logradouro} />
-            <Field label="Número" value={client.numero} />
-            <Field label="Complemento" value={client.complemento} />
-            <Field label="Bairro" value={client.bairro} />
-            <Field label="Município" value={client.municipio} />
-            <Field label="Estado" value={client.estado} />
+            <Field label="CEP" value={client.cep as string} />
+            <Field label="Logradouro" value={client.logradouro as string} />
+            <Field label="Número" value={client.numero as string} />
+            <Field label="Complemento" value={client.complemento as string} />
+            <Field label="Bairro" value={client.bairro as string} />
+            <Field label="Município" value={client.municipio as string} />
+            <Field label="Estado" value={client.estado as string} />
           </div>
         </CardContent>
       </Card>

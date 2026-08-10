@@ -19,7 +19,6 @@ export interface Client {
   objeto_social: string
   inscricao_estadual: string
   inscricao_municipal: string
-  ccm: string
   natureza_juridica: string
   porte: string
   data_abertura: string

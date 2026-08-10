@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-07T19:57:10.087Z",
+  "generatedAt": "2026-08-10T03:27:41.406Z",
   "collections": [
     {
       "name": "users",
@@ -267,12 +267,6 @@
         },
         {
           "name": "inscricao_municipal",
-          "type": "text",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "ccm",
           "type": "text",
           "required": false,
           "system": false

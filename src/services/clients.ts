@@ -69,6 +69,12 @@ export async function getAllClientsForIndicators(): Promise<ClientRecord[]> {
   })) as unknown as ClientRecord[]
 }
 
+export async function getAllClientsForImport(): Promise<ClientRecord[]> {
+  return (await pb.collection('clients').getFullList({
+    sort: 'name',
+  })) as unknown as ClientRecord[]
+}
+
 export async function getClientById(id: string): Promise<ClientRecord> {
   return (await pb.collection('clients').getOne(id, {
     expand: 'responsavel_interno',

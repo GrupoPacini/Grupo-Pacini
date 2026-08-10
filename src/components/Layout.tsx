@@ -112,10 +112,15 @@ export default function Layout() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     cn(
       'flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200',
-      isActive
-        ? 'bg-sidebar-accent text-sidebar-accent-foreground border-l-4 border-l-accent'
-        : 'text-primary-foreground/70 hover:bg-sidebar-accent/50 hover:text-primary-foreground',
-      collapsed && 'lg:justify-center lg:px-2',
+      isActive &&
+        !collapsed &&
+        'bg-sidebar-accent text-sidebar-accent-foreground border-l-4 border-l-accent',
+      isActive &&
+        collapsed &&
+        'bg-sidebar-accent text-sidebar-accent-foreground lg:relative lg:before:content-[""] lg:before:absolute lg:before:left-0 lg:before:top-1/2 lg:before:-translate-y-1/2 lg:before:w-1 lg:before:h-4 lg:before:rounded-full lg:before:bg-accent',
+      !isActive &&
+        'text-primary-foreground/70 hover:bg-sidebar-accent/50 hover:text-primary-foreground',
+      collapsed && 'lg:justify-center lg:w-11 lg:h-11 lg:px-0 lg:py-0 lg:mx-auto',
     )
 
   const renderNavItem = (item: NavItem) => {
@@ -182,7 +187,7 @@ export default function Layout() {
       >
         <button
           onClick={toggleCollapse}
-          className="absolute top-20 -right-3 z-50 hidden lg:flex items-center justify-center w-6 h-6 rounded-full bg-accent text-accent-foreground shadow-md hover:bg-accent/90 transition-colors"
+          className="absolute top-4 -right-3 z-50 hidden lg:flex items-center justify-center w-6 h-6 rounded-full bg-card border border-border text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shadow-sm"
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -230,7 +235,12 @@ export default function Layout() {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
+        <nav
+          className={cn(
+            'flex-1 px-4 py-2 space-y-4 overflow-y-auto',
+            collapsed && 'lg:px-2 lg:space-y-3',
+          )}
+        >
           {filteredSections.map((section) => (
             <div key={section.title}>
               <p
@@ -267,7 +277,7 @@ export default function Layout() {
         <div
           className={cn(
             'flex items-center gap-2 px-2 py-2 rounded-lg bg-sidebar-accent/30',
-            collapsed && 'lg:flex-col lg:gap-2 lg:px-1',
+            collapsed && 'lg:flex-col lg:gap-2 lg:px-1 lg:items-center',
           )}
         >
           <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-sm font-bold text-primary shrink-0">
