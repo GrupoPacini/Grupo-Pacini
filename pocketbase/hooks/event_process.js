@@ -18,7 +18,16 @@ onRecordAfterCreateSuccess((e) => {
 }, 'processes')
 
 onRecordAfterUpdateSuccess((e) => {
-  var fields = ['title', 'status', 'notes', 'due_date', 'responsible', 'department']
+  var fields = [
+    'title',
+    'status',
+    'notes',
+    'due_date',
+    'responsible',
+    'department',
+    'start_date',
+    'priority',
+  ]
   var hasChange = false
   for (var i = 0; i < fields.length; i++) {
     if (e.record.getString(fields[i]) !== e.record.original().getString(fields[i])) {

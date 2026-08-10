@@ -82,8 +82,10 @@ export interface User {
 export interface Process {
   id: string
   title: string
-  status: 'Pendente' | 'Em Andamento' | 'Concluído' | 'Atrasado'
+  status: string
+  start_date: string
   due_date: string
+  priority: string
   notes: string
   client: string
   department: string
@@ -152,10 +154,27 @@ export const createProcess = (data: {
   client: string
   department: string
   responsible: string
+  start_date: string
   due_date: string
-  status: Process['status']
+  priority: string
+  status: string
   notes?: string
 }) => pb.collection('processes').create(data)
+
+export const updateProcess = (
+  id: string,
+  data: Partial<{
+    title: string
+    client: string
+    department: string
+    responsible: string
+    start_date: string
+    due_date: string
+    priority: string
+    status: string
+    notes: string
+  }>,
+) => pb.collection('processes').update(id, data)
 
 export const searchProcesses = async (query: string): Promise<{ items: Process[] }> => {
   return pb.send('/backend/v1/search/processes', {

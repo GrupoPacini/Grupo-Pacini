@@ -13,7 +13,7 @@ export const MODULE_CONFIGS: ModuleConfig[] = [
   },
   {
     module: 'Processos',
-    actions: ['visualizar', 'criar', 'editar', 'excluir', 'exportar', 'gerenciar'],
+    actions: ['visualizar', 'criar', 'editar', 'excluir', 'concluir', 'exportar', 'gerenciar'],
   },
   {
     module: 'Licenças',
