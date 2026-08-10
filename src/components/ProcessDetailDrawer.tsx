@@ -60,6 +60,7 @@ export function ProcessDetailDrawer({
 
   useRealtime('process_stages', () => loadStages())
   useRealtime('process_tasks', () => loadStages())
+  useRealtime('process_task_checklists', () => loadStages())
 
   const progress = computeProgress(stages)
   const nextOrder = stages.length > 0 ? Math.max(...stages.map((s) => s.order || 0)) + 1 : 0

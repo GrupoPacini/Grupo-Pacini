@@ -34,7 +34,8 @@ export const getStagesByProcess = (processId: string) =>
   pb.collection<ProcessStage>('process_stages').getFullList({
     filter: `process = '${processId}'`,
     sort: 'order',
-    expand: 'process_tasks.responsible,default_responsible,department',
+    expand:
+      'process_tasks.responsible,process_tasks.process_task_checklists,default_responsible,department',
   })
 
 export const getAllStages = () =>

@@ -32,9 +32,12 @@ import {
   Hourglass,
   Truck,
   MinusCircle,
+  ChevronRight,
+  ListChecks,
 } from 'lucide-react'
 import { StageFormDialog } from './StageFormDialog'
 import { TaskFormDialog } from './TaskFormDialog'
+import { TaskChecklist } from './TaskChecklist'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -95,6 +98,16 @@ export function StageItem({
   const [editStageOpen, setEditStageOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<ProcessTask | null>(null)
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set())
+
+  const toggleTaskExpand = (taskId: string) => {
+    setExpandedTasks((prev) => {
+      const next = new Set(prev)
+      if (next.has(taskId)) next.delete(taskId)
+      else next.add(taskId)
+      return next
+    })
+  }
 
   const sortedTasks = useMemo(
     () => [...(stage.expand?.process_tasks || [])].sort((a, b) => (a.order || 0) - (b.order || 0)),
@@ -300,97 +313,117 @@ export function StageItem({
           const responsible = task.expand?.responsible
           const blocked = isTaskBlocked(task)
           const taskInactive = task.active === false
+          const checklistItems = task.expand?.process_task_checklists || []
+          const checklistCompleted = checklistItems.filter((i) => i.completed).length
+          const checklistTotal = checklistItems.length
+          const isTaskExpanded = expandedTasks.has(task.id)
           return (
-            <div
-              key={task.id}
-              className={cn(
-                'flex items-center gap-1.5 py-1 px-2 rounded hover:bg-muted/30 group',
-                taskInactive && 'opacity-50',
-              )}
-            >
-              {canEdit && (
-                <div className="flex flex-col shrink-0">
-                  <button
-                    onClick={() => handleTaskReorder(task, 'up')}
-                    disabled={index === 0}
-                    className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
-                  >
-                    <ChevronUp size={10} />
-                  </button>
-                  <button
-                    onClick={() => handleTaskReorder(task, 'down')}
-                    disabled={index === sortedTasks.length - 1}
-                    className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
-                  >
-                    <ChevronDown size={10} />
-                  </button>
-                </div>
-              )}
-              <button
-                onClick={() => handleTaskStatusToggle(task)}
-                className={cn('shrink-0', taskStatusColor[task.status])}
-              >
-                <Icon size={15} />
-              </button>
-              {blocked && <Lock size={11} className="shrink-0 text-red-500" />}
-              <span
+            <div key={task.id}>
+              <div
                 className={cn(
-                  'text-sm flex-1 truncate',
-                  task.status === 'Concluída' && 'line-through text-muted-foreground',
+                  'flex items-center gap-1.5 py-1 px-2 rounded hover:bg-muted/30 group',
+                  taskInactive && 'opacity-50',
                 )}
               >
-                {task.name}
-              </span>
-              {task.required === 'sim' && (
-                <span className="text-[10px] text-amber-600 font-medium shrink-0">Obrig</span>
-              )}
-              {task.priority && priorityDot[task.priority] && (
+                {canEdit && (
+                  <div className="flex flex-col shrink-0">
+                    <button
+                      onClick={() => handleTaskReorder(task, 'up')}
+                      disabled={index === 0}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
+                    >
+                      <ChevronUp size={10} />
+                    </button>
+                    <button
+                      onClick={() => handleTaskReorder(task, 'down')}
+                      disabled={index === sortedTasks.length - 1}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
+                    >
+                      <ChevronDown size={10} />
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => handleTaskStatusToggle(task)}
+                  className={cn('shrink-0', taskStatusColor[task.status])}
+                >
+                  <Icon size={15} />
+                </button>
+                {blocked && <Lock size={11} className="shrink-0 text-red-500" />}
                 <span
-                  className={cn('w-2 h-2 rounded-full shrink-0', priorityDot[task.priority])}
-                  title={task.priority}
-                />
-              )}
-              {responsible && (
-                <span className="text-[11px] text-muted-foreground shrink-0 max-w-[80px] truncate">
-                  {responsible.name}
+                  className={cn(
+                    'text-sm flex-1 truncate',
+                    task.status === 'Concluída' && 'line-through text-muted-foreground',
+                  )}
+                >
+                  {task.name}
                 </span>
-              )}
-              {task.due_date && (
-                <span className="text-[11px] text-muted-foreground shrink-0">
-                  {format(new Date(task.due_date), 'dd/MM')}
-                </span>
-              )}
-              {canEdit && (
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => {
-                      setEditingTask(task)
-                      setTaskOpen(true)
-                    }}
+                {checklistTotal > 0 && (
+                  <span className="text-[10px] text-muted-foreground shrink-0 flex items-center gap-0.5">
+                    <ListChecks size={11} />
+                    {checklistCompleted}/{checklistTotal}
+                  </span>
+                )}
+                {task.required === 'sim' && (
+                  <span className="text-[10px] text-amber-600 font-medium shrink-0">Obrig</span>
+                )}
+                {task.priority && priorityDot[task.priority] && (
+                  <span
+                    className={cn('w-2 h-2 rounded-full shrink-0', priorityDot[task.priority])}
+                    title={task.priority}
+                  />
+                )}
+                {responsible && (
+                  <span className="text-[11px] text-muted-foreground shrink-0 max-w-[80px] truncate">
+                    {responsible.name}
+                  </span>
+                )}
+                {task.due_date && (
+                  <span className="text-[11px] text-muted-foreground shrink-0">
+                    {format(new Date(task.due_date), 'dd/MM')}
+                  </span>
+                )}
+                {canEdit && (
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        setEditingTask(task)
+                        setTaskOpen(true)
+                      }}
+                    >
+                      <Pencil size={12} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => handleDuplicateTask(task.id)}
+                    >
+                      <Copy size={12} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-red-600"
+                      onClick={() => handleDeleteTask(task.id)}
+                    >
+                      <Trash2 size={12} />
+                    </Button>
+                  </div>
+                )}
+                {(checklistTotal > 0 || canEdit) && (
+                  <button
+                    onClick={() => toggleTaskExpand(task.id)}
+                    className="shrink-0 text-muted-foreground hover:text-foreground"
                   >
-                    <Pencil size={12} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleDuplicateTask(task.id)}
-                  >
-                    <Copy size={12} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:text-red-600"
-                    onClick={() => handleDeleteTask(task.id)}
-                  >
-                    <Trash2 size={12} />
-                  </Button>
-                </div>
-              )}
+                    {isTaskExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  </button>
+                )}
+              </div>
+              {isTaskExpanded && <TaskChecklist taskId={task.id} canEdit={canEdit} />}
             </div>
           )
         })}

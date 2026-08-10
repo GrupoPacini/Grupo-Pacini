@@ -1,5 +1,6 @@
 import pb from '@/lib/pocketbase/client'
 import type { User } from './api'
+import type { ProcessTaskChecklist } from './process-task-checklists'
 
 export interface ProcessTask {
   id: string
@@ -22,6 +23,7 @@ export interface ProcessTask {
   expand?: {
     responsible?: User
     dependency?: ProcessTask[]
+    process_task_checklists?: ProcessTaskChecklist[]
   }
 }
 
