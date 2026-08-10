@@ -23,7 +23,7 @@ import PerfisAcesso from './pages/PerfisAcesso'
 import AccessDenied from './pages/AccessDenied'
 import PerfilInativo from './pages/PerfilInativo'
 import NotFound from './pages/NotFound'
-import Layout from './components/Layout'
+import { AdaptiveLayout } from './components/AdaptiveLayout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 const router = createBrowserRouter([
@@ -34,7 +34,7 @@ const router = createBrowserRouter([
       { path: '/access-denied', element: <AccessDenied /> },
       { path: '/perfil-inativo', element: <PerfilInativo /> },
       {
-        element: <Layout />,
+        element: <AdaptiveLayout />,
         children: [
           { path: '/', element: <Index /> },
           { path: '/processos', element: <Processos /> },

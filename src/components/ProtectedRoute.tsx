@@ -4,7 +4,7 @@ import { usePermissions } from '@/hooks/use-permissions'
 import { getModuleFromPath } from '@/lib/permissions'
 
 export const ProtectedRoute = () => {
-  const { isAuthenticated, loading: authLoading } = useAuth()
+  const { isAuthenticated, loading: authLoading, isCliente } = useAuth()
   const { loading: permsLoading, profileInactive, canView } = usePermissions()
   const location = useLocation()
 
@@ -18,6 +18,13 @@ export const ProtectedRoute = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />
+  }
+
+  if (isCliente) {
+    if (location.pathname === '/relatorio-financeiro') {
+      return <Outlet />
+    }
+    return <Navigate to="/relatorio-financeiro" replace />
   }
 
   if (profileInactive && location.pathname !== '/perfil-inativo') {

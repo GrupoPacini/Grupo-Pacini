@@ -6,12 +6,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn, isAuthenticated, loading } = useAuth()
+  const { signIn, isAuthenticated, loading, isCliente } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
@@ -28,7 +29,7 @@ export default function Login() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />
+    return <Navigate to={isCliente ? '/relatorio-financeiro' : from} replace />
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -44,7 +45,8 @@ export default function Login() {
         description: 'Credenciais inválidas. Verifique seu e-mail e senha.',
       })
     } else {
-      navigate(from, { replace: true })
+      const role = pb.authStore.record?.role
+      navigate(role === 'Cliente' ? '/relatorio-financeiro' : from, { replace: true })
     }
     setIsLoading(false)
   }
