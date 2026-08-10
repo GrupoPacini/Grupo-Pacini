@@ -9,6 +9,9 @@ routerAdd(
     var userId = auth.id
 
     var userRole = auth.getString('role')
+    if (userRole === 'Cliente') {
+      return e.forbiddenError('Clientes não têm permissão para importar relatórios financeiros.')
+    }
     if (userRole !== 'admin') {
       var profileId = auth.getString('access_profile')
       if (profileId) {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -22,6 +22,7 @@ import {
   Inbox,
   Search,
   Landmark,
+  AlertCircle,
 } from 'lucide-react'
 import { MainIndicatorCard } from '@/components/RelatorioFinanceiro/MainIndicatorCard'
 import { DailyCashFlowCard } from '@/components/RelatorioFinanceiro/DailyCashFlowCard'
@@ -37,6 +38,8 @@ import { DeleteReportDialog } from '@/components/RelatorioFinanceiro/DeleteRepor
 import { ClientCombobox } from '@/components/ClientCombobox'
 import { useFinancialData, EMPTY_FILTERS, type FinancialFilters } from '@/hooks/use-financial-data'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import { type DataState, MONTHS } from '@/lib/financial-utils'
 import type { FinancialReportImport } from '@/services/financial-report-imports'
 import { deleteImportReport } from '@/services/financial-report-imports'
@@ -63,15 +66,49 @@ export default function RelatorioFinanceiro() {
     client?: string
     month?: string
     year?: string
+    openingBalance?: number | null
   } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<FinancialReportImport | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [editOpeningBalanceTarget, setEditOpeningBalanceTarget] =
     useState<FinancialReportImport | null>(null)
   const { can } = usePermissions()
+  const { isCliente, clientId } = useAuth()
+  const [clientValid, setClientValid] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    if (!isCliente) {
+      setClientValid(null)
+      return
+    }
+    if (!clientId) {
+      setClientValid(false)
+      return
+    }
+    let active = true
+    pb.collection('clients')
+      .getOne(clientId)
+      .then((record: any) => {
+        if (!active) return
+        setClientValid(record.client_status === 'Ativo')
+      })
+      .catch(() => {
+        if (active) setClientValid(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [isCliente, clientId])
+
+  useEffect(() => {
+    if (isCliente && clientId) {
+      setFilters((f) => ({ ...f, cliente: clientId }))
+      setAppliedFilters((f) => ({ ...f, cliente: clientId }))
+    }
+  }, [isCliente, clientId])
 
   const { loading, error, transactions, allTransactions, clients, imports, retry, refreshImports } =
-    useFinancialData(appliedFilters)
+    useFinancialData(appliedFilters, { isCliente, clientId })
 
   const isClientSelected = appliedFilters.cliente !== 'all' && Boolean(appliedFilters.cliente)
 
@@ -207,8 +244,14 @@ export default function RelatorioFinanceiro() {
 
   const handleApply = () => setAppliedFilters({ ...filters })
   const handleClear = () => {
-    setFilters(EMPTY_FILTERS)
-    setAppliedFilters(EMPTY_FILTERS)
+    if (isCliente && clientId) {
+      const cleared = { ...EMPTY_FILTERS, cliente: clientId }
+      setFilters(cleared)
+      setAppliedFilters(cleared)
+    } else {
+      setFilters(EMPTY_FILTERS)
+      setAppliedFilters(EMPTY_FILTERS)
+    }
   }
 
   const handleOpenImport = () => {
@@ -283,8 +326,9 @@ export default function RelatorioFinanceiro() {
     if (canExport) exportToExcel(transactions, clienteLabel, periodLabel)
   }
 
-  const canDeleteImport = can('Relatório Financeiro', 'excluir')
-  const canEditImport = can('Relatório Financeiro', 'editar')
+  const canDeleteImport = !isCliente && can('Relatório Financeiro', 'excluir')
+  const canEditImport = !isCliente && can('Relatório Financeiro', 'editar')
+  const canReimport = !isCliente
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -309,10 +353,12 @@ export default function RelatorioFinanceiro() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" className="gap-2" onClick={handleOpenImport}>
-              <Upload size={16} />
-              Importar relatório mensal
-            </Button>
+            {!isCliente && (
+              <Button size="sm" className="gap-2" onClick={handleOpenImport}>
+                <Upload size={16} />
+                Importar relatório mensal
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -339,14 +385,16 @@ export default function RelatorioFinanceiro() {
 
       <Card className="p-4 shadow-sm border-t-4 border-t-accent">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
-            <ClientCombobox
-              clients={clients}
-              value={filters.cliente === 'all' ? '' : filters.cliente}
-              onChange={(val) => setFilters((f) => ({ ...f, cliente: val || 'all' }))}
-            />
-          </div>
+          {!isCliente && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
+              <ClientCombobox
+                clients={clients}
+                value={filters.cliente === 'all' ? '' : filters.cliente}
+                onChange={(val) => setFilters((f) => ({ ...f, cliente: val || 'all' }))}
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Mês</Label>
             <MonthMultiSelect
@@ -404,6 +452,20 @@ export default function RelatorioFinanceiro() {
         </div>
       </Card>
 
+      {isCliente && clientValid === false && (
+        <Card className="p-8 border-t-4 border-t-destructive shadow-sm">
+          <div className="flex flex-col items-center justify-center text-center py-6">
+            <div className="rounded-full bg-destructive/10 p-4 mb-3">
+              <AlertCircle size={32} className="text-destructive" />
+            </div>
+            <p className="text-sm text-foreground max-w-md font-medium">
+              Seu usuário não possui uma empresa válida vinculada. Entre em contato com o
+              escritório.
+            </p>
+          </div>
+        </Card>
+      )}
+
       {error && (
         <div className="flex items-center justify-between p-3 rounded-lg border border-destructive/30 bg-destructive/5">
           <span className="text-sm text-destructive">Erro ao carregar dados financeiros.</span>
@@ -413,7 +475,7 @@ export default function RelatorioFinanceiro() {
         </div>
       )}
 
-      {!isClientSelected && (
+      {!isClientSelected && !isCliente && (
         <Card className="p-8 border-t-4 border-t-primary shadow-sm text-center">
           <div className="flex flex-col items-center justify-center max-w-md mx-auto space-y-3">
             <div className="rounded-full bg-primary/10 p-4 text-primary">
@@ -427,7 +489,7 @@ export default function RelatorioFinanceiro() {
         </Card>
       )}
 
-      {isClientSelected && dataState === 'empty' && (
+      {isClientSelected && (!isCliente || clientValid === true) && dataState === 'empty' && (
         <Card className="p-8 border-t-4 border-t-accent shadow-sm">
           <div className="flex flex-col items-center justify-center text-center py-6">
             <div className="rounded-full bg-muted p-4 mb-3">
@@ -436,14 +498,16 @@ export default function RelatorioFinanceiro() {
             <p className="text-sm text-muted-foreground max-w-md mb-4 font-medium">
               Nenhum relatório financeiro importado para este cliente no período selecionado.
             </p>
-            <Button className="gap-2" onClick={handleOpenImport}>
-              <Upload size={16} /> Importar relatório mensal
-            </Button>
+            {!isCliente && (
+              <Button className="gap-2" onClick={handleOpenImport}>
+                <Upload size={16} /> Importar relatório mensal
+              </Button>
+            )}
           </div>
         </Card>
       )}
 
-      {isClientSelected && dataState !== 'empty' && (
+      {isClientSelected && (!isCliente || clientValid === true) && dataState !== 'empty' && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <MainIndicatorCard
@@ -519,13 +583,14 @@ export default function RelatorioFinanceiro() {
         </>
       )}
 
-      {isClientSelected && (
+      {isClientSelected && (!isCliente || clientValid === true) && (
         <ImportedReportsTable
           imports={imports}
           clients={clients}
           loading={loading}
           canDelete={canDeleteImport}
           canEdit={canEditImport}
+          canReimport={canReimport}
           onView={handleView}
           onReimport={handleReimport}
           onEditOpeningBalance={setEditOpeningBalanceTarget}
@@ -533,30 +598,38 @@ export default function RelatorioFinanceiro() {
         />
       )}
 
-      <ImportReportDialog
-        open={importOpen}
+      {!isCliente && (
+        <ImportReportDialog
+          open={importOpen}
         onOpenChange={setImportOpen}
         clients={clients}
         prefill={importPrefill}
         onImported={handleImported}
       />
 
-      <DeleteReportDialog
-        open={!!deleteTarget}
-        onOpenChange={(v) => !v && setDeleteTarget(null)}
-        importRecord={deleteTarget}
-        clients={clients}
-        loading={deleting}
-        onConfirm={handleDeleteConfirm}
-      />
+        />
+      )}
 
-      <EditOpeningBalanceDialog
-        open={!!editOpeningBalanceTarget}
-        onOpenChange={(v) => !v && setEditOpeningBalanceTarget(null)}
-        importRecord={editOpeningBalanceTarget}
-        clients={clients}
-        onUpdated={handleOpeningBalanceUpdated}
-      />
+      {!isCliente && (
+        <DeleteReportDialog
+          open={!!deleteTarget}
+          onOpenChange={(v) => !v && setDeleteTarget(null)}
+          importRecord={deleteTarget}
+          clients={clients}
+          loading={deleting}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
+
+      {!isCliente && (
+        <EditOpeningBalanceDialog
+          open={!!editOpeningBalanceTarget}
+          onOpenChange={(v) => !v && setEditOpeningBalanceTarget(null)}
+          importRecord={editOpeningBalanceTarget}
+          clients={clients}
+          onUpdated={handleOpeningBalanceUpdated}
+        />
+      )}
     </div>
   )
 }

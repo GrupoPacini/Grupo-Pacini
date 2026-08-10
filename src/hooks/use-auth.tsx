@@ -6,6 +6,8 @@ interface AuthContextType {
   isAuthenticated: boolean
   role: string | null
   isAdmin: boolean
+  isCliente: boolean
+  clientId: string | null
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
@@ -25,6 +27,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
   const role = user?.role ?? null
   const isAdmin = role === 'admin'
+  const isCliente = role === 'Cliente'
+  const clientId = user?.client || null
 
   useEffect(() => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
@@ -67,6 +71,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         role,
         isAdmin,
+        isCliente,
+        clientId,
         signIn,
         signOut,
         loading,

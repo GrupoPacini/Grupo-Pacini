@@ -24,6 +24,7 @@ interface ImportedReportsTableProps {
   loading: boolean
   canDelete: boolean
   canEdit: boolean
+  canReimport: boolean
   onView: (clientId: string, month: number, year: number) => void
   onReimport: (clientId: string, month: number, year: number) => void
   onEditOpeningBalance: (importRecord: FinancialReportImport) => void
@@ -60,6 +61,7 @@ export function ImportedReportsTable({
   loading,
   canDelete,
   canEdit,
+  canReimport,
   onView,
   onReimport,
   onEditOpeningBalance,
@@ -145,15 +147,17 @@ export function ImportedReportsTable({
                           >
                             <Eye size={14} />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            onClick={() => onReimport(imp.client, imp.month, imp.year)}
-                            title="Reimportar"
-                          >
-                            <RefreshCw size={14} />
-                          </Button>
+                          {canReimport && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => onReimport(imp.client, imp.month, imp.year)}
+                              title="Reimportar"
+                            >
+                              <RefreshCw size={14} />
+                            </Button>
+                          )}
                           {canEdit && (
                             <Button
                               variant="ghost"

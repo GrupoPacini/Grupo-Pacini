@@ -7,6 +7,9 @@ routerAdd(
     if (!auth) return e.unauthorizedError('Autenticação necessária')
 
     var userRole = auth.getString('role')
+    if (userRole === 'Cliente') {
+      return e.forbiddenError('Clientes não têm permissão para excluir relatórios financeiros.')
+    }
     if (userRole !== 'admin') {
       var profileId = auth.getString('access_profile')
       if (profileId) {

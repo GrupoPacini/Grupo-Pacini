@@ -23,7 +23,10 @@ export const EMPTY_FILTERS: FinancialFilters = {
   projeto: 'all',
 }
 
-export function useFinancialData(filters: FinancialFilters) {
+export function useFinancialData(
+  filters: FinancialFilters,
+  options?: { isCliente?: boolean; clientId?: string | null },
+) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -31,21 +34,36 @@ export function useFinancialData(filters: FinancialFilters) {
   const [clients, setClients] = useState<Client[]>([])
   const [imports, setImports] = useState<FinancialReportImport[]>([])
 
+  const isClienteUser = options?.isCliente ?? false
+  const lockedClientId = options?.clientId ?? null
+
   useEffect(() => {
     let active = true
-    pb.collection('clients')
-      .getFullList({ sort: 'name,razao_social' })
-      .then((data) => {
-        if (active) setClients(data as unknown as Client[])
-      })
-      .catch(() => {})
+    if (isClienteUser && lockedClientId) {
+      pb.collection('clients')
+        .getOne(lockedClientId)
+        .then((data) => {
+          if (active) setClients([data as unknown as Client])
+        })
+        .catch(() => {
+          if (active) setClients([])
+        })
+    } else {
+      pb.collection('clients')
+        .getFullList({ sort: 'name,razao_social' })
+        .then((data) => {
+          if (active) setClients(data as unknown as Client[])
+        })
+        .catch(() => {})
+    }
     return () => {
       active = false
     }
-  }, [])
+  }, [isClienteUser, lockedClientId])
 
   const fetchData = useCallback(async () => {
-    if (!filters.cliente || filters.cliente === 'all') {
+    const effectiveClient = isClienteUser && lockedClientId ? lockedClientId : filters.cliente
+    if (!effectiveClient || effectiveClient === 'all') {
       setTransactions([])
       setAllTransactions([])
       setImports([])
@@ -58,7 +76,7 @@ export function useFinancialData(filters: FinancialFilters) {
     setError(null)
 
     try {
-      const filterParts: string[] = [`client = "${filters.cliente}"`]
+      const filterParts: string[] = [`client = "${effectiveClient}"`]
 
       const isAllMonths = filters.mes.includes('all') || filters.mes.length === 0
       const selectedMonths = filters.mes.filter((m) => m !== 'all')
@@ -113,7 +131,7 @@ export function useFinancialData(filters: FinancialFilters) {
       setTransactions(filtered)
 
       const importRecords = await pb.collection('financial_report_imports').getFullList({
-        filter: `client = "${filters.cliente}"`,
+        filter: `client = "${effectiveClient}"`,
         sort: '-imported_at',
         expand: 'client,imported_by',
       })
@@ -123,20 +141,30 @@ export function useFinancialData(filters: FinancialFilters) {
     } finally {
       setLoading(false)
     }
-  }, [filters.cliente, filters.mes, filters.ano, filters.categoria, filters.conta, filters.projeto])
+  }, [
+    filters.cliente,
+    filters.mes,
+    filters.ano,
+    filters.categoria,
+    filters.conta,
+    filters.projeto,
+    isClienteUser,
+    lockedClientId,
+  ])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
 
   const refreshImports = useCallback(async () => {
-    if (!filters.cliente || filters.cliente === 'all') {
+    const effectiveClient = isClienteUser && lockedClientId ? lockedClientId : filters.cliente
+    if (!effectiveClient || effectiveClient === 'all') {
       setImports([])
       return
     }
     try {
       const records = await pb.collection('financial_report_imports').getFullList({
-        filter: `client = "${filters.cliente}"`,
+        filter: `client = "${effectiveClient}"`,
         sort: '-imported_at',
         expand: 'client,imported_by',
       })
@@ -144,7 +172,7 @@ export function useFinancialData(filters: FinancialFilters) {
     } catch {
       /* intentionally ignored */
     }
-  }, [filters.cliente])
+  }, [filters.cliente, isClienteUser, lockedClientId])
 
   useRealtime('financial_transactions', () => fetchData())
   useRealtime('financial_report_imports', () => refreshImports())

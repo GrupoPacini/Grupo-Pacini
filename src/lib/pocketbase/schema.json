@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T19:07:42.410Z",
+  "generatedAt": "2026-08-10T19:17:59.950Z",
   "collections": [
     {
       "name": "users",
@@ -1077,11 +1077,11 @@
       "name": "financial_transactions",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.role != 'Cliente' || (@request.auth.client != '' && client = @request.auth.client))",
+        "view": "@request.auth.id != '' && (@request.auth.role != 'Cliente' || (@request.auth.client != '' && client = @request.auth.client))",
+        "create": "@request.auth.id != '' && @request.auth.role != 'Cliente'",
+        "update": "@request.auth.id != '' && @request.auth.role != 'Cliente'",
+        "delete": "@request.auth.id != '' && @request.auth.role != 'Cliente'"
       },
       "fields": [
         {
@@ -1177,11 +1177,11 @@
       "name": "financial_report_imports",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.role != 'Cliente' || (@request.auth.client != '' && client = @request.auth.client))",
+        "view": "@request.auth.id != '' && (@request.auth.role != 'Cliente' || (@request.auth.client != '' && client = @request.auth.client))",
+        "create": "@request.auth.id != '' && @request.auth.role != 'Cliente'",
+        "update": "@request.auth.id != '' && @request.auth.role != 'Cliente'",
+        "delete": "@request.auth.id != '' && @request.auth.role != 'Cliente'"
       },
       "fields": [
         {
