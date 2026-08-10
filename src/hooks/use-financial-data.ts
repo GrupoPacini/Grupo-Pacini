@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 import type { FinancialReportImport } from '@/services/financial-report-imports'
 import type { Transaction } from '@/lib/financial-utils'
 import type { Client } from '@/services/api'
@@ -144,6 +145,9 @@ export function useFinancialData(filters: FinancialFilters) {
       /* intentionally ignored */
     }
   }, [filters.cliente])
+
+  useRealtime('financial_transactions', () => fetchData())
+  useRealtime('financial_report_imports', () => refreshImports())
 
   return {
     loading,

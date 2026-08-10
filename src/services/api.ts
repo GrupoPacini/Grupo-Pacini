@@ -37,7 +37,17 @@ export interface Client {
   observacoes_atualizado_em: string
   observacoes_atualizado_por: string
   client_status: string
+  motivo_inativacao: string
   responsavel_interno: string
+  nome_contato: string
+  codigo_acesso: string
+  necessita_validacao_humana: boolean
+  motivos_validacao: string[] | null
+  objeto_social_classificacao: string
+  objeto_social_divergencias: string[] | null
+  objeto_social_necessidade_alteracao: boolean
+  objeto_social_recomendacao: string
+  objeto_social_necessidade_juridica: boolean
   expand?: {
     observacoes_atualizado_por?: { id: string; name: string }
     responsavel_interno?: { id: string; name: string }
@@ -47,6 +57,8 @@ export interface Client {
 export interface Department {
   id: string
   name: string
+  created: string
+  updated: string
 }
 
 export interface User {
@@ -54,6 +66,17 @@ export interface User {
   name: string
   email: string
   avatar: string
+  role: string
+  status: string
+  department: string | null
+  access_profile: string | null
+  last_access: string | null
+  created: string
+  updated: string
+  expand?: {
+    department?: Department
+    access_profile?: { id: string; name: string; status: string }
+  }
 }
 
 export interface Process {
@@ -65,6 +88,8 @@ export interface Process {
   client: string
   department: string
   responsible: string
+  created: string
+  updated: string
   expand?: {
     client?: Client
     department?: Department

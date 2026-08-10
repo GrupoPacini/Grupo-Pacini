@@ -52,13 +52,9 @@ export async function getImportReport(id: string) {
 }
 
 export async function deleteImportReport(id: string) {
-  return pb
-    .send(`/backend/v1/financial-reports/${id}`, {
-      method: 'DELETE',
-    })
-    .catch(async () => {
-      return pb.collection('financial_report_imports').delete(id)
-    })
+  return pb.send(`/backend/v1/financial-reports/${id}`, {
+    method: 'DELETE',
+  })
 }
 
 export async function updateOpeningBalance(id: string, openingBalance: number) {
