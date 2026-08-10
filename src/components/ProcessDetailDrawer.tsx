@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus } from 'lucide-react'
-import { Process, User, updateProcessStatus } from '@/services/api'
+import { Process, User, Department, updateProcessStatus } from '@/services/api'
 import { ProcessStage, getStagesByProcess, updateStage } from '@/services/process-stages'
 import { StageItem } from './StageItem'
 import { StageFormDialog } from './StageFormDialog'
@@ -29,6 +29,7 @@ interface ProcessDetailDrawerProps {
   process: Process | null
   onOpenChange: (open: boolean) => void
   users: User[]
+  departments: Department[]
   canEdit: boolean
   onRefresh: () => void
 }
@@ -37,6 +38,7 @@ export function ProcessDetailDrawer({
   process,
   onOpenChange,
   users,
+  departments,
   canEdit,
   onRefresh,
 }: ProcessDetailDrawerProps) {
@@ -185,6 +187,7 @@ export function ProcessDetailDrawer({
                   stage={stage}
                   processId={process.id}
                   users={users}
+                  departments={departments}
                   isFirst={i === 0}
                   isLast={i === stages.length - 1}
                   canEdit={canEdit}
@@ -201,6 +204,8 @@ export function ProcessDetailDrawer({
         onOpenChange={setStageOpen}
         processId={process.id}
         nextOrder={nextOrder}
+        departments={departments}
+        users={users}
         onSuccess={loadStages}
       />
     </Sheet>

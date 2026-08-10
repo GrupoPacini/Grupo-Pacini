@@ -1,18 +1,33 @@
 import { useState } from 'react'
-import { ProcessStage, deleteStage } from '@/services/process-stages'
+import {
+  ProcessStage,
+  deleteStage,
+  duplicateStage,
+  toggleStageActive,
+} from '@/services/process-stages'
 import { ProcessTask, updateTask, deleteTask } from '@/services/process-tasks'
-import type { User } from '@/services/api'
+import type { User, Department } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
   ChevronUp,
   ChevronDown,
-  Pencil,
-  Trash2,
   Plus,
   CheckCircle2,
   Circle,
   Clock,
+  MoreVertical,
+  Copy,
+  Power,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { StageFormDialog } from './StageFormDialog'
 import { TaskFormDialog } from './TaskFormDialog'
@@ -24,6 +39,7 @@ interface StageItemProps {
   stage: ProcessStage
   processId: string
   users: User[]
+  departments: Department[]
   isFirst: boolean
   isLast: boolean
   canEdit: boolean
@@ -47,6 +63,7 @@ export function StageItem({
   stage,
   processId,
   users,
+  departments,
   isFirst,
   isLast,
   canEdit,
@@ -57,6 +74,7 @@ export function StageItem({
   const [taskOpen, setTaskOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<ProcessTask | null>(null)
   const tasks = stage.expand?.process_tasks || []
+  const isInactive = stage.active === false
 
   const handleDeleteStage = async () => {
     try {
@@ -65,6 +83,26 @@ export function StageItem({
       onRefresh()
     } catch {
       toast.error('Erro Ao Excluir Etapa')
+    }
+  }
+
+  const handleDuplicate = async () => {
+    try {
+      await duplicateStage(stage.id, processId)
+      toast.success('Etapa Duplicada')
+      onRefresh()
+    } catch {
+      toast.error('Erro Ao Duplicar Etapa')
+    }
+  }
+
+  const handleToggleActive = async () => {
+    try {
+      await toggleStageActive(stage.id, !stage.active)
+      toast.success(stage.active ? 'Etapa Inativada' : 'Etapa Ativada')
+      onRefresh()
+    } catch {
+      toast.error('Erro Ao Alterar Status Da Etapa')
     }
   }
 
@@ -89,7 +127,7 @@ export function StageItem({
   }
 
   return (
-    <div className="border rounded-lg p-4 bg-card">
+    <div className={cn('border rounded-lg p-4 bg-card', isInactive && 'opacity-60')}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {canEdit && (
@@ -110,16 +148,34 @@ export function StageItem({
               </button>
             </div>
           )}
+          {stage.identification_color && (
+            <span
+              className="w-3 h-3 rounded-full shrink-0"
+              style={{ backgroundColor: stage.identification_color }}
+            />
+          )}
           <span className="font-medium text-sm text-foreground">{stage.name}</span>
+          {stage.required === 'sim' && (
+            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
+              Obrigatória
+            </Badge>
+          )}
+          {isInactive && (
+            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-500">
+              Inativa
+            </Badge>
+          )}
           <Badge
             variant="outline"
             className={cn(
               'text-xs',
-              stage.status === 'Concluído'
+              stage.status === 'Concluída'
                 ? 'bg-green-50 text-green-700'
                 : stage.status === 'Em andamento'
                   ? 'bg-blue-50 text-blue-700'
-                  : 'bg-gray-50 text-gray-700',
+                  : stage.status === 'Bloqueada'
+                    ? 'bg-red-50 text-red-700'
+                    : 'bg-gray-50 text-gray-700',
             )}
           >
             {stage.status}
@@ -127,25 +183,38 @@ export function StageItem({
         </div>
         {canEdit && (
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={() => setEditStageOpen(true)}
-            >
-              <Pencil size={14} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-red-600"
-              onClick={handleDeleteStage}
-            >
-              <Trash2 size={14} />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreVertical size={14} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditStageOpen(true)}>
+                  <Pencil size={14} className="mr-2" /> Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDuplicate}>
+                  <Copy size={14} className="mr-2" /> Duplicar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleToggleActive}>
+                  <Power size={14} className="mr-2" />
+                  {stage.active ? 'Inativar' : 'Ativar'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleDeleteStage}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 size={14} className="mr-2" /> Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
       </div>
+      {stage.description && (
+        <p className="text-xs text-muted-foreground mb-2 ml-6">{stage.description}</p>
+      )}
       <div className="space-y-1.5 ml-6">
         {tasks.map((task) => {
           const Icon = taskStatusIcon[task.status] || Circle
@@ -226,6 +295,8 @@ export function StageItem({
         processId={processId}
         editingStage={stage}
         nextOrder={stage.order}
+        departments={departments}
+        users={users}
         onSuccess={onRefresh}
       />
       <TaskFormDialog

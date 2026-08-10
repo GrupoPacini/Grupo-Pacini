@@ -327,6 +327,7 @@ export default function Processos() {
         process={detailProcess}
         onOpenChange={(o) => !o && setDetailProcess(null)}
         users={users}
+        departments={departments}
         canEdit={can('Processos', 'editar')}
         onRefresh={loadData}
       />
