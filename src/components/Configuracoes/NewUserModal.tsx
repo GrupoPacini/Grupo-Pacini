@@ -20,11 +20,12 @@ import {
 import { Loader2, UserPlus } from 'lucide-react'
 import { createUser } from '@/services/users'
 import type { AccessProfileRecord } from '@/services/access-profiles'
-import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
 import type { DepartmentRecord } from '@/services/departments'
 import { getAllClientsForImport } from '@/services/clients'
 import { ClientCombobox } from '@/components/ClientCombobox'
+import { useUserForm, type UserType } from '@/hooks/use-user-form'
 
 interface NewUserModalProps {
   open: boolean
@@ -41,14 +42,18 @@ export function NewUserModal({
   departments,
   profiles,
 }: NewUserModalProps) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [userType, setUserType] = useState<string>('colaborador')
-  const [accessProfile, setAccessProfile] = useState<string>('none')
-  const [status, setStatus] = useState<string>('Ativo')
-  const [department, setDepartment] = useState<string>('none')
-  const [clientId, setClientId] = useState<string>('')
+  const {
+    form,
+    update,
+    setUserType,
+    reset,
+    isCliente,
+    showAccessProfile,
+    showDepartment,
+    showClient,
+    validate,
+    buildCreatePayload,
+  } = useUserForm()
   const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -61,54 +66,37 @@ export function NewUserModal({
     }
   }, [open])
 
-  const resetForm = () => {
-    setName('')
-    setEmail('')
-    setPassword('')
-    setUserType('colaborador')
-    setAccessProfile('none')
-    setDepartment('none')
-    setStatus('Ativo')
-    setClientId('')
-    setFieldErrors({})
+  const handleClose = (open: boolean) => {
+    if (!open) {
+      reset()
+      setFieldErrors({})
+    }
+    onOpenChange(open)
   }
 
-  const handleClose = (open: boolean) => {
-    if (!open) resetForm()
-    onOpenChange(open)
+  const handleUserTypeChange = (type: UserType) => {
+    setUserType(type)
+    setFieldErrors({})
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (userType !== 'Cliente' && accessProfile === 'none') {
-      setFieldErrors({ access_profile: 'Selecione um perfil de acesso' })
-      return
-    }
-    if (userType === 'Cliente' && !clientId) {
-      setFieldErrors({ client: 'Selecione a empresa vinculada' })
+    const errors = validate()
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
       return
     }
     setLoading(true)
     setFieldErrors({})
     try {
-      await createUser({
-        name,
-        email,
-        password,
-        passwordConfirm: password,
-        role: userType as 'admin' | 'colaborador' | 'Cliente',
-        department: userType === 'Cliente' ? null : department === 'none' ? null : department,
-        access_profile: userType === 'Cliente' ? null : accessProfile,
-        status,
-        client: userType === 'Cliente' ? clientId : null,
-      })
+      await createUser(buildCreatePayload())
       toast.success('Usuário criado com sucesso')
-      resetForm()
+      reset()
       onOpenChange(false)
       onSuccess()
     } catch (err) {
       setFieldErrors(extractFieldErrors(err))
-      toast.error('Erro ao criar usuário')
+      toast.error(getErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -131,8 +119,8 @@ export function NewUserModal({
             <Label htmlFor="new-user-name">Nome</Label>
             <Input
               id="new-user-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={form.name}
+              onChange={(e) => update('name', e.target.value)}
               placeholder="Nome completo"
               required
             />
@@ -143,8 +131,8 @@ export function NewUserModal({
             <Input
               id="new-user-email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={form.email}
+              onChange={(e) => update('email', e.target.value)}
               placeholder="email@exemplo.com"
               required
             />
@@ -155,8 +143,8 @@ export function NewUserModal({
             <Input
               id="new-user-password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={form.password}
+              onChange={(e) => update('password', e.target.value)}
               placeholder="Mínimo 8 caracteres"
               required
               minLength={8}
@@ -165,7 +153,10 @@ export function NewUserModal({
           </div>
           <div className="space-y-2">
             <Label>Tipo de Usuário</Label>
-            <Select value={userType} onValueChange={setUserType}>
+            <Select
+              value={form.userType}
+              onValueChange={(v) => handleUserTypeChange(v as UserType)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -176,22 +167,22 @@ export function NewUserModal({
               </SelectContent>
             </Select>
           </div>
-          {userType === 'Cliente' && (
+          {showClient && (
             <div className="space-y-2">
               <Label>Empresa Vinculada</Label>
               <ClientCombobox
                 clients={clients}
-                value={clientId}
-                onChange={setClientId}
+                value={form.clientId}
+                onChange={(v) => update('clientId', v)}
                 invalid={!!fieldErrors.client}
               />
               {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
             </div>
           )}
-          {userType !== 'Cliente' && (
+          {showAccessProfile && (
             <div className="space-y-2">
               <Label>Perfil de Acesso</Label>
-              <Select value={accessProfile} onValueChange={setAccessProfile}>
+              <Select value={form.accessProfile} onValueChange={(v) => update('accessProfile', v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione um perfil" />
                 </SelectTrigger>
@@ -208,10 +199,10 @@ export function NewUserModal({
               )}
             </div>
           )}
-          <div className={`grid gap-3 ${userType === 'Cliente' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          <div className={`grid gap-3 ${isCliente ? 'grid-cols-1' : 'grid-cols-2'}`}>
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={form.status} onValueChange={(v) => update('status', v)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -223,10 +214,10 @@ export function NewUserModal({
                 </SelectContent>
               </Select>
             </div>
-            {userType !== 'Cliente' && (
+            {showDepartment && (
               <div className="space-y-2">
                 <Label>Departamento</Label>
-                <Select value={department} onValueChange={setDepartment}>
+                <Select value={form.department} onValueChange={(v) => update('department', v)}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>

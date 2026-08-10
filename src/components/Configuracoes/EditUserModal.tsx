@@ -35,6 +35,7 @@ import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/poc
 import { toast } from 'sonner'
 import { getAllClientsForImport } from '@/services/clients'
 import { ClientCombobox } from '@/components/ClientCombobox'
+import { useUserForm, type UserType } from '@/hooks/use-user-form'
 
 interface EditUserModalProps {
   user: UserRecord | null
@@ -53,12 +54,17 @@ export function EditUserModal({
   onClose,
   onSuccess,
 }: EditUserModalProps) {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [department, setDepartment] = useState<string>('none')
-  const [accessProfile, setAccessProfile] = useState<string>('none')
-  const [userType, setUserType] = useState<string>('colaborador')
-  const [clientId, setClientId] = useState<string>('')
+  const {
+    form,
+    update,
+    setUserType,
+    isCliente,
+    showAccessProfile,
+    showDepartment,
+    showClient,
+    validate,
+    buildUpdatePayload,
+  } = useUserForm(user)
   const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -66,9 +72,9 @@ export function EditUserModal({
 
   const isSelf = user?.id === currentUserId
   const originalProfile = user?.access_profile || 'none'
-  const profileChanged = accessProfile !== originalProfile
+  const profileChanged = form.accessProfile !== originalProfile
   const originalRole = user?.role || 'colaborador'
-  const roleChanged = userType !== originalRole
+  const roleChanged = form.userType !== originalRole
 
   const dropdownProfiles = useMemo(() => {
     const result = [...profiles]
@@ -86,29 +92,20 @@ export function EditUserModal({
       getAllClientsForImport()
         .then(setClients)
         .catch(() => {})
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (user) {
-      setName(user.name || '')
-      setEmail(user.email || '')
-      setDepartment(user.department || 'none')
-      setAccessProfile(user.access_profile || 'none')
-      setUserType(user.role || 'colaborador')
-      setClientId(user.client || '')
       setFieldErrors({})
     }
   }, [user])
 
+  const handleUserTypeChange = (type: UserType) => {
+    setUserType(type)
+    setFieldErrors({})
+  }
+
   const handleSaveClick = (e: React.FormEvent) => {
     e.preventDefault()
-    if (userType !== 'Cliente' && accessProfile === 'none') {
-      setFieldErrors({ access_profile: 'Selecione um perfil de acesso' })
-      return
-    }
-    if (userType === 'Cliente' && !clientId) {
-      setFieldErrors({ client: 'Selecione a empresa vinculada' })
+    const errors = validate()
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
       return
     }
     if (profileChanged || roleChanged) {
@@ -124,14 +121,7 @@ export function EditUserModal({
     setLoading(true)
     setFieldErrors({})
     try {
-      await updateUser(user.id, {
-        name,
-        email,
-        department: userType === 'Cliente' ? null : department === 'none' ? null : department,
-        access_profile: userType === 'Cliente' ? null : accessProfile,
-        role: userType,
-        client: userType === 'Cliente' ? clientId || null : null,
-      })
+      await updateUser(user.id, buildUpdatePayload())
       toast.success('Perfil atualizado com sucesso.')
       onClose()
       onSuccess()
@@ -156,8 +146,8 @@ export function EditUserModal({
               <Label htmlFor="edit-name">Nome</Label>
               <Input
                 id="edit-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={form.name}
+                onChange={(e) => update('name', e.target.value)}
                 required
               />
               {fieldErrors.name && <p className="text-sm text-red-500">{fieldErrors.name}</p>}
@@ -167,15 +157,19 @@ export function EditUserModal({
               <Input
                 id="edit-email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={form.email}
+                onChange={(e) => update('email', e.target.value)}
                 required
               />
               {fieldErrors.email && <p className="text-sm text-red-500">{fieldErrors.email}</p>}
             </div>
             <div className="space-y-2">
               <Label>Tipo de Usuário</Label>
-              <Select value={userType} onValueChange={setUserType} disabled={isSelf}>
+              <Select
+                value={form.userType}
+                onValueChange={(v) => handleUserTypeChange(v as UserType)}
+                disabled={isSelf}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -191,22 +185,26 @@ export function EditUserModal({
                 </p>
               )}
             </div>
-            {userType === 'Cliente' && (
+            {showClient && (
               <div className="space-y-2">
                 <Label>Empresa Vinculada</Label>
                 <ClientCombobox
                   clients={clients}
-                  value={clientId}
-                  onChange={setClientId}
+                  value={form.clientId}
+                  onChange={(v) => update('clientId', v)}
                   invalid={!!fieldErrors.client}
                 />
                 {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
               </div>
             )}
-            {userType !== 'Cliente' && (
+            {showAccessProfile && (
               <div className="space-y-2">
                 <Label>Perfil de Acesso</Label>
-                <Select value={accessProfile} onValueChange={setAccessProfile} disabled={isSelf}>
+                <Select
+                  value={form.accessProfile}
+                  onValueChange={(v) => update('accessProfile', v)}
+                  disabled={isSelf}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione um perfil" />
                   </SelectTrigger>
@@ -229,24 +227,40 @@ export function EditUserModal({
                 )}
               </div>
             )}
-            {userType !== 'Cliente' && (
+            <div className={`grid gap-3 ${isCliente ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div className="space-y-2">
-                <Label>Departamento</Label>
-                <Select value={department} onValueChange={setDepartment}>
+                <Label>Status</Label>
+                <Select value={form.status} onValueChange={(v) => update('status', v)}>
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Nenhum</SelectItem>
-                    {departments.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Inativo">Inativo</SelectItem>
+                    <SelectItem value="Bloqueado">Bloqueado</SelectItem>
+                    <SelectItem value="Convite pendente">Convite pendente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            )}
+              {showDepartment && (
+                <div className="space-y-2">
+                  <Label>Departamento</Label>
+                  <Select value={form.department} onValueChange={(v) => update('department', v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {departments.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                 Cancelar

@@ -43,6 +43,7 @@ export const updateUser = (
     access_profile?: string | null
     role?: string
     client?: string | null
+    status?: string
   },
 ) => pb.collection('users').update(id, data)
 
