@@ -64,7 +64,7 @@ export function EditUserModal({
     showClient,
     validate,
     buildUpdatePayload,
-  } = useUserForm(user)
+  } = useUserForm(user, profiles)
   const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -77,9 +77,14 @@ export function EditUserModal({
   const roleChanged = form.userType !== originalRole
 
   const dropdownProfiles = useMemo(() => {
-    const result = [...profiles]
+    const nonAdmin = profiles.filter((p) => p.name !== 'Administrador')
+    const result = [...nonAdmin]
     const currentProfile = user?.expand?.access_profile
-    if (currentProfile && currentProfile.status !== 'active') {
+    if (
+      currentProfile &&
+      currentProfile.status !== 'active' &&
+      currentProfile.name !== 'Administrador'
+    ) {
       if (!result.find((p) => p.id === currentProfile.id)) {
         result.unshift(currentProfile)
       }

@@ -53,7 +53,7 @@ export function NewUserModal({
     showClient,
     validate,
     buildCreatePayload,
-  } = useUserForm()
+  } = useUserForm(undefined, profiles)
   const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -187,11 +187,13 @@ export function NewUserModal({
                   <SelectValue placeholder="Selecione um perfil" />
                 </SelectTrigger>
                 <SelectContent>
-                  {profiles.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {profiles
+                    .filter((p) => p.name !== 'Administrador' && p.status === 'active')
+                    .map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {fieldErrors.access_profile && (
