@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   ProcessStage,
   deleteStage,
   duplicateStage,
   toggleStageActive,
 } from '@/services/process-stages'
-import { ProcessTask, updateTask, deleteTask } from '@/services/process-tasks'
+import { ProcessTask, updateTask, deleteTask, duplicateTask } from '@/services/process-tasks'
 import type { User, Department } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,9 +28,14 @@ import {
   Power,
   Pencil,
   Trash2,
+  Lock,
+  Hourglass,
+  Truck,
+  MinusCircle,
 } from 'lucide-react'
 import { StageFormDialog } from './StageFormDialog'
 import { TaskFormDialog } from './TaskFormDialog'
+import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -52,12 +57,27 @@ const taskStatusIcon: Record<string, typeof CheckCircle2> = {
   Concluída: CheckCircle2,
   Pendente: Circle,
   'Em andamento': Clock,
+  'Aguardando cliente': Hourglass,
+  'Aguardando terceiro': Truck,
+  Bloqueada: Lock,
+  'Não aplicável': MinusCircle,
 }
 
 const taskStatusColor: Record<string, string> = {
   Concluída: 'text-green-600',
   Pendente: 'text-muted-foreground',
   'Em andamento': 'text-blue-600',
+  'Aguardando cliente': 'text-purple-600',
+  'Aguardando terceiro': 'text-cyan-600',
+  Bloqueada: 'text-red-600',
+  'Não aplicável': 'text-muted-foreground/50',
+}
+
+const priorityDot: Record<string, string> = {
+  Baixa: 'bg-gray-400',
+  Normal: 'bg-blue-400',
+  Alta: 'bg-amber-400',
+  Urgente: 'bg-red-500',
 }
 
 export function StageItem({
@@ -75,7 +95,14 @@ export function StageItem({
   const [editStageOpen, setEditStageOpen] = useState(false)
   const [taskOpen, setTaskOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<ProcessTask | null>(null)
-  const tasks = stage.expand?.process_tasks || []
+
+  const sortedTasks = useMemo(
+    () => [...(stage.expand?.process_tasks || [])].sort((a, b) => (a.order || 0) - (b.order || 0)),
+    [stage.expand?.process_tasks],
+  )
+
+  useRealtime('process_tasks', () => onRefresh())
+
   const isInactive = stage.active === false
 
   const depNames = (stage.dependencies || [])
@@ -87,9 +114,18 @@ export function StageItem({
     stage.expand?.default_responsible?.name,
     stage.default_due_days != null ? `${stage.default_due_days} dia(s)` : null,
     stage.priority,
-    `${tasks.length} tarefa(s)`,
+    `${sortedTasks.length} tarefa(s)`,
     depNames.length > 0 ? `Depende de: ${depNames.join(', ')}` : null,
   ].filter(Boolean)
+
+  const isTaskBlocked = (task: ProcessTask): boolean => {
+    const deps = Array.isArray(task.dependency) ? task.dependency : []
+    if (deps.length === 0) return false
+    return deps.some((depId) => {
+      const dep = sortedTasks.find((t) => t.id === depId)
+      return !dep || dep.status !== 'Concluída'
+    })
+  }
 
   const handleDeleteStage = async () => {
     try {
@@ -138,6 +174,31 @@ export function StageItem({
       onRefresh()
     } catch {
       toast.error('Erro Ao Excluir Tarefa')
+    }
+  }
+
+  const handleDuplicateTask = async (taskId: string) => {
+    try {
+      await duplicateTask(taskId)
+      toast.success('Tarefa Duplicada')
+      onRefresh()
+    } catch {
+      toast.error('Erro Ao Duplicar Tarefa')
+    }
+  }
+
+  const handleTaskReorder = async (task: ProcessTask, direction: 'up' | 'down') => {
+    const index = sortedTasks.findIndex((t) => t.id === task.id)
+    if (index < 0) return
+    const swapIndex = direction === 'up' ? index - 1 : index + 1
+    if (swapIndex < 0 || swapIndex >= sortedTasks.length) return
+    const swapTask = sortedTasks[swapIndex]
+    try {
+      await updateTask(task.id, { order: swapTask.order })
+      await updateTask(swapTask.id, { order: task.order })
+      onRefresh()
+    } catch {
+      toast.error('Erro Ao Reordenar Tarefa')
     }
   }
 
@@ -197,34 +258,32 @@ export function StageItem({
           </Badge>
         </div>
         {canEdit && (
-          <div className="flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreVertical size={14} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditStageOpen(true)}>
-                  <Pencil size={14} className="mr-2" /> Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDuplicate}>
-                  <Copy size={14} className="mr-2" /> Duplicar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleToggleActive}>
-                  <Power size={14} className="mr-2" />
-                  {stage.active ? 'Inativar' : 'Ativar'}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleDeleteStage}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 size={14} className="mr-2" /> Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreVertical size={14} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditStageOpen(true)}>
+                <Pencil size={14} className="mr-2" /> Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDuplicate}>
+                <Copy size={14} className="mr-2" /> Duplicar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleToggleActive}>
+                <Power size={14} className="mr-2" />
+                {stage.active ? 'Inativar' : 'Ativar'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={handleDeleteStage}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 size={14} className="mr-2" /> Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
       {stage.description && (
@@ -235,39 +294,74 @@ export function StageItem({
           {metaItems.join(' · ')}
         </div>
       )}
-      <div className="space-y-1.5 ml-6">
-        {tasks.map((task) => {
+      <div className="space-y-1 ml-6">
+        {sortedTasks.map((task, index) => {
           const Icon = taskStatusIcon[task.status] || Circle
           const responsible = task.expand?.responsible
+          const blocked = isTaskBlocked(task)
+          const taskInactive = task.active === false
           return (
             <div
               key={task.id}
-              className="flex items-center gap-2 py-1.5 px-2 rounded hover:bg-muted/30 group"
+              className={cn(
+                'flex items-center gap-1.5 py-1 px-2 rounded hover:bg-muted/30 group',
+                taskInactive && 'opacity-50',
+              )}
             >
+              {canEdit && (
+                <div className="flex flex-col shrink-0">
+                  <button
+                    onClick={() => handleTaskReorder(task, 'up')}
+                    disabled={index === 0}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
+                  >
+                    <ChevronUp size={10} />
+                  </button>
+                  <button
+                    onClick={() => handleTaskReorder(task, 'down')}
+                    disabled={index === sortedTasks.length - 1}
+                    className="text-muted-foreground hover:text-foreground disabled:opacity-20 leading-none"
+                  >
+                    <ChevronDown size={10} />
+                  </button>
+                </div>
+              )}
               <button
                 onClick={() => handleTaskStatusToggle(task)}
                 className={cn('shrink-0', taskStatusColor[task.status])}
               >
-                <Icon size={16} />
+                <Icon size={15} />
               </button>
+              {blocked && <Lock size={11} className="shrink-0 text-red-500" />}
               <span
                 className={cn(
-                  'text-sm flex-1',
+                  'text-sm flex-1 truncate',
                   task.status === 'Concluída' && 'line-through text-muted-foreground',
                 )}
               >
                 {task.name}
               </span>
+              {task.required === 'sim' && (
+                <span className="text-[10px] text-amber-600 font-medium shrink-0">Obrig</span>
+              )}
+              {task.priority && priorityDot[task.priority] && (
+                <span
+                  className={cn('w-2 h-2 rounded-full shrink-0', priorityDot[task.priority])}
+                  title={task.priority}
+                />
+              )}
               {responsible && (
-                <span className="text-xs text-muted-foreground">{responsible.name}</span>
+                <span className="text-[11px] text-muted-foreground shrink-0 max-w-[80px] truncate">
+                  {responsible.name}
+                </span>
               )}
               {task.due_date && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-[11px] text-muted-foreground shrink-0">
                   {format(new Date(task.due_date), 'dd/MM')}
                 </span>
               )}
               {canEdit && (
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -282,6 +376,14 @@ export function StageItem({
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleDuplicateTask(task.id)}
+                  >
+                    <Copy size={12} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-6 w-6 text-muted-foreground hover:text-red-600"
                     onClick={() => handleDeleteTask(task.id)}
                   >
@@ -292,7 +394,7 @@ export function StageItem({
             </div>
           )
         })}
-        {tasks.length === 0 && (
+        {sortedTasks.length === 0 && (
           <p className="text-xs text-muted-foreground/50 py-2">Nenhuma tarefa</p>
         )}
       </div>
@@ -326,6 +428,7 @@ export function StageItem({
         stageId={stage.id}
         editingTask={editingTask}
         users={users}
+        tasks={sortedTasks}
         onSuccess={onRefresh}
       />
     </div>

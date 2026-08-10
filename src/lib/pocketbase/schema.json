@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T16:41:33.146Z",
+  "generatedAt": "2026-08-10T16:58:56.996Z",
   "collections": [
     {
       "name": "users",
@@ -1455,7 +1455,15 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Pendente", "Em andamento", "Concluída", "Não aplicável"]
+          "selectValues": [
+            "Pendente",
+            "Em andamento",
+            "Aguardando cliente",
+            "Aguardando terceiro",
+            "Bloqueada",
+            "Concluída",
+            "Não aplicável"
+          ]
         },
         {
           "name": "observation",
@@ -1494,7 +1502,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Baixa", "Média", "Alta"]
+          "selectValues": ["Baixa", "Normal", "Alta", "Urgente"]
         },
         {
           "name": "required",
@@ -1515,6 +1523,19 @@
           "required": false,
           "system": false,
           "collectionRef": "process_tasks"
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "deadline_basis",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["stage_start", "previous_task_completion", "dependent_tasks_completion"]
         }
       ],
       "indexes": [

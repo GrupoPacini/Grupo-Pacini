@@ -20,8 +20,23 @@ export const STAGE_STATUSES = [
   'Não aplicável',
 ] as const
 
-export const TASK_STATUSES = ['Pendente', 'Em andamento', 'Concluída', 'Não aplicável'] as const
+export const TASK_STATUSES = [
+  'Pendente',
+  'Em andamento',
+  'Aguardando cliente',
+  'Aguardando terceiro',
+  'Bloqueada',
+  'Concluída',
+  'Não aplicável',
+] as const
 export const PRIORITIES = ['Baixa', 'Média', 'Alta'] as const
+export const TASK_PRIORITIES = ['Baixa', 'Normal', 'Alta', 'Urgente'] as const
+
+export const TASK_DEADLINE_BASES = [
+  { value: 'stage_start', label: 'Início da etapa' },
+  { value: 'previous_task_completion', label: 'Conclusão da tarefa anterior' },
+  { value: 'dependent_tasks_completion', label: 'Conclusão das tarefas dependentes' },
+] as const
 
 export const START_MODES = [
   { value: 'manual', label: 'Manual' },
@@ -79,6 +94,7 @@ export function computeProgress(stages: ProcessStage[]): number {
     for (const t of tasks) {
       if (t.status === 'Não aplicável') continue
       if (t.required === 'não') continue
+      if (t.active === false) continue
       total++
       if (t.status === 'Concluída') completed++
     }
