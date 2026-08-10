@@ -601,12 +601,10 @@ export default function RelatorioFinanceiro() {
       {!isCliente && (
         <ImportReportDialog
           open={importOpen}
-        onOpenChange={setImportOpen}
-        clients={clients}
-        prefill={importPrefill}
-        onImported={handleImported}
-      />
-
+          onOpenChange={setImportOpen}
+          clients={clients}
+          prefill={importPrefill}
+          onImported={handleImported}
         />
       )}
 
