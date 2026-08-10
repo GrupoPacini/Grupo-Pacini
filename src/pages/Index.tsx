@@ -6,7 +6,7 @@ import { FileCheck, AlertCircle, Clock, Users, ChevronRight } from 'lucide-react
 import { Link } from 'react-router-dom'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { format, isAfter, isBefore } from 'date-fns'
+import { format, isBefore } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export default function Index() {

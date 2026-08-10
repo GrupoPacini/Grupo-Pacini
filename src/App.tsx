@@ -1,9 +1,9 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { AuthProvider } from '@/hooks/use-auth'
+import { PermissionProvider } from '@/hooks/use-permissions'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { AuthProvider } from '@/hooks/use-auth'
-import { PermissionProvider } from '@/hooks/use-permissions'
 
 import Login from './pages/Login'
 import Index from './pages/Index'
