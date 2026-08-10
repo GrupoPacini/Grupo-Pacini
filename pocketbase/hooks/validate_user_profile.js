@@ -25,7 +25,19 @@ onRecordCreateRequest((e) => {
   }
 
   var profileName = profile.getString('name')
-  if (profileName === 'Administrador') {
+  var incomingRole = e.record.getString('role')
+  if (incomingRole === 'Cliente') {
+    var clientId = e.record.getString('client')
+    if (!clientId) {
+      throw new BadRequestError('Usuarios com papel Cliente devem ter uma empresa vinculada.')
+    }
+    try {
+      $app.findRecordById('clients', clientId)
+    } catch (err) {
+      throw new BadRequestError('Empresa vinculada nao encontrada.')
+    }
+    e.record.set('role', 'Cliente')
+  } else if (profileName === 'Administrador') {
     e.record.set('role', 'admin')
   } else {
     e.record.set('role', 'colaborador')
@@ -96,7 +108,10 @@ onRecordUpdateRequest((e) => {
     if (profileName === 'Administrador') {
       e.record.set('role', 'admin')
     } else {
-      e.record.set('role', 'colaborador')
+      var currentRoleVal = e.record.getString('role')
+      if (currentRoleVal !== 'Cliente') {
+        e.record.set('role', 'colaborador')
+      }
     }
   }
 
@@ -125,6 +140,19 @@ onRecordUpdateRequest((e) => {
       if (admins2.length <= 1) {
         throw new BadRequestError('Nao e possivel remover o ultimo administrador ativo.')
       }
+    }
+  }
+
+  var finalRole = e.record.getString('role')
+  if (finalRole === 'Cliente') {
+    var finalClientId = e.record.getString('client')
+    if (!finalClientId) {
+      throw new BadRequestError('Usuarios com papel Cliente devem ter uma empresa vinculada.')
+    }
+    try {
+      $app.findRecordById('clients', finalClientId)
+    } catch (err) {
+      throw new BadRequestError('Empresa vinculada nao encontrada.')
     }
   }
 

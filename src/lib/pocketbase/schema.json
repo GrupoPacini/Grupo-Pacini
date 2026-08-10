@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-10T18:40:30.841Z",
+  "generatedAt": "2026-08-10T19:07:42.410Z",
   "collections": [
     {
       "name": "users",
@@ -39,13 +39,6 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
-          "name": "role",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["admin", "colaborador"]
-        },
-        {
           "name": "department",
           "type": "relation",
           "required": false,
@@ -71,6 +64,20 @@
           "required": false,
           "system": false,
           "collectionRef": "access_profiles"
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "colaborador", "Cliente"]
+        },
+        {
+          "name": "client",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "clients"
         }
       ],
       "indexes": [

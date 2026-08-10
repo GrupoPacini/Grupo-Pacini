@@ -31,7 +31,17 @@ export function ViewUserModal({ user, onClose }: ViewUserModalProps) {
       label: 'Perfil',
       value:
         user?.expand?.access_profile?.name ||
-        (user?.role === 'admin' ? 'Administrador' : 'Colaborador'),
+        (user?.role === 'admin'
+          ? 'Administrador'
+          : user?.role === 'Cliente'
+            ? 'Cliente'
+            : 'Colaborador'),
+    },
+    {
+      label: 'Empresa Vinculada',
+      value: user?.expand?.client
+        ? user.expand.client.razao_social || user.expand.client.name
+        : '—',
     },
     { label: 'Status', value: user?.status || 'Ativo' },
     { label: 'Último acesso', value: lastAccess },

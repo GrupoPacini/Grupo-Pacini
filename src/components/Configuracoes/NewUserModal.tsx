@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,8 @@ import type { AccessProfileRecord } from '@/services/access-profiles'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
 import type { DepartmentRecord } from '@/services/departments'
+import { getAllClientsForImport } from '@/services/clients'
+import { ClientCombobox } from '@/components/ClientCombobox'
 
 interface NewUserModalProps {
   open: boolean
@@ -42,19 +44,32 @@ export function NewUserModal({
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [userType, setUserType] = useState<string>('colaborador')
   const [accessProfile, setAccessProfile] = useState<string>('none')
   const [status, setStatus] = useState<string>('Ativo')
   const [department, setDepartment] = useState<string>('none')
+  const [clientId, setClientId] = useState<string>('')
+  const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  useEffect(() => {
+    if (open) {
+      getAllClientsForImport()
+        .then(setClients)
+        .catch(() => {})
+    }
+  }, [open])
 
   const resetForm = () => {
     setName('')
     setEmail('')
     setPassword('')
+    setUserType('colaborador')
     setAccessProfile('none')
     setDepartment('none')
     setStatus('Ativo')
+    setClientId('')
     setFieldErrors({})
   }
 
@@ -69,8 +84,10 @@ export function NewUserModal({
       setFieldErrors({ access_profile: 'Selecione um perfil de acesso' })
       return
     }
-    const selectedProfile = profiles.find((p) => p.id === accessProfile)
-    const role = selectedProfile?.name === 'Administrador' ? 'admin' : 'colaborador'
+    if (userType === 'Cliente' && !clientId) {
+      setFieldErrors({ client: 'Selecione a empresa vinculada' })
+      return
+    }
     setLoading(true)
     setFieldErrors({})
     try {
@@ -79,10 +96,11 @@ export function NewUserModal({
         email,
         password,
         passwordConfirm: password,
-        role,
+        role: userType as 'admin' | 'colaborador' | 'Cliente',
         department: department === 'none' ? null : department,
         access_profile: accessProfile,
         status,
+        client: userType === 'Cliente' ? clientId : null,
       })
       toast.success('Usuário criado com sucesso')
       resetForm()
@@ -145,6 +163,31 @@ export function NewUserModal({
             />
             {fieldErrors.password && <p className="text-sm text-red-500">{fieldErrors.password}</p>}
           </div>
+          <div className="space-y-2">
+            <Label>Tipo de Usuário</Label>
+            <Select value={userType} onValueChange={setUserType}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Administrador</SelectItem>
+                <SelectItem value="colaborador">Colaborador</SelectItem>
+                <SelectItem value="Cliente">Cliente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {userType === 'Cliente' && (
+            <div className="space-y-2">
+              <Label>Empresa Vinculada</Label>
+              <ClientCombobox
+                clients={clients}
+                value={clientId}
+                onChange={setClientId}
+                invalid={!!fieldErrors.client}
+              />
+              {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Perfil de Acesso</Label>
             <Select value={accessProfile} onValueChange={setAccessProfile}>

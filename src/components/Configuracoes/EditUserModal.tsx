@@ -33,6 +33,8 @@ import type { AccessProfileRecord } from '@/services/access-profiles'
 import type { DepartmentRecord } from '@/services/departments'
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
+import { getAllClientsForImport } from '@/services/clients'
+import { ClientCombobox } from '@/components/ClientCombobox'
 
 interface EditUserModalProps {
   user: UserRecord | null
@@ -55,6 +57,9 @@ export function EditUserModal({
   const [email, setEmail] = useState('')
   const [department, setDepartment] = useState<string>('none')
   const [accessProfile, setAccessProfile] = useState<string>('none')
+  const [userType, setUserType] = useState<string>('colaborador')
+  const [clientId, setClientId] = useState<string>('')
+  const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -62,6 +67,8 @@ export function EditUserModal({
   const isSelf = user?.id === currentUserId
   const originalProfile = user?.access_profile || 'none'
   const profileChanged = accessProfile !== originalProfile
+  const originalRole = user?.role || 'colaborador'
+  const roleChanged = userType !== originalRole
 
   const dropdownProfiles = useMemo(() => {
     const result = [...profiles]
@@ -76,10 +83,20 @@ export function EditUserModal({
 
   useEffect(() => {
     if (user) {
+      getAllClientsForImport()
+        .then(setClients)
+        .catch(() => {})
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
       setName(user.name || '')
       setEmail(user.email || '')
       setDepartment(user.department || 'none')
       setAccessProfile(user.access_profile || 'none')
+      setUserType(user.role || 'colaborador')
+      setClientId(user.client || '')
       setFieldErrors({})
     }
   }, [user])
@@ -90,7 +107,11 @@ export function EditUserModal({
       setFieldErrors({ access_profile: 'Selecione um perfil de acesso' })
       return
     }
-    if (profileChanged) {
+    if (userType === 'Cliente' && !clientId) {
+      setFieldErrors({ client: 'Selecione a empresa vinculada' })
+      return
+    }
+    if (profileChanged || roleChanged) {
       setShowConfirm(true)
       return
     }
@@ -108,6 +129,8 @@ export function EditUserModal({
         email,
         department: department === 'none' ? null : department,
         access_profile: accessProfile,
+        role: userType,
+        client: userType === 'Cliente' ? clientId || null : null,
       })
       toast.success('Perfil atualizado com sucesso.')
       onClose()
@@ -150,6 +173,36 @@ export function EditUserModal({
               />
               {fieldErrors.email && <p className="text-sm text-red-500">{fieldErrors.email}</p>}
             </div>
+            <div className="space-y-2">
+              <Label>Tipo de Usuário</Label>
+              <Select value={userType} onValueChange={setUserType} disabled={isSelf}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="colaborador">Colaborador</SelectItem>
+                  <SelectItem value="Cliente">Cliente</SelectItem>
+                </SelectContent>
+              </Select>
+              {isSelf && (
+                <p className="text-xs text-muted-foreground">
+                  Você não pode alterar seu próprio tipo de usuário.
+                </p>
+              )}
+            </div>
+            {userType === 'Cliente' && (
+              <div className="space-y-2">
+                <Label>Empresa Vinculada</Label>
+                <ClientCombobox
+                  clients={clients}
+                  value={clientId}
+                  onChange={setClientId}
+                  invalid={!!fieldErrors.client}
+                />
+                {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Perfil de Acesso</Label>
               <Select value={accessProfile} onValueChange={setAccessProfile} disabled={isSelf}>
@@ -206,9 +259,9 @@ export function EditUserModal({
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar alteração de perfil</AlertDialogTitle>
+            <AlertDialogTitle>Confirmar alteração</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja alterar o perfil de {user?.name || 'este usuário'}? Esta ação
+              Tem certeza que deseja alterar os dados de {user?.name || 'este usuário'}? Esta ação
               pode afetar as permissões do usuário.
             </AlertDialogDescription>
           </AlertDialogHeader>

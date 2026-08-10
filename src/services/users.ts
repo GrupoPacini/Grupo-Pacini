@@ -10,6 +10,7 @@ export interface UserRecord {
   status: string
   department: string | null
   access_profile: string | null
+  client: string | null
   last_access: string | null
   avatar: string
   created: string
@@ -17,16 +18,17 @@ export interface UserRecord {
   expand?: {
     department?: DepartmentRecord
     access_profile?: AccessProfileRecord
+    client?: { id: string; name: string; razao_social?: string; nome_fantasia?: string }
   }
 }
 
 export const getUsers = () =>
   pb.collection<UserRecord>('users').getFullList({
     sort: 'name',
-    expand: 'department,access_profile',
+    expand: 'department,access_profile,client',
   })
 
-export const updateUserRole = (id: string, role: 'admin' | 'colaborador') =>
+export const updateUserRole = (id: string, role: 'admin' | 'colaborador' | 'Cliente') =>
   pb.collection('users').update(id, { role })
 
 export const updateUserStatus = (id: string, status: string) =>
@@ -39,6 +41,8 @@ export const updateUser = (
     email?: string
     department?: string | null
     access_profile?: string | null
+    role?: string
+    client?: string | null
   },
 ) => pb.collection('users').update(id, data)
 
@@ -50,9 +54,10 @@ export const createUser = (data: {
   email: string
   password: string
   passwordConfirm: string
-  role: 'admin' | 'colaborador'
+  role: 'admin' | 'colaborador' | 'Cliente'
   department?: string | null
   access_profile?: string | null
+  client?: string | null
   status?: string
 }) => pb.collection('users').create(data)
 
