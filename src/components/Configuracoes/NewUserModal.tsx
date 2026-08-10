@@ -182,20 +182,37 @@ export function NewUserModal({
           {showAccessProfile && (
             <div className="space-y-2">
               <Label>Perfil de Acesso</Label>
-              <Select value={form.accessProfile} onValueChange={(v) => update('accessProfile', v)}>
+              <Select
+                value={form.accessProfile}
+                onValueChange={(v) => update('accessProfile', v)}
+                disabled={form.userType === 'admin'}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione um perfil" />
                 </SelectTrigger>
                 <SelectContent>
-                  {profiles
-                    .filter((p) => p.name !== 'Administrador' && p.status === 'active')
-                    .map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
+                  {form.userType === 'admin'
+                    ? profiles
+                        .filter((p) => p.name === 'Administrador' && p.status === 'active')
+                        .map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))
+                    : profiles
+                        .filter((p) => p.name !== 'Administrador' && p.status === 'active')
+                        .map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
                 </SelectContent>
               </Select>
+              {form.userType === 'admin' && (
+                <p className="text-xs text-muted-foreground">
+                  O perfil Administrador é atribuído automaticamente.
+                </p>
+              )}
               {fieldErrors.access_profile && (
                 <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
               )}

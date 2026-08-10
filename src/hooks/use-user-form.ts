@@ -112,17 +112,13 @@ export function useUserForm(initialUser?: UserRecord | null, profiles?: AccessPr
   const reset = useCallback(() => setForm(DEFAULT_VALUES), [])
 
   const isCliente = form.userType === 'Cliente'
-  const showAccessProfile = form.userType === 'colaborador' && colaboradorProfiles.length > 1
+  const showAccessProfile = !isCliente
   const showDepartment = !isCliente
   const showClient = isCliente
 
   const validate = useCallback((): FieldErrors => {
     const errors: FieldErrors = {}
-    if (
-      form.userType === 'colaborador' &&
-      colaboradorProfiles.length > 1 &&
-      form.accessProfile === 'none'
-    ) {
+    if (form.userType === 'colaborador' && form.accessProfile === 'none') {
       errors.access_profile = 'Selecione um perfil de acesso'
     }
     if (form.userType === 'Cliente' && !form.clientId) {

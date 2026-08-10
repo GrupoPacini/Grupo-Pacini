@@ -208,23 +208,37 @@ export function EditUserModal({
                 <Select
                   value={form.accessProfile}
                   onValueChange={(v) => update('accessProfile', v)}
-                  disabled={isSelf}
+                  disabled={isSelf || form.userType === 'admin'}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione um perfil" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dropdownProfiles.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                        {p.status !== 'active' ? ' (Inativo)' : ''}
-                      </SelectItem>
-                    ))}
+                    {form.userType === 'admin'
+                      ? profiles
+                          .filter((p) => p.name === 'Administrador')
+                          .map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                              {p.status !== 'active' ? ' (Inativo)' : ''}
+                            </SelectItem>
+                          ))
+                      : dropdownProfiles.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                            {p.status !== 'active' ? ' (Inativo)' : ''}
+                          </SelectItem>
+                        ))}
                   </SelectContent>
                 </Select>
                 {isSelf && (
                   <p className="text-xs text-muted-foreground">
                     Você não pode alterar seu próprio perfil de acesso.
+                  </p>
+                )}
+                {form.userType === 'admin' && !isSelf && (
+                  <p className="text-xs text-muted-foreground">
+                    O perfil Administrador é atribuído automaticamente.
                   </p>
                 )}
                 {fieldErrors.access_profile && (
