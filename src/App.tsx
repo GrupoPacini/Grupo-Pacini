@@ -8,6 +8,7 @@ import { PermissionProvider } from '@/hooks/use-permissions'
 import Login from './pages/Login'
 import Index from './pages/Index'
 import Processos from './pages/Processos'
+import ModelosProcesso from './pages/ModelosProcesso'
 import Clientes from './pages/Clientes'
 import ClientDetail from './pages/ClientDetail'
 import ClientFormPage from './pages/ClientFormPage'
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
         children: [
           { path: '/', element: <Index /> },
           { path: '/processos', element: <Processos /> },
+          { path: '/modelos-processo', element: <ModelosProcesso /> },
           { path: '/clientes', element: <Clientes /> },
           { path: '/clientes/novo', element: <ClientFormPage /> },
           { path: '/clientes/:id/editar', element: <ClientFormPage /> },

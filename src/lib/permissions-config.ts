@@ -15,6 +15,7 @@ export const MODULE_CONFIGS: ModuleConfig[] = [
     module: 'Processos',
     actions: ['visualizar', 'criar', 'editar', 'excluir', 'concluir', 'exportar', 'gerenciar'],
   },
+  { module: 'Modelos de Processo', actions: ['visualizar', 'gerenciar'] },
   {
     module: 'Licenças',
     actions: ['visualizar', 'criar', 'editar', 'excluir', 'exportar', 'gerenciar'],

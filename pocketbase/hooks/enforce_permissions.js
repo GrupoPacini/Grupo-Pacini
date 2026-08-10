@@ -24,6 +24,9 @@ onRecordCreateRequest(
       socios: 'Clientes',
       client_cnaes: 'Clientes',
       client_responsibles: 'Clientes',
+      process_models: 'Modelos de Processo',
+      process_model_stages: 'Modelos de Processo',
+      process_model_tasks: 'Modelos de Processo',
     }
     var moduleName = moduleMap[collectionName]
     if (!moduleName) {
@@ -31,11 +34,12 @@ onRecordCreateRequest(
       return
     }
 
+    var requiredAction = moduleName === 'Modelos de Processo' ? 'gerenciar' : 'criar'
+
     var profileId = auth.getString('access_profile')
     if (!profileId) {
       throw new ForbiddenError('Perfil de acesso não vinculado')
     }
-
     var profile
     try {
       profile = $app.findRecordById('access_profiles', profileId)
@@ -59,8 +63,10 @@ onRecordCreateRequest(
       }
     }
     var modulePerms = perms[moduleName]
-    if (!Array.isArray(modulePerms) || modulePerms.indexOf('criar') === -1) {
-      throw new ForbiddenError('Permissão negada para criar registros em ' + moduleName)
+    if (!Array.isArray(modulePerms) || modulePerms.indexOf(requiredAction) === -1) {
+      throw new ForbiddenError(
+        'Permissão negada para ' + requiredAction + ' registros em ' + moduleName,
+      )
     }
     e.next()
   },
@@ -73,6 +79,9 @@ onRecordCreateRequest(
   'socios',
   'client_cnaes',
   'client_responsibles',
+  'process_models',
+  'process_model_stages',
+  'process_model_tasks',
 )
 
 onRecordUpdateRequest(
@@ -101,6 +110,9 @@ onRecordUpdateRequest(
       socios: 'Clientes',
       client_cnaes: 'Clientes',
       client_responsibles: 'Clientes',
+      process_models: 'Modelos de Processo',
+      process_model_stages: 'Modelos de Processo',
+      process_model_tasks: 'Modelos de Processo',
     }
     var moduleName = moduleMap[collectionName]
     if (!moduleName) {
@@ -113,11 +125,12 @@ onRecordUpdateRequest(
       return
     }
 
+    var requiredAction = moduleName === 'Modelos de Processo' ? 'gerenciar' : 'editar'
+
     var profileId = auth.getString('access_profile')
     if (!profileId) {
       throw new ForbiddenError('Perfil de acesso não vinculado')
     }
-
     var profile
     try {
       profile = $app.findRecordById('access_profiles', profileId)
@@ -141,8 +154,10 @@ onRecordUpdateRequest(
       }
     }
     var modulePerms = perms[moduleName]
-    if (!Array.isArray(modulePerms) || modulePerms.indexOf('editar') === -1) {
-      throw new ForbiddenError('Permissão negada para editar registros em ' + moduleName)
+    if (!Array.isArray(modulePerms) || modulePerms.indexOf(requiredAction) === -1) {
+      throw new ForbiddenError(
+        'Permissão negada para ' + requiredAction + ' registros em ' + moduleName,
+      )
     }
     e.next()
   },
@@ -155,6 +170,9 @@ onRecordUpdateRequest(
   'socios',
   'client_cnaes',
   'client_responsibles',
+  'process_models',
+  'process_model_stages',
+  'process_model_tasks',
 )
 
 onRecordDeleteRequest(
@@ -183,6 +201,9 @@ onRecordDeleteRequest(
       socios: 'Clientes',
       client_cnaes: 'Clientes',
       client_responsibles: 'Clientes',
+      process_models: 'Modelos de Processo',
+      process_model_stages: 'Modelos de Processo',
+      process_model_tasks: 'Modelos de Processo',
     }
     var moduleName = moduleMap[collectionName]
     if (!moduleName) {
@@ -190,11 +211,12 @@ onRecordDeleteRequest(
       return
     }
 
+    var requiredAction = moduleName === 'Modelos de Processo' ? 'gerenciar' : 'excluir'
+
     var profileId = auth.getString('access_profile')
     if (!profileId) {
       throw new ForbiddenError('Perfil de acesso não vinculado')
     }
-
     var profile
     try {
       profile = $app.findRecordById('access_profiles', profileId)
@@ -218,8 +240,10 @@ onRecordDeleteRequest(
       }
     }
     var modulePerms = perms[moduleName]
-    if (!Array.isArray(modulePerms) || modulePerms.indexOf('excluir') === -1) {
-      throw new ForbiddenError('Permissão negada para excluir registros em ' + moduleName)
+    if (!Array.isArray(modulePerms) || modulePerms.indexOf(requiredAction) === -1) {
+      throw new ForbiddenError(
+        'Permissão negada para ' + requiredAction + ' registros em ' + moduleName,
+      )
     }
     e.next()
   },
@@ -232,4 +256,7 @@ onRecordDeleteRequest(
   'socios',
   'client_cnaes',
   'client_responsibles',
+  'process_models',
+  'process_model_stages',
+  'process_model_tasks',
 )

@@ -20,6 +20,12 @@ import {
 import { Process, Client, Department, User, createProcess, updateProcess } from '@/services/api'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { PROCESS_STATUSES, PRIORITIES } from '@/lib/process-utils'
+import { getActiveModels } from '@/services/process-models'
+import type { ProcessModel } from '@/services/process-models'
+import { getStagesByModel } from '@/services/process-model-stages'
+import { createStage } from '@/services/process-stages'
+import { createTask } from '@/services/process-tasks'
+import { addDays, format } from 'date-fns'
 import { toast } from 'sonner'
 
 interface ProcessFormDialogProps {
@@ -56,6 +62,8 @@ export function ProcessFormDialog({
   const [submitting, setSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [form, setForm] = useState(emptyForm)
+  const [models, setModels] = useState<ProcessModel[]>([])
+  const [selectedModel, setSelectedModel] = useState('')
 
   useEffect(() => {
     if (editingProcess) {
@@ -74,6 +82,12 @@ export function ProcessFormDialog({
       setForm(emptyForm)
     }
     setFieldErrors({})
+    setSelectedModel('')
+    if (open && !editingProcess) {
+      getActiveModels()
+        .then(setModels)
+        .catch(() => {})
+    }
   }, [editingProcess, open])
 
   const handleSubmit = async () => {
@@ -90,8 +104,43 @@ export function ProcessFormDialog({
         await updateProcess(editingProcess.id, data)
         toast.success('Processo Atualizado Com Sucesso')
       } else {
-        await createProcess(data)
-        toast.success('Processo Criado Com Sucesso')
+        const result: any = await createProcess(data)
+        if (selectedModel && result?.id) {
+          try {
+            const modelStages = await getStagesByModel(selectedModel)
+            for (const stage of modelStages) {
+              const newStage: any = await createStage({
+                process: result.id,
+                name: stage.name,
+                order: stage.order || 0,
+                status: 'Não iniciado',
+              })
+              const tasks = stage.expand?.process_model_tasks || []
+              for (const task of tasks) {
+                let dueDate = ''
+                if (form.start_date && task.default_due_days) {
+                  dueDate = format(
+                    addDays(new Date(form.start_date), task.default_due_days),
+                    'yyyy-MM-dd',
+                  )
+                }
+                await createTask({
+                  stage: newStage.id,
+                  name: task.name,
+                  responsible: task.default_responsible || undefined,
+                  due_date: dueDate || undefined,
+                  status: 'Pendente',
+                  observation: task.description || undefined,
+                })
+              }
+            }
+            toast.success('Processo Criado Com Modelo Aplicado')
+          } catch {
+            toast.warning('Processo Criado, Mas Houve Erro Ao Copiar Etapas Do Modelo')
+          }
+        } else {
+          toast.success('Processo Criado Com Sucesso')
+        }
       }
       onOpenChange(false)
       onSuccess()
@@ -121,6 +170,23 @@ export function ProcessFormDialog({
             />
             {fieldErrors.title && <p className="text-sm text-destructive">{fieldErrors.title}</p>}
           </div>
+          {!editingProcess && models.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Usar Modelo (opcional)</Label>
+              <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo para preencher etapas e tarefas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium">Cliente</Label>

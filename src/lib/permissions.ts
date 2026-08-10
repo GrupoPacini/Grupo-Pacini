@@ -29,6 +29,7 @@ export function getModuleFromPath(pathname: string): string | null {
   if (pathname.startsWith('/configuracoes/perfis')) return 'Perfis de Acesso'
   if (pathname === '/') return 'Dashboard'
   if (pathname === '/processos') return 'Processos'
+  if (pathname === '/modelos-processo') return 'Modelos de Processo'
   if (pathname === '/clientes' || pathname.startsWith('/clientes/')) return 'Clientes'
   if (pathname === '/licencas') return 'Licenças'
   if (pathname === '/renovacoes') return 'Renovações'

@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   FileText,
+  LayoutTemplate,
   Users,
   Bell,
   LogOut,
@@ -59,6 +60,7 @@ export default function Layout() {
       items: [
         { name: 'Painel De Controle', path: '/', icon: LayoutDashboard },
         { name: 'Gestão De Tarefas', path: '/processos', icon: FileText },
+        { name: 'Modelos De Processo', path: '/modelos-processo', icon: LayoutTemplate },
         { name: 'Gestão De Clientes', path: '/clientes', icon: Users },
       ],
     },
