@@ -38,6 +38,7 @@ import {
 import { StageFormDialog } from './StageFormDialog'
 import { TaskFormDialog } from './TaskFormDialog'
 import { TaskChecklist } from './TaskChecklist'
+import { StageCustomFields } from './StageCustomFields'
 import { useRealtime } from '@/hooks/use-realtime'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -444,6 +445,7 @@ export function StageItem({
           <Plus size={14} /> Adicionar Tarefa
         </Button>
       )}
+      <StageCustomFields stageId={stage.id} canEdit={canEdit} />
       <StageFormDialog
         open={editStageOpen}
         onOpenChange={setEditStageOpen}
