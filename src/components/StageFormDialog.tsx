@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -18,12 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ProcessStage, createStage, updateStage } from '@/services/process-stages'
-import { STAGE_STATUSES, PRIORITIES } from '@/lib/process-utils'
+import {
+  STAGE_STATUSES,
+  PRIORITIES,
+  START_MODES,
+  COMPLETION_MODES,
+  DEADLINE_BASES,
+} from '@/lib/process-utils'
 import type { Department } from '@/services/api'
 import type { User } from '@/services/api'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { ChevronsUpDown, Check } from 'lucide-react'
 
 interface StageFormDialogProps {
   open: boolean
@@ -33,6 +42,7 @@ interface StageFormDialogProps {
   nextOrder: number
   departments: Department[]
   users: User[]
+  stages: ProcessStage[]
   onSuccess: () => void
 }
 
@@ -61,6 +71,10 @@ interface StageFormState {
   identification_color: string
   required: string
   active: boolean
+  dependencies: string[]
+  start_mode: string
+  completion_mode: string
+  deadline_basis: string
 }
 
 const emptyForm: StageFormState = {
@@ -75,6 +89,10 @@ const emptyForm: StageFormState = {
   identification_color: '',
   required: 'não',
   active: true,
+  dependencies: [],
+  start_mode: 'manual',
+  completion_mode: 'manual',
+  deadline_basis: 'process_start',
 }
 
 export function StageFormDialog({
@@ -85,10 +103,12 @@ export function StageFormDialog({
   nextOrder,
   departments,
   users,
+  stages,
   onSuccess,
 }: StageFormDialogProps) {
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState<StageFormState>(emptyForm)
+  const [depOpen, setDepOpen] = useState(false)
 
   useEffect(() => {
     if (editingStage) {
@@ -104,11 +124,17 @@ export function StageFormDialog({
         identification_color: editingStage.identification_color || '',
         required: editingStage.required || 'não',
         active: editingStage.active !== false,
+        dependencies: editingStage.dependencies || [],
+        start_mode: editingStage.start_mode || 'manual',
+        completion_mode: editingStage.completion_mode || 'manual',
+        deadline_basis: editingStage.deadline_basis || 'process_start',
       })
     } else {
       setForm({ ...emptyForm, order: nextOrder.toString() })
     }
   }, [editingStage, open, nextOrder])
+
+  const availableStages = stages.filter((s) => s.id !== editingStage?.id)
 
   const handleSubmit = async () => {
     if (!form.name.trim()) return
@@ -126,6 +152,10 @@ export function StageFormDialog({
         identification_color: form.identification_color || undefined,
         required: form.required,
         active: form.active,
+        dependencies: form.dependencies,
+        start_mode: form.start_mode,
+        completion_mode: form.completion_mode,
+        deadline_basis: form.deadline_basis,
       }
       if (editingStage) {
         await updateStage(editingStage.id, data)
@@ -145,6 +175,15 @@ export function StageFormDialog({
 
   const set = <K extends keyof StageFormState>(key: K, value: StageFormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }))
+
+  const toggleDependency = (stageId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      dependencies: prev.dependencies.includes(stageId)
+        ? prev.dependencies.filter((id) => id !== stageId)
+        : [...prev.dependencies, stageId],
+    }))
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -311,6 +350,107 @@ export function StageFormDialog({
             <div className="flex items-center justify-between space-y-0 pt-6">
               <Label className="text-sm font-medium">Etapa Ativa</Label>
               <Switch checked={form.active} onCheckedChange={(checked) => set('active', checked)} />
+            </div>
+          </div>
+          <div className="border-t pt-4 space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Depende das etapas</Label>
+              <Popover open={depOpen} onOpenChange={setDepOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between font-normal"
+                  >
+                    {form.dependencies.length > 0
+                      ? `${form.dependencies.length} etapa(s) selecionada(s)`
+                      : 'Nenhuma dependência'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <div className="max-h-[200px] overflow-y-auto p-1">
+                    {availableStages.length === 0 ? (
+                      <p className="text-xs text-muted-foreground p-3 text-center">
+                        Nenhuma etapa disponível
+                      </p>
+                    ) : (
+                      availableStages.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => toggleDependency(s.id)}
+                          className="flex items-center gap-2 w-full p-2 rounded hover:bg-muted text-sm text-left"
+                        >
+                          <Checkbox
+                            checked={form.dependencies.includes(s.id)}
+                            readOnly
+                            className="pointer-events-none"
+                          />
+                          <span className="flex-1">{s.name}</span>
+                          {form.dependencies.includes(s.id) && (
+                            <Check className="h-3 w-3 opacity-0" />
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Iniciar etapa</Label>
+                <Select value={form.start_mode} onValueChange={(v) => set('start_mode', v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {START_MODES.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Concluir etapa quando</Label>
+                <Select
+                  value={form.completion_mode}
+                  onValueChange={(v) => set('completion_mode', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COMPLETION_MODES.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Contar prazo a partir de</Label>
+                <Select value={form.deadline_basis} onValueChange={(v) => set('deadline_basis', v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEADLINE_BASES.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>

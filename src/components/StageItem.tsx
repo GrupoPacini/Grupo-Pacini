@@ -40,6 +40,7 @@ interface StageItemProps {
   processId: string
   users: User[]
   departments: Department[]
+  allStages: ProcessStage[]
   isFirst: boolean
   isLast: boolean
   canEdit: boolean
@@ -64,6 +65,7 @@ export function StageItem({
   processId,
   users,
   departments,
+  allStages,
   isFirst,
   isLast,
   canEdit,
@@ -75,6 +77,19 @@ export function StageItem({
   const [editingTask, setEditingTask] = useState<ProcessTask | null>(null)
   const tasks = stage.expand?.process_tasks || []
   const isInactive = stage.active === false
+
+  const depNames = (stage.dependencies || [])
+    .map((id) => allStages.find((s) => s.id === id)?.name)
+    .filter(Boolean)
+
+  const metaItems = [
+    stage.expand?.department?.name,
+    stage.expand?.default_responsible?.name,
+    stage.default_due_days != null ? `${stage.default_due_days} dia(s)` : null,
+    stage.priority,
+    `${tasks.length} tarefa(s)`,
+    depNames.length > 0 ? `Depende de: ${depNames.join(', ')}` : null,
+  ].filter(Boolean)
 
   const handleDeleteStage = async () => {
     try {
@@ -215,6 +230,11 @@ export function StageItem({
       {stage.description && (
         <p className="text-xs text-muted-foreground mb-2 ml-6">{stage.description}</p>
       )}
+      {metaItems.length > 0 && (
+        <div className="ml-6 mb-2 text-[11px] text-muted-foreground/60">
+          {metaItems.join(' · ')}
+        </div>
+      )}
       <div className="space-y-1.5 ml-6">
         {tasks.map((task) => {
           const Icon = taskStatusIcon[task.status] || Circle
@@ -297,6 +317,7 @@ export function StageItem({
         nextOrder={stage.order}
         departments={departments}
         users={users}
+        stages={allStages}
         onSuccess={onRefresh}
       />
       <TaskFormDialog

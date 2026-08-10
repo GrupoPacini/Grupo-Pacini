@@ -56,6 +56,10 @@ export const createStage = (data: {
   identification_color?: string
   required?: string
   active?: boolean
+  dependencies?: string[]
+  start_mode?: string
+  completion_mode?: string
+  deadline_basis?: string
 }) => pb.collection('process_stages').create(data)
 
 export const updateStage = (
@@ -72,6 +76,10 @@ export const updateStage = (
     identification_color: string
     required: string
     active: boolean
+    dependencies: string[]
+    start_mode: string
+    completion_mode: string
+    deadline_basis: string
   }>,
 ) => pb.collection('process_stages').update(id, data)
 
@@ -94,6 +102,10 @@ export const duplicateStage = async (stageId: string, processId: string): Promis
     identification_color: original.identification_color || '',
     required: original.required || 'não',
     active: original.active !== false,
+    dependencies: [],
+    start_mode: original.start_mode || 'manual',
+    completion_mode: original.completion_mode || 'manual',
+    deadline_basis: original.deadline_basis || 'process_start',
   })
 }
 

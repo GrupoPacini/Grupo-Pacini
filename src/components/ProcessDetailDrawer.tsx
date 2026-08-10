@@ -188,6 +188,7 @@ export function ProcessDetailDrawer({
                   processId={process.id}
                   users={users}
                   departments={departments}
+                  allStages={stages}
                   isFirst={i === 0}
                   isLast={i === stages.length - 1}
                   canEdit={canEdit}
@@ -206,6 +207,7 @@ export function ProcessDetailDrawer({
         nextOrder={nextOrder}
         departments={departments}
         users={users}
+        stages={stages}
         onSuccess={loadStages}
       />
     </Sheet>
