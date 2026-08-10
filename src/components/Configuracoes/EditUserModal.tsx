@@ -103,7 +103,7 @@ export function EditUserModal({
 
   const handleSaveClick = (e: React.FormEvent) => {
     e.preventDefault()
-    if (accessProfile === 'none') {
+    if (userType !== 'Cliente' && accessProfile === 'none') {
       setFieldErrors({ access_profile: 'Selecione um perfil de acesso' })
       return
     }
@@ -127,8 +127,8 @@ export function EditUserModal({
       await updateUser(user.id, {
         name,
         email,
-        department: department === 'none' ? null : department,
-        access_profile: accessProfile,
+        department: userType === 'Cliente' ? null : department === 'none' ? null : department,
+        access_profile: userType === 'Cliente' ? null : accessProfile,
         role: userType,
         client: userType === 'Cliente' ? clientId || null : null,
       })
@@ -203,46 +203,50 @@ export function EditUserModal({
                 {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
               </div>
             )}
-            <div className="space-y-2">
-              <Label>Perfil de Acesso</Label>
-              <Select value={accessProfile} onValueChange={setAccessProfile} disabled={isSelf}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione um perfil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dropdownProfiles.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                      {p.status !== 'active' ? ' (Inativo)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {isSelf && (
-                <p className="text-xs text-muted-foreground">
-                  Você não pode alterar seu próprio perfil de acesso.
-                </p>
-              )}
-              {fieldErrors.access_profile && (
-                <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Departamento</Label>
-              <Select value={department} onValueChange={setDepartment}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {userType !== 'Cliente' && (
+              <div className="space-y-2">
+                <Label>Perfil de Acesso</Label>
+                <Select value={accessProfile} onValueChange={setAccessProfile} disabled={isSelf}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione um perfil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dropdownProfiles.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                        {p.status !== 'active' ? ' (Inativo)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {isSelf && (
+                  <p className="text-xs text-muted-foreground">
+                    Você não pode alterar seu próprio perfil de acesso.
+                  </p>
+                )}
+                {fieldErrors.access_profile && (
+                  <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
+                )}
+              </div>
+            )}
+            {userType !== 'Cliente' && (
+              <div className="space-y-2">
+                <Label>Departamento</Label>
+                <Select value={department} onValueChange={setDepartment}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                 Cancelar

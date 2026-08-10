@@ -80,7 +80,7 @@ export function NewUserModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (accessProfile === 'none') {
+    if (userType !== 'Cliente' && accessProfile === 'none') {
       setFieldErrors({ access_profile: 'Selecione um perfil de acesso' })
       return
     }
@@ -97,8 +97,8 @@ export function NewUserModal({
         password,
         passwordConfirm: password,
         role: userType as 'admin' | 'colaborador' | 'Cliente',
-        department: department === 'none' ? null : department,
-        access_profile: accessProfile,
+        department: userType === 'Cliente' ? null : department === 'none' ? null : department,
+        access_profile: userType === 'Cliente' ? null : accessProfile,
         status,
         client: userType === 'Cliente' ? clientId : null,
       })
@@ -188,25 +188,27 @@ export function NewUserModal({
               {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
             </div>
           )}
-          <div className="space-y-2">
-            <Label>Perfil de Acesso</Label>
-            <Select value={accessProfile} onValueChange={setAccessProfile}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione um perfil" />
-              </SelectTrigger>
-              <SelectContent>
-                {profiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {fieldErrors.access_profile && (
-              <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+          {userType !== 'Cliente' && (
+            <div className="space-y-2">
+              <Label>Perfil de Acesso</Label>
+              <Select value={accessProfile} onValueChange={setAccessProfile}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um perfil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fieldErrors.access_profile && (
+                <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
+              )}
+            </div>
+          )}
+          <div className={`grid gap-3 ${userType === 'Cliente' ? 'grid-cols-1' : 'grid-cols-2'}`}>
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={status} onValueChange={setStatus}>
@@ -221,22 +223,24 @@ export function NewUserModal({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Departamento</Label>
-              <Select value={department} onValueChange={setDepartment}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {userType !== 'Cliente' && (
+              <div className="space-y-2">
+                <Label>Departamento</Label>
+                <Select value={department} onValueChange={setDepartment}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button

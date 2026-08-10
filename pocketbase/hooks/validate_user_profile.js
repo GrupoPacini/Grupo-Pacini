@@ -1,4 +1,41 @@
 onRecordCreateRequest((e) => {
+  var incomingRole = e.record.getString('role')
+
+  if (incomingRole === 'Cliente') {
+    var clientId = e.record.getString('client')
+    if (!clientId) {
+      throw new BadRequestError('Selecione a empresa vinculada ao usuário.')
+    }
+    try {
+      $app.findRecordById('clients', clientId)
+    } catch (err) {
+      throw new BadRequestError('Empresa vinculada não encontrada.')
+    }
+
+    var clienteProfileId = e.record.getString('access_profile')
+    if (clienteProfileId) {
+      var clienteProfile
+      try {
+        clienteProfile = $app.findRecordById('access_profiles', clienteProfileId)
+      } catch (err) {
+        throw new BadRequestError('Perfil de acesso não encontrado.')
+      }
+      if (clienteProfile.getString('name') === 'Administrador') {
+        throw new BadRequestError(
+          'O perfil selecionado não é compatível com usuário do tipo Cliente.',
+        )
+      }
+      if (clienteProfile.getString('status') !== 'active') {
+        throw new BadRequestError('Não é possível vincular a um perfil inativo.')
+      }
+    }
+
+    e.record.set('department', '')
+    e.record.set('role', 'Cliente')
+    e.next()
+    return
+  }
+
   var profileId = e.record.getString('access_profile')
 
   if (!profileId) {
@@ -8,7 +45,7 @@ onRecordCreateRequest((e) => {
       profileId = defaultProfile.id
     } catch (err) {
       throw new BadRequestError(
-        'Nenhum perfil de acesso selecionado e o perfil padrao nao foi encontrado.',
+        'Nenhum perfil de acesso selecionado e o perfil padrão não foi encontrado.',
       )
     }
   }
@@ -17,27 +54,15 @@ onRecordCreateRequest((e) => {
   try {
     profile = $app.findRecordById('access_profiles', profileId)
   } catch (err) {
-    throw new BadRequestError('Perfil de acesso nao encontrado.')
+    throw new BadRequestError('Perfil de acesso não encontrado.')
   }
 
   if (profile.getString('status') !== 'active') {
-    throw new BadRequestError('Nao e possivel vincular a um perfil inativo.')
+    throw new BadRequestError('Não é possível vincular a um perfil inativo.')
   }
 
   var profileName = profile.getString('name')
-  var incomingRole = e.record.getString('role')
-  if (incomingRole === 'Cliente') {
-    var clientId = e.record.getString('client')
-    if (!clientId) {
-      throw new BadRequestError('Usuarios com papel Cliente devem ter uma empresa vinculada.')
-    }
-    try {
-      $app.findRecordById('clients', clientId)
-    } catch (err) {
-      throw new BadRequestError('Empresa vinculada nao encontrada.')
-    }
-    e.record.set('role', 'Cliente')
-  } else if (profileName === 'Administrador') {
+  if (profileName === 'Administrador') {
     e.record.set('role', 'admin')
   } else {
     e.record.set('role', 'colaborador')
@@ -47,59 +72,110 @@ onRecordCreateRequest((e) => {
 }, 'users')
 
 onRecordUpdateRequest((e) => {
+  var newRole = e.record.getString('role')
+  var oldRole = e.record.original().getString('role')
   var newProfileId = e.record.getString('access_profile')
   var oldProfileId = e.record.original().getString('access_profile')
+
+  if (newRole === 'Cliente') {
+    var clientId = e.record.getString('client')
+    if (!clientId) {
+      throw new BadRequestError('Selecione a empresa vinculada ao usuário.')
+    }
+    try {
+      $app.findRecordById('clients', clientId)
+    } catch (err) {
+      throw new BadRequestError('Empresa vinculada não encontrada.')
+    }
+
+    if (newProfileId) {
+      var clienteProfile
+      try {
+        clienteProfile = $app.findRecordById('access_profiles', newProfileId)
+      } catch (err) {
+        throw new BadRequestError('Perfil de acesso não encontrado.')
+      }
+      if (clienteProfile.getString('name') === 'Administrador') {
+        throw new BadRequestError(
+          'O perfil selecionado não é compatível com usuário do tipo Cliente.',
+        )
+      }
+      if (clienteProfile.getString('status') !== 'active') {
+        throw new BadRequestError('Não é possível vincular a um perfil inativo.')
+      }
+    }
+
+    if (oldRole === 'admin') {
+      var adminsCount = $app.findRecordsByFilter(
+        'users',
+        "role = 'admin' && status = 'Ativo'",
+        '',
+        0,
+        0,
+      ).length
+      if (adminsCount <= 1) {
+        throw new BadRequestError('Não é possível remover o último administrador ativo.')
+      }
+    }
+
+    e.record.set('department', '')
+    e.record.set('role', 'Cliente')
+    e.next()
+    return
+  }
+
+  if (oldRole === 'Cliente' && newRole !== 'Cliente') {
+    e.record.set('client', '')
+  }
 
   if (newProfileId !== oldProfileId) {
     var authId = e.auth ? e.auth.id : ''
     var authRole = e.auth ? e.auth.getString('role') : ''
     var isSuperuser = e.hasSuperuserAuth()
-    var userId = e.record.id
 
     if (authRole !== 'admin' && !isSuperuser) {
       throw new BadRequestError('Apenas administradores podem alterar perfis de acesso.')
     }
 
-    if (authId === userId && !isSuperuser) {
-      throw new BadRequestError('Voce nao pode alterar seu proprio perfil de acesso.')
+    if (authId === e.record.id && !isSuperuser) {
+      throw new BadRequestError('Você não pode alterar seu próprio perfil de acesso.')
     }
 
     if (!newProfileId) {
-      throw new BadRequestError('O usuario deve ter um perfil de acesso vinculado.')
+      throw new BadRequestError('O usuário deve ter um perfil de acesso vinculado.')
     }
 
     var profile
     try {
       profile = $app.findRecordById('access_profiles', newProfileId)
     } catch (err) {
-      throw new BadRequestError('Perfil de acesso nao encontrado.')
+      throw new BadRequestError('Perfil de acesso não encontrado.')
     }
 
     if (profile.getString('status') !== 'active') {
-      throw new BadRequestError('Nao e possivel vincular a um perfil inativo.')
+      throw new BadRequestError('Não é possível vincular a um perfil inativo.')
     }
 
     if (oldProfileId) {
       var oldProfile = null
       try {
         oldProfile = $app.findRecordById('access_profiles', oldProfileId)
-      } catch (err) {
-        // old profile not found — skip last-admin check
-      }
+      } catch (err) {}
+
       if (
         oldProfile &&
         oldProfile.getString('name') === 'Administrador' &&
         profile.getString('name') !== 'Administrador'
       ) {
-        var admins = $app.findRecordsByFilter(
+        var adminsCount2 = $app.findRecordsByFilter(
           'users',
           "role = 'admin' && status = 'Ativo'",
           '',
           0,
           0,
-        )
-        if (admins.length <= 1) {
-          throw new BadRequestError('Nao e possivel remover o ultimo administrador ativo.')
+        ).length
+        if (adminsCount2 <= 1) {
+          throw new BadRequestError('Não é possível remover o último administrador ativo.')
         }
       }
     }
@@ -108,51 +184,33 @@ onRecordUpdateRequest((e) => {
     if (profileName === 'Administrador') {
       e.record.set('role', 'admin')
     } else {
-      var currentRoleVal = e.record.getString('role')
-      if (currentRoleVal !== 'Cliente') {
-        e.record.set('role', 'colaborador')
-      }
+      e.record.set('role', 'colaborador')
     }
   }
 
-  var newRole = e.record.getString('role')
-  var oldRole = e.record.original().getString('role')
   if (newRole !== oldRole && newProfileId === oldProfileId) {
     var authRole2 = e.auth ? e.auth.getString('role') : ''
     var isSuperuser2 = e.hasSuperuserAuth()
 
     if (authRole2 !== 'admin' && !isSuperuser2) {
-      throw new BadRequestError('Apenas administradores podem alterar perfis de usuario.')
+      throw new BadRequestError('Apenas administradores podem alterar perfis de usuário.')
     }
 
     if (e.auth && e.auth.id === e.record.id && !isSuperuser2) {
-      throw new BadRequestError('Voce nao pode alterar seu proprio perfil.')
+      throw new BadRequestError('Você não pode alterar seu próprio perfil.')
     }
 
     if (oldRole === 'admin' && newRole !== 'admin') {
-      var admins2 = $app.findRecordsByFilter(
+      var adminsCount3 = $app.findRecordsByFilter(
         'users',
         "role = 'admin' && status = 'Ativo'",
         '',
         0,
         0,
-      )
-      if (admins2.length <= 1) {
-        throw new BadRequestError('Nao e possivel remover o ultimo administrador ativo.')
+      ).length
+      if (adminsCount3 <= 1) {
+        throw new BadRequestError('Não é possível remover o último administrador ativo.')
       }
-    }
-  }
-
-  var finalRole = e.record.getString('role')
-  if (finalRole === 'Cliente') {
-    var finalClientId = e.record.getString('client')
-    if (!finalClientId) {
-      throw new BadRequestError('Usuarios com papel Cliente devem ter uma empresa vinculada.')
-    }
-    try {
-      $app.findRecordById('clients', finalClientId)
-    } catch (err) {
-      throw new BadRequestError('Empresa vinculada nao encontrada.')
     }
   }
 
