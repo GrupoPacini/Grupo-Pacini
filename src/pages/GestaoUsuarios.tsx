@@ -41,8 +41,11 @@ export default function GestaoUsuarios() {
   useRealtime('users', () => loadData())
 
   const stats = useMemo(() => {
-    const admins = users.filter((u) => u.role === 'admin').length
-    const colaboradores = users.filter((u) => u.role === 'colaborador').length
+    const admins = users.filter((u) => u.expand?.access_profile?.name === 'Administrador').length
+    const colaboradores = users.filter((u) => {
+      const name = u.expand?.access_profile?.name
+      return name && name !== 'Administrador' && name !== 'Cliente'
+    }).length
     const total = users.length
     return { total, admins, colaboradores, ativos: total }
   }, [users])

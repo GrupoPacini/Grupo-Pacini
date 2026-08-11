@@ -22,7 +22,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import type { UserRecord } from '@/services/users'
 
-export type UserAction = 'view' | 'edit' | 'role' | 'status' | 'resetPassword' | 'deactivate'
+export type UserAction = 'view' | 'edit' | 'profile' | 'status' | 'resetPassword' | 'deactivate'
 
 interface UserTableProps {
   users: UserRecord[]
@@ -36,18 +36,6 @@ const STATUS_STYLES: Record<string, string> = {
   Inativo: 'bg-red-500/15 text-red-700 border-red-500/30',
   Bloqueado: 'bg-orange-500/15 text-orange-700 border-orange-500/30',
   'Convite pendente': 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30',
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Administrador',
-  colaborador: 'Colaborador',
-  Cliente: 'Cliente',
-}
-
-const ROLE_BADGE_STYLES: Record<string, string> = {
-  admin: 'bg-blue-500/15 text-blue-700 border-blue-500/30',
-  colaborador: 'bg-purple-500/15 text-purple-700 border-purple-500/30',
-  Cliente: 'bg-teal-500/15 text-teal-700 border-teal-500/30',
 }
 
 export function UserTable({ users, loading, onAction, currentUserId }: UserTableProps) {
@@ -74,10 +62,9 @@ export function UserTable({ users, loading, onAction, currentUserId }: UserTable
           <TableRow className="hover:bg-transparent">
             <TableHead className="pl-6">Usuário</TableHead>
             <TableHead>E-mail</TableHead>
-            <TableHead>Tipo</TableHead>
+            <TableHead>Perfil de Acesso</TableHead>
             <TableHead>Empresa Vinculada</TableHead>
             <TableHead>Departamento</TableHead>
-            <TableHead>Perfil de Acesso</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Último acesso</TableHead>
             <TableHead className="text-right pr-6">Ações</TableHead>
@@ -86,10 +73,9 @@ export function UserTable({ users, loading, onAction, currentUserId }: UserTable
         <TableBody>
           {users.map((u) => {
             const status = u.status || 'Ativo'
-            const role = u.role || 'colaborador'
-            const isCliente = role === 'Cliente'
+            const isCliente = u.expand?.access_profile?.name === 'Cliente'
             const deptName = !isCliente ? u.expand?.department?.name || '—' : '—'
-            const profileName = !isCliente ? u.expand?.access_profile?.name || '—' : '—'
+            const profileName = u.expand?.access_profile?.name || '—'
             const clientName = isCliente
               ? u.expand?.client?.razao_social || u.expand?.client?.name || '—'
               : '—'
@@ -117,25 +103,15 @@ export function UserTable({ users, loading, onAction, currentUserId }: UserTable
                   {u.email || '—'}
                 </TableCell>
                 <TableCell className="py-4">
-                  <Badge
-                    variant="outline"
-                    className={ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES['colaborador']}
-                  >
-                    {ROLE_LABELS[role] || 'Colaborador'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="py-4 text-muted-foreground text-sm max-w-[200px] truncate">
-                  {clientName}
-                </TableCell>
-                <TableCell className="py-4 text-muted-foreground text-sm">{deptName}</TableCell>
-                <TableCell className="py-4">
-                  {!isCliente && profileName !== '—' ? (
+                  {profileName !== '—' ? (
                     <Badge
                       variant="outline"
                       className={
                         profileName === 'Administrador'
                           ? 'bg-blue-500/15 text-blue-700 border-blue-500/30'
-                          : 'bg-gray-100 text-gray-700 border-gray-300'
+                          : profileName === 'Cliente'
+                            ? 'bg-teal-500/15 text-teal-700 border-teal-500/30'
+                            : 'bg-gray-100 text-gray-700 border-gray-300'
                       }
                     >
                       {profileName}
@@ -144,6 +120,10 @@ export function UserTable({ users, loading, onAction, currentUserId }: UserTable
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </TableCell>
+                <TableCell className="py-4 text-muted-foreground text-sm max-w-[200px] truncate">
+                  {clientName}
+                </TableCell>
+                <TableCell className="py-4 text-muted-foreground text-sm">{deptName}</TableCell>
                 <TableCell className="py-4">
                   <Badge
                     variant="outline"
@@ -170,7 +150,7 @@ export function UserTable({ users, loading, onAction, currentUserId }: UserTable
                         <Pencil size={14} className="mr-2" /> Editar
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onAction('role', u)} disabled={isSelf}>
+                      <DropdownMenuItem onClick={() => onAction('profile', u)} disabled={isSelf}>
                         <ShieldCheck size={14} className="mr-2" /> Alterar perfil
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onAction('status', u)}>

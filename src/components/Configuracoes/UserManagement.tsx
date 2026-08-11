@@ -33,7 +33,6 @@ export function UserManagement({
   onRefresh,
 }: UserManagementProps) {
   const [search, setSearch] = useState('')
-  const [profileFilter, setProfileFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [deptFilter, setDeptFilter] = useState('all')
   const [activeUser, setActiveUser] = useState<UserRecord | null>(null)
@@ -45,19 +44,16 @@ export function UserManagement({
     return users.filter((u) => {
       const matchSearch =
         !s || u.name?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s)
-      const matchProfile = profileFilter === 'all' || u.role === profileFilter
       const matchStatus = statusFilter === 'all' || (u.status || 'Ativo') === statusFilter
       const matchDept = deptFilter === 'all' || u.department === deptFilter
-      return matchSearch && matchProfile && matchStatus && matchDept
+      return matchSearch && matchStatus && matchDept
     })
-  }, [users, search, profileFilter, statusFilter, deptFilter])
+  }, [users, search, statusFilter, deptFilter])
 
-  const hasFilters =
-    !!search || profileFilter !== 'all' || statusFilter !== 'all' || deptFilter !== 'all'
+  const hasFilters = !!search || statusFilter !== 'all' || deptFilter !== 'all'
 
   const clearFilters = () => {
     setSearch('')
-    setProfileFilter('all')
     setStatusFilter('all')
     setDeptFilter('all')
   }
@@ -102,8 +98,6 @@ export function UserManagement({
         <UserFilters
           search={search}
           onSearchChange={setSearch}
-          profileFilter={profileFilter}
-          onProfileFilterChange={setProfileFilter}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
           departmentFilter={deptFilter}
@@ -128,7 +122,7 @@ export function UserManagement({
           onSuccess={onRefresh}
         />
         <RoleChangeModal
-          user={getActiveUser('role')}
+          user={getActiveUser('profile')}
           profiles={profiles}
           onClose={closeModal}
           onSuccess={onRefresh}

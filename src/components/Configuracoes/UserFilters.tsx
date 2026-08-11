@@ -13,8 +13,6 @@ import type { DepartmentRecord } from '@/services/departments'
 interface UserFiltersProps {
   search: string
   onSearchChange: (v: string) => void
-  profileFilter: string
-  onProfileFilterChange: (v: string) => void
   statusFilter: string
   onStatusFilterChange: (v: string) => void
   departmentFilter: string
@@ -27,8 +25,6 @@ interface UserFiltersProps {
 export function UserFilters({
   search,
   onSearchChange,
-  profileFilter,
-  onProfileFilterChange,
   statusFilter,
   onStatusFilterChange,
   departmentFilter,
@@ -51,16 +47,6 @@ export function UserFilters({
           className="pl-9"
         />
       </div>
-      <Select value={profileFilter} onValueChange={onProfileFilterChange}>
-        <SelectTrigger className="w-full sm:w-[180px]">
-          <SelectValue placeholder="Perfil" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os perfis</SelectItem>
-          <SelectItem value="admin">Administrador</SelectItem>
-          <SelectItem value="colaborador">Colaborador</SelectItem>
-        </SelectContent>
-      </Select>
       <Select value={statusFilter} onValueChange={onStatusFilterChange}>
         <SelectTrigger className="w-full sm:w-[180px]">
           <SelectValue placeholder="Status" />

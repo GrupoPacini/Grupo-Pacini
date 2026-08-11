@@ -28,9 +28,6 @@ export const getUsers = () =>
     expand: 'department,access_profile,client',
   })
 
-export const updateUserRole = (id: string, role: 'admin' | 'colaborador' | 'Cliente') =>
-  pb.collection('users').update(id, { role })
-
 export const updateUserStatus = (id: string, status: string) =>
   pb.collection('users').update(id, { status })
 
@@ -41,7 +38,6 @@ export const updateUser = (
     email?: string
     department?: string | null
     access_profile?: string | null
-    role?: string
     client?: string | null
     status?: string
   },
@@ -55,7 +51,6 @@ export const createUser = (data: {
   email: string
   password: string
   passwordConfirm: string
-  role: 'admin' | 'colaborador' | 'Cliente'
   department?: string | null
   access_profile?: string | null
   client?: string | null

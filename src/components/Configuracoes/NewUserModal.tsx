@@ -25,7 +25,7 @@ import { toast } from 'sonner'
 import type { DepartmentRecord } from '@/services/departments'
 import { getAllClientsForImport } from '@/services/clients'
 import { ClientCombobox } from '@/components/ClientCombobox'
-import { useUserForm, type UserType } from '@/hooks/use-user-form'
+import { useUserForm } from '@/hooks/use-user-form'
 
 interface NewUserModalProps {
   open: boolean
@@ -45,10 +45,8 @@ export function NewUserModal({
   const {
     form,
     update,
-    setUserType,
     reset,
     isCliente,
-    showAccessProfile,
     showDepartment,
     showClient,
     validate,
@@ -74,11 +72,6 @@ export function NewUserModal({
     onOpenChange(open)
   }
 
-  const handleUserTypeChange = (type: UserType) => {
-    setUserType(type)
-    setFieldErrors({})
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const errors = validate()
@@ -101,6 +94,8 @@ export function NewUserModal({
       setLoading(false)
     }
   }
+
+  const activeProfiles = profiles.filter((p) => p.status === 'active')
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -152,20 +147,22 @@ export function NewUserModal({
             {fieldErrors.password && <p className="text-sm text-red-500">{fieldErrors.password}</p>}
           </div>
           <div className="space-y-2">
-            <Label>Tipo de Usuário</Label>
-            <Select
-              value={form.userType}
-              onValueChange={(v) => handleUserTypeChange(v as UserType)}
-            >
+            <Label>Perfil de Acesso</Label>
+            <Select value={form.accessProfile} onValueChange={(v) => update('accessProfile', v)}>
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue placeholder="Selecione um perfil" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="colaborador">Colaborador</SelectItem>
-                <SelectItem value="Cliente">Cliente</SelectItem>
+                {activeProfiles.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            {fieldErrors.access_profile && (
+              <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
+            )}
           </div>
           {showClient && (
             <div className="space-y-2">
@@ -177,50 +174,6 @@ export function NewUserModal({
                 invalid={!!fieldErrors.client}
               />
               {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
-            </div>
-          )}
-          {showAccessProfile && (
-            <div className="space-y-2">
-              <Label>Perfil de Acesso</Label>
-              <Select
-                value={form.accessProfile}
-                onValueChange={(v) => update('accessProfile', v)}
-                disabled={form.userType === 'admin'}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione um perfil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {form.userType === 'admin'
-                    ? profiles
-                        .filter((p) => p.name === 'Administrador' && p.status === 'active')
-                        .map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))
-                    : profiles
-                        .filter(
-                          (p) =>
-                            p.name !== 'Administrador' &&
-                            p.name !== 'Cliente' &&
-                            p.status === 'active',
-                        )
-                        .map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                          </SelectItem>
-                        ))}
-                </SelectContent>
-              </Select>
-              {form.userType === 'admin' && (
-                <p className="text-xs text-muted-foreground">
-                  O perfil Administrador é atribuído automaticamente.
-                </p>
-              )}
-              {fieldErrors.access_profile && (
-                <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
-              )}
             </div>
           )}
           <div className={`grid gap-3 ${isCliente ? 'grid-cols-1' : 'grid-cols-2'}`}>

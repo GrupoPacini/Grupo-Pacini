@@ -35,7 +35,7 @@ import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/poc
 import { toast } from 'sonner'
 import { getAllClientsForImport } from '@/services/clients'
 import { ClientCombobox } from '@/components/ClientCombobox'
-import { useUserForm, type UserType } from '@/hooks/use-user-form'
+import { useUserForm } from '@/hooks/use-user-form'
 
 interface EditUserModalProps {
   user: UserRecord | null
@@ -54,17 +54,8 @@ export function EditUserModal({
   onClose,
   onSuccess,
 }: EditUserModalProps) {
-  const {
-    form,
-    update,
-    setUserType,
-    isCliente,
-    showAccessProfile,
-    showDepartment,
-    showClient,
-    validate,
-    buildUpdatePayload,
-  } = useUserForm(user, profiles)
+  const { form, update, isCliente, showDepartment, showClient, validate, buildUpdatePayload } =
+    useUserForm(user, profiles)
   const [clients, setClients] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -73,18 +64,12 @@ export function EditUserModal({
   const isSelf = user?.id === currentUserId
   const originalProfile = user?.access_profile || 'none'
   const profileChanged = form.accessProfile !== originalProfile
-  const originalRole = user?.role || 'colaborador'
-  const roleChanged = form.userType !== originalRole
 
   const dropdownProfiles = useMemo(() => {
-    const nonAdmin = profiles.filter((p) => p.name !== 'Administrador' && p.name !== 'Cliente')
-    const result = [...nonAdmin]
+    const active = profiles.filter((p) => p.status === 'active')
+    const result = [...active]
     const currentProfile = user?.expand?.access_profile
-    if (
-      currentProfile &&
-      currentProfile.status !== 'active' &&
-      currentProfile.name !== 'Administrador'
-    ) {
+    if (currentProfile && currentProfile.status !== 'active') {
       if (!result.find((p) => p.id === currentProfile.id)) {
         result.unshift(currentProfile)
       }
@@ -101,11 +86,6 @@ export function EditUserModal({
     }
   }, [user])
 
-  const handleUserTypeChange = (type: UserType) => {
-    setUserType(type)
-    setFieldErrors({})
-  }
-
   const handleSaveClick = (e: React.FormEvent) => {
     e.preventDefault()
     const errors = validate()
@@ -113,7 +93,7 @@ export function EditUserModal({
       setFieldErrors(errors)
       return
     }
-    if (profileChanged || roleChanged) {
+    if (profileChanged) {
       setShowConfirm(true)
       return
     }
@@ -169,25 +149,31 @@ export function EditUserModal({
               {fieldErrors.email && <p className="text-sm text-red-500">{fieldErrors.email}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Tipo de Usuário</Label>
+              <Label>Perfil de Acesso</Label>
               <Select
-                value={form.userType}
-                onValueChange={(v) => handleUserTypeChange(v as UserType)}
+                value={form.accessProfile}
+                onValueChange={(v) => update('accessProfile', v)}
                 disabled={isSelf}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione um perfil" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="colaborador">Colaborador</SelectItem>
-                  <SelectItem value="Cliente">Cliente</SelectItem>
+                  {dropdownProfiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                      {p.status !== 'active' ? ' (Inativo)' : ''}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {isSelf && (
                 <p className="text-xs text-muted-foreground">
-                  Você não pode alterar seu próprio tipo de usuário.
+                  Você não pode alterar seu próprio perfil de acesso.
                 </p>
+              )}
+              {fieldErrors.access_profile && (
+                <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
               )}
             </div>
             {showClient && (
@@ -200,50 +186,6 @@ export function EditUserModal({
                   invalid={!!fieldErrors.client}
                 />
                 {fieldErrors.client && <p className="text-sm text-red-500">{fieldErrors.client}</p>}
-              </div>
-            )}
-            {showAccessProfile && (
-              <div className="space-y-2">
-                <Label>Perfil de Acesso</Label>
-                <Select
-                  value={form.accessProfile}
-                  onValueChange={(v) => update('accessProfile', v)}
-                  disabled={isSelf || form.userType === 'admin'}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione um perfil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {form.userType === 'admin'
-                      ? profiles
-                          .filter((p) => p.name === 'Administrador')
-                          .map((p) => (
-                            <SelectItem key={p.id} value={p.id}>
-                              {p.name}
-                              {p.status !== 'active' ? ' (Inativo)' : ''}
-                            </SelectItem>
-                          ))
-                      : dropdownProfiles.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.name}
-                            {p.status !== 'active' ? ' (Inativo)' : ''}
-                          </SelectItem>
-                        ))}
-                  </SelectContent>
-                </Select>
-                {isSelf && (
-                  <p className="text-xs text-muted-foreground">
-                    Você não pode alterar seu próprio perfil de acesso.
-                  </p>
-                )}
-                {form.userType === 'admin' && !isSelf && (
-                  <p className="text-xs text-muted-foreground">
-                    O perfil Administrador é atribuído automaticamente.
-                  </p>
-                )}
-                {fieldErrors.access_profile && (
-                  <p className="text-sm text-red-500">{fieldErrors.access_profile}</p>
-                )}
               </div>
             )}
             <div className={`grid gap-3 ${isCliente ? 'grid-cols-1' : 'grid-cols-2'}`}>

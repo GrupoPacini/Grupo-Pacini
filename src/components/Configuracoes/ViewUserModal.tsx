@@ -28,14 +28,8 @@ export function ViewUserModal({ user, onClose }: ViewUserModalProps) {
     { label: 'E-mail', value: user?.email || '—' },
     { label: 'Departamento', value: deptName },
     {
-      label: 'Perfil',
-      value:
-        user?.expand?.access_profile?.name ||
-        (user?.role === 'admin'
-          ? 'Administrador'
-          : user?.role === 'Cliente'
-            ? 'Cliente'
-            : 'Colaborador'),
+      label: 'Perfil de Acesso',
+      value: user?.expand?.access_profile?.name || '—',
     },
     {
       label: 'Empresa Vinculada',
