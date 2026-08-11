@@ -67,6 +67,11 @@ onRecordCreateRequest((e) => {
       }
     }
     if (!hasAnyPerm) {
+      if (profileName === 'Cliente') {
+        throw new BadRequestError(
+          'O Perfil Cliente ainda não possui permissões configuradas. Acesse Perfis de Acesso > Cliente > Configurar Permissões antes de criar o usuário.',
+        )
+      }
       throw new BadRequestError(
         'O perfil de acesso selecionado não possui permissões configuradas. Configure as permissões antes de vincular a um usuário ativo.',
       )
@@ -180,6 +185,11 @@ onRecordUpdateRequest((e) => {
       }
     }
     if (!hasAnyPerm2) {
+      if (newProfileName === 'Cliente') {
+        throw new BadRequestError(
+          'O Perfil Cliente ainda não possui permissões configuradas. Acesse Perfis de Acesso > Cliente > Configurar Permissões antes de criar o usuário.',
+        )
+      }
       throw new BadRequestError(
         'O perfil de acesso selecionado não possui permissões configuradas. Configure as permissões antes de vincular a um usuário ativo.',
       )

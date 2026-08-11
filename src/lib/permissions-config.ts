@@ -36,6 +36,11 @@ export const MODULE_CONFIGS: ModuleConfig[] = [
   { module: 'Segurança', actions: ['visualizar', 'editar', 'gerenciar'] },
 ]
 
+export const CLIENTE_ALLOWED_MODULES: Record<string, string[]> = {
+  Dashboard: ['visualizar'],
+  'Relatório Financeiro': ['visualizar'],
+}
+
 export const LOCKED_ADMIN_MODULES = [
   'Configurações',
   'Gestão de Usuários',

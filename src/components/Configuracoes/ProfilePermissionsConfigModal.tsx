@@ -25,6 +25,7 @@ import { updateAccessProfile, type AccessProfileRecord } from '@/services/access
 import {
   MODULE_CONFIGS,
   LOCKED_ADMIN_MODULES,
+  CLIENTE_ALLOWED_MODULES,
   normalizePermissions,
   type Permissions,
 } from '@/lib/permissions-config'
@@ -50,6 +51,14 @@ export function ProfilePermissionsConfigModal({
   const [loading, setLoading] = useState(false)
 
   const isAdmin = profile?.name === 'Administrador'
+  const isCliente = profile?.name === 'Cliente'
+
+  const effectiveModules = isCliente
+    ? MODULE_CONFIGS.filter((c) => CLIENTE_ALLOWED_MODULES[c.module]).map((c) => ({
+        ...c,
+        actions: CLIENTE_ALLOWED_MODULES[c.module] || [],
+      }))
+    : MODULE_CONFIGS
 
   useEffect(() => {
     if (open && profile) {
@@ -60,16 +69,26 @@ export function ProfilePermissionsConfigModal({
           if (config) loaded[mod] = [...config.actions]
         }
       }
+      if (isCliente) {
+        const filtered: Permissions = {}
+        for (const [mod, allowedActions] of Object.entries(CLIENTE_ALLOWED_MODULES)) {
+          const existing = loaded[mod] || []
+          filtered[mod] = allowedActions.filter((a) => existing.includes(a))
+        }
+        setPermissions(filtered)
+        setInitial(filtered)
+        return
+      }
       setPermissions(loaded)
       setInitial(loaded)
     }
-  }, [open, profile, isAdmin])
+  }, [open, profile, isAdmin, isCliente])
 
   const isLocked = (mod: string) => isAdmin && LOCKED_ADMIN_MODULES.includes(mod)
   const isDirty = JSON.stringify(permissions) !== JSON.stringify(initial)
   const totalActions = Object.values(permissions).reduce((s, a) => s + a.length, 0)
   const canSave = totalActions > 0 && isDirty
-  const allChecked = MODULE_CONFIGS.every((c) => {
+  const allChecked = effectiveModules.every((c) => {
     const perms = permissions[c.module] || []
     return c.actions.every((a) => perms.includes(a))
   })
@@ -87,7 +106,7 @@ export function ProfilePermissionsConfigModal({
 
   const toggleModule = (mod: string, checked: boolean) => {
     if (isLocked(mod)) return
-    const config = MODULE_CONFIGS.find((c) => c.module === mod)
+    const config = effectiveModules.find((c) => c.module === mod)
     if (!config) return
     setPermissions((prev) => ({ ...prev, [mod]: checked ? [...config.actions] : [] }))
   }
@@ -95,7 +114,7 @@ export function ProfilePermissionsConfigModal({
   const toggleAll = (checked: boolean) => {
     setPermissions(() => {
       const updated: Permissions = {}
-      for (const config of MODULE_CONFIGS) {
+      for (const config of effectiveModules) {
         updated[config.module] = isLocked(config.module)
           ? [...config.actions]
           : checked
@@ -146,7 +165,7 @@ export function ProfilePermissionsConfigModal({
           </div>
           <ScrollArea className="max-h-[55vh] pr-4">
             <div className="space-y-2">
-              {MODULE_CONFIGS.map((config) => (
+              {effectiveModules.map((config) => (
                 <PermissionModuleRow
                   key={config.module}
                   config={config}
