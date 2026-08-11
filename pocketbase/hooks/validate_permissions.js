@@ -1,17 +1,15 @@
 onRecordValidate((e) => {
-  var permsRaw = e.record.get('permissions')
+  var permsStr = e.record.getString('permissions')
 
-  if (permsRaw === null || permsRaw === undefined || permsRaw === '') {
+  if (permsStr === '' || permsStr === 'null' || permsStr === 'undefined') {
     return e.next()
   }
 
-  var perms = permsRaw
-  if (typeof perms === 'string') {
-    try {
-      perms = JSON.parse(perms)
-    } catch (_) {
-      throw new BadRequestError('Permissões inválidas: formato JSON inválido.')
-    }
+  var perms
+  try {
+    perms = JSON.parse(permsStr)
+  } catch (_) {
+    throw new BadRequestError('Permissões inválidas: formato JSON inválido.')
   }
 
   if (!perms || typeof perms !== 'object' || Array.isArray(perms)) {
