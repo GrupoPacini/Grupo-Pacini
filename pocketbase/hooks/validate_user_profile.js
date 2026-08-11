@@ -12,23 +12,10 @@ onRecordCreateRequest((e) => {
       throw new BadRequestError('Empresa vinculada não encontrada.')
     }
 
-    var clienteProfileId = e.record.getString('access_profile')
-    if (clienteProfileId) {
-      var clienteProfile
-      try {
-        clienteProfile = $app.findRecordById('access_profiles', clienteProfileId)
-      } catch (err) {
-        throw new BadRequestError('Perfil de acesso não encontrado.')
-      }
-      if (clienteProfile.getString('name') === 'Administrador') {
-        throw new BadRequestError(
-          'O perfil selecionado não é compatível com usuário do tipo Cliente.',
-        )
-      }
-      if (clienteProfile.getString('status') !== 'active') {
-        throw new BadRequestError('Não é possível vincular a um perfil inativo.')
-      }
-    }
+    try {
+      var clienteProfileAuto = $app.findFirstRecordByData('access_profiles', 'name', 'Cliente')
+      e.record.set('access_profile', clienteProfileAuto.id)
+    } catch (err) {}
 
     e.record.set('department', '')
     e.record.set('role', 'Cliente')
@@ -88,22 +75,10 @@ onRecordUpdateRequest((e) => {
       throw new BadRequestError('Empresa vinculada não encontrada.')
     }
 
-    if (newProfileId) {
-      var clienteProfile
-      try {
-        clienteProfile = $app.findRecordById('access_profiles', newProfileId)
-      } catch (err) {
-        throw new BadRequestError('Perfil de acesso não encontrado.')
-      }
-      if (clienteProfile.getString('name') === 'Administrador') {
-        throw new BadRequestError(
-          'O perfil selecionado não é compatível com usuário do tipo Cliente.',
-        )
-      }
-      if (clienteProfile.getString('status') !== 'active') {
-        throw new BadRequestError('Não é possível vincular a um perfil inativo.')
-      }
-    }
+    try {
+      var clienteProfileAuto = $app.findFirstRecordByData('access_profiles', 'name', 'Cliente')
+      e.record.set('access_profile', clienteProfileAuto.id)
+    } catch (err) {}
 
     if (oldRole === 'admin') {
       var adminsCount = $app.findRecordsByFilter(

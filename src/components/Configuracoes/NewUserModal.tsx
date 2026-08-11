@@ -200,7 +200,12 @@ export function NewUserModal({
                           </SelectItem>
                         ))
                     : profiles
-                        .filter((p) => p.name !== 'Administrador' && p.status === 'active')
+                        .filter(
+                          (p) =>
+                            p.name !== 'Administrador' &&
+                            p.name !== 'Cliente' &&
+                            p.status === 'active',
+                        )
                         .map((p) => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.name}

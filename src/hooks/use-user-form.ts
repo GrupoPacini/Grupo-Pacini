@@ -36,7 +36,10 @@ export function useUserForm(initialUser?: UserRecord | null, profiles?: AccessPr
   }, [profiles])
 
   const colaboradorProfiles = useMemo(
-    () => (profiles || []).filter((pr) => pr.name !== 'Administrador' && pr.status === 'active'),
+    () =>
+      (profiles || []).filter(
+        (pr) => pr.name !== 'Administrador' && pr.name !== 'Cliente' && pr.status === 'active',
+      ),
     [profiles],
   )
 
@@ -44,6 +47,11 @@ export function useUserForm(initialUser?: UserRecord | null, profiles?: AccessPr
     () => (colaboradorProfiles.length === 1 ? colaboradorProfiles[0].id : ''),
     [colaboradorProfiles],
   )
+
+  const clienteProfileId = useMemo(() => {
+    const p = profiles?.find((pr) => pr.name === 'Cliente' && pr.status === 'active')
+    return p?.id || ''
+  }, [profiles])
 
   useEffect(() => {
     if (initialUser) {
@@ -76,17 +84,24 @@ export function useUserForm(initialUser?: UserRecord | null, profiles?: AccessPr
         ) {
           return { ...prev, accessProfile: singleColaboradorProfileId }
         }
+        if (
+          prev.userType === 'Cliente' &&
+          clienteProfileId &&
+          prev.accessProfile !== clienteProfileId
+        ) {
+          return { ...prev, accessProfile: clienteProfileId }
+        }
         return prev
       })
     }
-  }, [adminProfileId, singleColaboradorProfileId, initialUser])
+  }, [adminProfileId, singleColaboradorProfileId, clienteProfileId, initialUser])
 
   const setUserType = useCallback(
     (type: UserType) => {
       setForm((prev) => {
         const next = { ...prev, userType: type }
         if (type === 'Cliente') {
-          next.accessProfile = 'none'
+          next.accessProfile = clienteProfileId || 'none'
           next.department = 'none'
         } else if (type === 'admin') {
           next.accessProfile = adminProfileId || 'none'
@@ -102,7 +117,7 @@ export function useUserForm(initialUser?: UserRecord | null, profiles?: AccessPr
         return next
       })
     },
-    [adminProfileId, singleColaboradorProfileId],
+    [adminProfileId, singleColaboradorProfileId, clienteProfileId],
   )
 
   const update = useCallback(<K extends keyof UserFormValues>(key: K, value: UserFormValues[K]) => {
@@ -128,12 +143,12 @@ export function useUserForm(initialUser?: UserRecord | null, profiles?: AccessPr
   }, [form, colaboradorProfiles])
 
   const resolveAccessProfile = useCallback((): string | null => {
-    if (isCliente) return null
+    if (isCliente) return clienteProfileId || null
     if (form.userType === 'admin') {
       return adminProfileId || (form.accessProfile !== 'none' ? form.accessProfile : null)
     }
     return form.accessProfile === 'none' ? null : form.accessProfile
-  }, [form, isCliente, adminProfileId])
+  }, [form, isCliente, adminProfileId, clienteProfileId])
 
   const buildCreatePayload = useCallback(
     () => ({

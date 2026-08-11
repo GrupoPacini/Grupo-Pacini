@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ShieldCheck, UserCog, Eye, Pencil, SlidersHorizontal } from 'lucide-react'
+import { ShieldCheck, UserCog, Eye, Pencil, SlidersHorizontal, Building2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AccessProfileRecord } from '@/services/access-profiles'
 
@@ -27,6 +27,12 @@ const SYSTEM_ICONS: Record<
     iconColor: 'text-blue-600',
     bg: 'bg-blue-500/10',
     border: 'border-t-blue-500',
+  },
+  Cliente: {
+    icon: Building2,
+    iconColor: 'text-green-600',
+    bg: 'bg-green-500/10',
+    border: 'border-t-green-500',
   },
 }
 

@@ -77,7 +77,7 @@ export function EditUserModal({
   const roleChanged = form.userType !== originalRole
 
   const dropdownProfiles = useMemo(() => {
-    const nonAdmin = profiles.filter((p) => p.name !== 'Administrador')
+    const nonAdmin = profiles.filter((p) => p.name !== 'Administrador' && p.name !== 'Cliente')
     const result = [...nonAdmin]
     const currentProfile = user?.expand?.access_profile
     if (
