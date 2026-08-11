@@ -4,6 +4,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { ChartStateDisplay } from './ChartStateDisplay'
 import { formatBRL, type DataState, type EvolutionDataPoint } from '@/lib/financial-utils'
 import type { LucideIcon } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MainIndicatorCardProps {
@@ -18,6 +20,7 @@ interface MainIndicatorCardProps {
   gradientId: string
   resultColor?: string
   unavailable?: boolean
+  divergenceMessage?: string | null
 }
 
 export function MainIndicatorCard({
@@ -32,6 +35,7 @@ export function MainIndicatorCard({
   gradientId,
   resultColor,
   unavailable,
+  divergenceMessage,
 }: MainIndicatorCardProps) {
   const chartConfig = { value: { label: title } }
   const hasData = state === 'ready' && !unavailable && data && data.length > 0
@@ -53,16 +57,30 @@ export function MainIndicatorCard({
             {state === 'ready' && unavailable ? (
               <p className="text-base font-medium text-muted-foreground">Saldo não informado</p>
             ) : (
-              <p
-                className={cn(
-                  'text-2xl font-bold',
-                  state === 'ready' && total != null
-                    ? resultColor || 'text-foreground'
-                    : 'text-muted-foreground/40',
+              <div className="flex items-center gap-1">
+                <p
+                  className={cn(
+                    'text-2xl font-bold',
+                    state === 'ready' && total != null
+                      ? resultColor || 'text-foreground'
+                      : 'text-muted-foreground/40',
+                  )}
+                >
+                  {state === 'ready' && total != null ? formatBRL(total) : formatBRL(0)}
+                </p>
+                {divergenceMessage && state === 'ready' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help">
+                        <AlertTriangle size={14} className="text-orange-600 dark:text-orange-400" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs max-w-xs">{divergenceMessage}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
-              >
-                {state === 'ready' && total != null ? formatBRL(total) : formatBRL(0)}
-              </p>
+              </div>
             )}
           </div>
           <div className="h-32 flex items-center justify-center rounded-lg bg-muted/30 border border-dashed border-muted-foreground/20">

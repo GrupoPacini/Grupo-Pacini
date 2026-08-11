@@ -17,6 +17,8 @@ import {
   type FinancialReportImport,
 } from '@/lib/financial-utils'
 import type { ClientRecord } from '@/services/clients'
+import type { ContinuityStatus } from '@/lib/financial-computations'
+import { ContinuityIndicator } from './ContinuityIndicator'
 
 interface ImportedReportsTableProps {
   imports: FinancialReportImport[]
@@ -29,6 +31,7 @@ interface ImportedReportsTableProps {
   onReimport: (clientId: string, month: number, year: number) => void
   onEditOpeningBalance: (importRecord: FinancialReportImport) => void
   onDelete: (importRecord: FinancialReportImport) => void
+  continuityMap?: Map<string, ContinuityStatus> | null
 }
 
 function getClientName(imp: FinancialReportImport, clients: ClientRecord[]): string {
@@ -66,6 +69,7 @@ export function ImportedReportsTable({
   onReimport,
   onEditOpeningBalance,
   onDelete,
+  continuityMap,
 }: ImportedReportsTableProps) {
   return (
     <Card className="border-t-4 border-t-accent shadow-sm">
@@ -113,8 +117,13 @@ export function ImportedReportsTable({
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {formatCompetence(imp.month, imp.year)}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                        {imp.opening_balance != null ? formatBRL(imp.opening_balance) : '—'}
+                      <TableCell className="text-sm whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">
+                            {imp.opening_balance != null ? formatBRL(imp.opening_balance) : '—'}
+                          </span>
+                          <ContinuityIndicator status={continuityMap?.get(imp.id)} />
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
                         {imp.file_name || '—'}

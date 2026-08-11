@@ -163,6 +163,7 @@ export interface SaldoFinalComputation {
 }
 
 interface ImportLike {
+  id?: string
   month: number
   year: number
   opening_balance?: number | null
@@ -299,4 +300,69 @@ export function computeSaldoFinalV2(
     unavailable: true,
     divergence: null,
   }
+}
+
+export interface ContinuityStatus {
+  state: 'conciliado' | 'divergencia' | 'sem_referencia'
+  previousCompetence: { month: number; year: number } | null
+  previousSaldoFinal: number | null
+  currentSaldoInicial: number | null
+  difference: number | null
+}
+
+function roundCurrency(value: number): number {
+  return Math.round(value * 100) / 100
+}
+
+export function computeContinuityMap(
+  allClientTransactions: Transaction[],
+  imports: ImportLike[],
+): Map<string, ContinuityStatus> {
+  const result = new Map<string, ContinuityStatus>()
+
+  for (const imp of imports) {
+    const key = imp.id || `${imp.year}-${imp.month}`
+
+    if (imp.opening_balance == null) {
+      result.set(key, {
+        state: 'sem_referencia',
+        previousCompetence: null,
+        previousSaldoFinal: null,
+        currentSaldoInicial: null,
+        difference: null,
+      })
+      continue
+    }
+
+    const prevComp = getPreviousCompetence(imp.month, imp.year)
+    const prevImport = imports.find((p) => p.month === prevComp.month && p.year === prevComp.year)
+
+    if (!prevImport || prevImport.opening_balance == null) {
+      result.set(key, {
+        state: 'sem_referencia',
+        previousCompetence: prevComp,
+        previousSaldoFinal: null,
+        currentSaldoInicial: imp.opening_balance,
+        difference: null,
+      })
+      continue
+    }
+
+    const currentSaldoInicial = imp.opening_balance
+    const prevTx = filterTxByCompetence(allClientTransactions, prevComp.month, prevComp.year)
+    const { resultado: prevResultado } = computeResultado(prevTx)
+    const prevSaldoFinal = prevImport.opening_balance + prevResultado
+
+    const diff = roundCurrency(currentSaldoInicial - prevSaldoFinal)
+
+    result.set(key, {
+      state: diff === 0 ? 'conciliado' : 'divergencia',
+      previousCompetence: prevComp,
+      previousSaldoFinal: roundCurrency(prevSaldoFinal),
+      currentSaldoInicial: roundCurrency(currentSaldoInicial),
+      difference: diff,
+    })
+  }
+
+  return result
 }

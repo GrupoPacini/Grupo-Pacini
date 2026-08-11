@@ -53,6 +53,7 @@ import {
   generateAnalysis,
   computeResultado,
   computeSaldoFinalV2,
+  computeContinuityMap,
 } from '@/lib/financial-computations'
 import { exportToPDF, exportToExcel } from '@/lib/financial-export'
 
@@ -186,6 +187,13 @@ export default function RelatorioFinanceiro() {
     [clientAllTransactions, imports, appliedFilters.mes, appliedFilters.ano],
   )
   const saldoFinal = saldoFinalComputation.saldoFinal
+  const continuityMap = useMemo(
+    () => computeContinuityMap(clientAllTransactions, imports),
+    [clientAllTransactions, imports],
+  )
+  const saldoFinalDivergenceMessage = saldoFinalComputation.divergence
+    ? 'O Saldo Inicial desta competência difere do Saldo Final da competência anterior.'
+    : null
   const saldoFinalUnavailable = saldoFinalComputation.unavailable
   const saldoFinalResultColor =
     saldoFinal !== null
@@ -557,6 +565,7 @@ export default function RelatorioFinanceiro() {
                 gradientId="grad-saldo-final"
                 resultColor={saldoFinalResultColor}
                 unavailable={saldoFinalUnavailable}
+                divergenceMessage={saldoFinalDivergenceMessage}
               />
             )}
           </div>
@@ -609,6 +618,7 @@ export default function RelatorioFinanceiro() {
             onReimport={handleReimport}
             onEditOpeningBalance={setEditOpeningBalanceTarget}
             onDelete={setDeleteTarget}
+            continuityMap={continuityMap}
           />
         )}
 
