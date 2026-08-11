@@ -28,7 +28,7 @@ migrate(
       )
       existing.set('status', 'active')
       existing.set('system', true)
-      existing.set('permissions', JSON.stringify(clientePerms))
+      existing.set('permissions', clientePerms)
       app.save(existing)
     } catch (_) {
       var cliente = new Record(profilesCol)
@@ -39,7 +39,7 @@ migrate(
       )
       cliente.set('status', 'active')
       cliente.set('system', true)
-      cliente.set('permissions', JSON.stringify(clientePerms))
+      cliente.set('permissions', clientePerms)
       app.save(cliente)
     }
   },
