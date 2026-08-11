@@ -72,9 +72,16 @@ export default function RelatorioFinanceiro() {
   const [deleting, setDeleting] = useState(false)
   const [editOpeningBalanceTarget, setEditOpeningBalanceTarget] =
     useState<FinancialReportImport | null>(null)
-  const { can } = usePermissions()
+  const { can, permissions } = usePermissions()
   const { isCliente, clientId } = useAuth()
   const [clientValid, setClientValid] = useState<boolean | null>(null)
+
+  const financialCards = permissions?.['financial_report_cards']
+  const cardVisible = (cardName: string) => {
+    if (!isCliente) return true
+    if (!financialCards || !Array.isArray(financialCards)) return true
+    return financialCards.includes(cardName)
+  }
 
   useEffect(() => {
     if (!isCliente) {
@@ -510,93 +517,113 @@ export default function RelatorioFinanceiro() {
       {isClientSelected && (!isCliente || clientValid === true) && dataState !== 'empty' && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <MainIndicatorCard
-              title="Receitas"
-              icon={TrendingUp}
-              iconColor="text-green-600"
-              bg="bg-green-100 dark:bg-green-900/20"
-              data={receitasData}
-              state={dataState}
-              total={receitasTotal}
-              chartColor="hsl(var(--chart-1))"
-              gradientId="grad-receitas"
-            />
-            <MainIndicatorCard
-              title="Despesas"
-              icon={TrendingDown}
-              iconColor="text-red-600"
-              bg="bg-red-100 dark:bg-red-900/20"
-              data={despesasData}
-              state={dataState}
-              total={despesasTotal}
-              chartColor="hsl(var(--chart-4))"
-              gradientId="grad-despesas"
-            />
-            <MainIndicatorCard
-              title="Resultado"
-              icon={Wallet}
-              iconColor="text-blue-600"
-              bg="bg-blue-100 dark:bg-blue-900/20"
-              data={saldoData}
-              state={dataState}
-              total={resultado}
-              chartColor="hsl(var(--chart-2))"
-              gradientId="grad-resultado"
-              resultColor={resultado >= 0 ? 'text-green-600' : 'text-red-600'}
-            />
-            <MainIndicatorCard
-              title="Saldo Final"
-              icon={Landmark}
-              iconColor="text-purple-600"
-              bg="bg-purple-100 dark:bg-purple-900/20"
-              data={saldoFinalUnavailable ? null : saldoData}
-              state={dataState}
-              total={saldoFinal}
-              chartColor="hsl(var(--chart-3))"
-              gradientId="grad-saldo-final"
-              resultColor={saldoFinalResultColor}
-              unavailable={saldoFinalUnavailable}
-            />
+            {cardVisible('Receitas') && (
+              <MainIndicatorCard
+                title="Receitas"
+                icon={TrendingUp}
+                iconColor="text-green-600"
+                bg="bg-green-100 dark:bg-green-900/20"
+                data={receitasData}
+                state={dataState}
+                total={receitasTotal}
+                chartColor="hsl(var(--chart-1))"
+                gradientId="grad-receitas"
+              />
+            )}
+            {cardVisible('Despesas') && (
+              <MainIndicatorCard
+                title="Despesas"
+                icon={TrendingDown}
+                iconColor="text-red-600"
+                bg="bg-red-100 dark:bg-red-900/20"
+                data={despesasData}
+                state={dataState}
+                total={despesasTotal}
+                chartColor="hsl(var(--chart-4))"
+                gradientId="grad-despesas"
+              />
+            )}
+            {cardVisible('Resultado') && (
+              <MainIndicatorCard
+                title="Resultado"
+                icon={Wallet}
+                iconColor="text-blue-600"
+                bg="bg-blue-100 dark:bg-blue-900/20"
+                data={saldoData}
+                state={dataState}
+                total={resultado}
+                chartColor="hsl(var(--chart-2))"
+                gradientId="grad-resultado"
+                resultColor={resultado >= 0 ? 'text-green-600' : 'text-red-600'}
+              />
+            )}
+            {cardVisible('Saldo Final') && (
+              <MainIndicatorCard
+                title="Saldo Final"
+                icon={Landmark}
+                iconColor="text-purple-600"
+                bg="bg-purple-100 dark:bg-purple-900/20"
+                data={saldoFinalUnavailable ? null : saldoData}
+                state={dataState}
+                total={saldoFinal}
+                chartColor="hsl(var(--chart-3))"
+                gradientId="grad-saldo-final"
+                resultColor={saldoFinalResultColor}
+                unavailable={saldoFinalUnavailable}
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <CategoryDonutCard
-              title="Entradas por Categoria"
-              data={entradasCategoria}
-              state={dataState}
-            />
-            <CategoryDonutCard
-              title="Saídas por Categoria"
-              data={saidasCategoria}
-              state={dataState}
-            />
+            {cardVisible('Entradas por Categoria') && (
+              <CategoryDonutCard
+                title="Entradas por Categoria"
+                data={entradasCategoria}
+                state={dataState}
+              />
+            )}
+            {cardVisible('Saídas por Categoria') && (
+              <CategoryDonutCard
+                title="Saídas por Categoria"
+                data={saidasCategoria}
+                state={dataState}
+              />
+            )}
           </div>
 
-          <DailyCashFlowCard transactions={transactions} state={dataState} />
+          {cardVisible('Fluxo de Caixa Diário') && (
+            <DailyCashFlowCard transactions={transactions} state={dataState} />
+          )}
 
-          <TransactionsTable data={transactions} state={dataState} />
+          {cardVisible('Lançamentos') && (
+            <TransactionsTable data={transactions} state={dataState} />
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <FinancialAnalysisCard state={analysisState} analysis={analysis} />
-            <FinancialAlertsCard state={dataState} alerts={alerts} />
+            {cardVisible('Análise Financeira') && (
+              <FinancialAnalysisCard state={analysisState} analysis={analysis} />
+            )}
+            {cardVisible('Alertas') && <FinancialAlertsCard state={dataState} alerts={alerts} />}
           </div>
         </>
       )}
 
-      {isClientSelected && (!isCliente || clientValid === true) && (
-        <ImportedReportsTable
-          imports={imports}
-          clients={clients}
-          loading={loading}
-          canDelete={canDeleteImport}
-          canEdit={canEditImport}
-          canReimport={canReimport}
-          onView={handleView}
-          onReimport={handleReimport}
-          onEditOpeningBalance={setEditOpeningBalanceTarget}
-          onDelete={setDeleteTarget}
-        />
-      )}
+      {isClientSelected &&
+        (!isCliente || clientValid === true) &&
+        cardVisible('Relatórios Importados') && (
+          <ImportedReportsTable
+            imports={imports}
+            clients={clients}
+            loading={loading}
+            canDelete={canDeleteImport}
+            canEdit={canEditImport}
+            canReimport={canReimport}
+            onView={handleView}
+            onReimport={handleReimport}
+            onEditOpeningBalance={setEditOpeningBalanceTarget}
+            onDelete={setDeleteTarget}
+          />
+        )}
 
       {!isCliente && (
         <ImportReportDialog

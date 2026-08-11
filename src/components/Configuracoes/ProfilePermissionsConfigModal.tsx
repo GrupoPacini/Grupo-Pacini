@@ -30,6 +30,7 @@ import {
   MODULE_CONFIGS,
   LOCKED_ADMIN_MODULES,
   CLIENTE_ALLOWED_MODULES,
+  FINANCIAL_REPORT_CARDS,
   normalizePermissions,
   type Permissions,
 } from '@/lib/permissions-config'
@@ -79,6 +80,11 @@ export function ProfilePermissionsConfigModal({
           const existing = loaded[mod] || []
           filtered[mod] = allowedActions.filter((a) => existing.includes(a))
         }
+        const existingCards = loaded['financial_report_cards']
+        filtered['financial_report_cards'] =
+          Array.isArray(existingCards) && existingCards.every((c) => typeof c === 'string')
+            ? existingCards.filter((c) => (FINANCIAL_REPORT_CARDS as readonly string[]).includes(c))
+            : [...FINANCIAL_REPORT_CARDS]
         setPermissions(filtered)
         setInitial(filtered)
         return
@@ -126,6 +132,18 @@ export function ProfilePermissionsConfigModal({
             : []
       }
       return updated
+    })
+  }
+
+  const toggleCard = (card: string, checked: boolean) => {
+    setPermissions((prev) => {
+      const current = prev['financial_report_cards'] || []
+      return {
+        ...prev,
+        ['financial_report_cards']: checked
+          ? [...current, card]
+          : current.filter((c) => c !== card),
+      }
     })
   }
 
@@ -185,6 +203,28 @@ export function ProfilePermissionsConfigModal({
                   onToggleAction={(action, checked) => toggleAction(config.module, action, checked)}
                 />
               ))}
+              {isCliente && (
+                <div className="rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/20">
+                  <p className="text-sm font-semibold text-foreground mb-3">
+                    Cards do Relatório Financeiro
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    {FINANCIAL_REPORT_CARDS.map((card) => {
+                      const selectedCards = permissions['financial_report_cards'] || []
+                      const checked = selectedCards.includes(card)
+                      return (
+                        <label key={card} className="flex items-center gap-1.5 cursor-pointer">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(v) => toggleCard(card, v === true)}
+                          />
+                          <span className="text-xs text-muted-foreground">{card}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </ScrollArea>
           <DialogFooter className="flex justify-between sm:justify-between">

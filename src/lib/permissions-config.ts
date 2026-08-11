@@ -41,6 +41,20 @@ export const CLIENTE_ALLOWED_MODULES: Record<string, string[]> = {
   'Relatório Financeiro': ['visualizar'],
 }
 
+export const FINANCIAL_REPORT_CARDS = [
+  'Receitas',
+  'Despesas',
+  'Resultado',
+  'Saldo Final',
+  'Entradas por Categoria',
+  'Saídas por Categoria',
+  'Fluxo de Caixa Diário',
+  'Lançamentos',
+  'Análise Financeira',
+  'Alertas',
+  'Relatórios Importados',
+] as const
+
 export const LOCKED_ADMIN_MODULES = [
   'Configurações',
   'Gestão de Usuários',
