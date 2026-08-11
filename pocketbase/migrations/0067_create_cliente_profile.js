@@ -20,6 +20,8 @@ migrate(
       'Relatório Financeiro': ['visualizar'],
     }
 
+    var permsJson = JSON.stringify(clientePerms)
+
     try {
       var existing = app.findFirstRecordByData('access_profiles', 'name', 'Cliente')
       existing.set(
@@ -28,7 +30,7 @@ migrate(
       )
       existing.set('status', 'active')
       existing.set('system', true)
-      existing.set('permissions', clientePerms)
+      existing.set('permissions', permsJson)
       app.save(existing)
     } catch (_) {
       var cliente = new Record(profilesCol)
@@ -39,7 +41,7 @@ migrate(
       )
       cliente.set('status', 'active')
       cliente.set('system', true)
-      cliente.set('permissions', clientePerms)
+      cliente.set('permissions', permsJson)
       app.save(cliente)
     }
   },
