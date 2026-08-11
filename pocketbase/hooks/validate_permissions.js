@@ -19,6 +19,10 @@ onRecordValidate((e) => {
   }
 
   var keys = Object.keys(perms)
+  if (keys.length === 0) {
+    return e.next()
+  }
+
   for (var i = 0; i < keys.length; i++) {
     var val = perms[keys[i]]
     if (
@@ -29,18 +33,6 @@ onRecordValidate((e) => {
     ) {
       throw new BadRequestError('Permissões inválidas: cada módulo deve ter um array de strings.')
     }
-  }
-
-  var hasAny = false
-  for (var j = 0; j < keys.length; j++) {
-    var arr = perms[keys[j]]
-    if (Array.isArray(arr) && arr.length > 0) {
-      hasAny = true
-      break
-    }
-  }
-  if (!hasAny) {
-    throw new BadRequestError('Permissões inválidas: o perfil deve ter pelo menos uma permissão.')
   }
 
   var name = e.record.getString('name')

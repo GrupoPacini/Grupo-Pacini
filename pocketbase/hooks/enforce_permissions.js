@@ -8,10 +8,6 @@ onRecordCreateRequest(
     if (!auth) {
       throw new ForbiddenError('Autenticação necessária')
     }
-    if (auth.getString('role') === 'admin') {
-      e.next()
-      return
-    }
 
     var collectionName = e.record.collectionName
     var moduleMap = {
@@ -35,7 +31,6 @@ onRecordCreateRequest(
     }
 
     var requiredAction = moduleName === 'Modelos de Processo' ? 'gerenciar' : 'criar'
-
     var profileId = auth.getString('access_profile')
     if (!profileId) {
       throw new ForbiddenError('Perfil de acesso não vinculado')
@@ -43,7 +38,7 @@ onRecordCreateRequest(
     var profile
     try {
       profile = $app.findRecordById('access_profiles', profileId)
-    } catch (err) {
+    } catch (_) {
       throw new ForbiddenError('Perfil de acesso não encontrado')
     }
     if (profile.getString('status') !== 'active') {
@@ -94,10 +89,6 @@ onRecordUpdateRequest(
     if (!auth) {
       throw new ForbiddenError('Autenticação necessária')
     }
-    if (auth.getString('role') === 'admin') {
-      e.next()
-      return
-    }
 
     var collectionName = e.record.collectionName
     var moduleMap = {
@@ -126,7 +117,6 @@ onRecordUpdateRequest(
     }
 
     var requiredAction = moduleName === 'Modelos de Processo' ? 'gerenciar' : 'editar'
-
     var profileId = auth.getString('access_profile')
     if (!profileId) {
       throw new ForbiddenError('Perfil de acesso não vinculado')
@@ -134,7 +124,7 @@ onRecordUpdateRequest(
     var profile
     try {
       profile = $app.findRecordById('access_profiles', profileId)
-    } catch (err) {
+    } catch (_) {
       throw new ForbiddenError('Perfil de acesso não encontrado')
     }
     if (profile.getString('status') !== 'active') {
@@ -185,10 +175,6 @@ onRecordDeleteRequest(
     if (!auth) {
       throw new ForbiddenError('Autenticação necessária')
     }
-    if (auth.getString('role') === 'admin') {
-      e.next()
-      return
-    }
 
     var collectionName = e.record.collectionName
     var moduleMap = {
@@ -212,7 +198,6 @@ onRecordDeleteRequest(
     }
 
     var requiredAction = moduleName === 'Modelos de Processo' ? 'gerenciar' : 'excluir'
-
     var profileId = auth.getString('access_profile')
     if (!profileId) {
       throw new ForbiddenError('Perfil de acesso não vinculado')
@@ -220,7 +205,7 @@ onRecordDeleteRequest(
     var profile
     try {
       profile = $app.findRecordById('access_profiles', profileId)
-    } catch (err) {
+    } catch (_) {
       throw new ForbiddenError('Perfil de acesso não encontrado')
     }
     if (profile.getString('status') !== 'active') {
@@ -260,3 +245,102 @@ onRecordDeleteRequest(
   'process_model_stages',
   'process_model_tasks',
 )
+
+onRecordListRequest((e) => {
+  if (e.hasSuperuserAuth()) {
+    e.next()
+    return
+  }
+  var auth = e.auth
+  if (!auth) {
+    throw new ForbiddenError('Autenticação necessária')
+  }
+
+  var profileId = auth.getString('access_profile')
+  if (!profileId) {
+    throw new ForbiddenError('Perfil de acesso não vinculado')
+  }
+  var profile
+  try {
+    profile = $app.findRecordById('access_profiles', profileId)
+  } catch (_) {
+    throw new ForbiddenError('Perfil não encontrado')
+  }
+  if (profile.getString('status') !== 'active') {
+    throw new ForbiddenError('Perfil inativo')
+  }
+
+  var permsRaw = profile.get('permissions')
+  if (!permsRaw) {
+    throw new ForbiddenError('Sem permissões configuradas')
+  }
+  var perms = permsRaw
+  if (typeof perms === 'string') {
+    try {
+      perms = JSON.parse(perms)
+    } catch (_) {
+      perms = null
+    }
+  }
+  if (!perms || typeof perms !== 'object') {
+    throw new ForbiddenError('Permissões inválidas')
+  }
+
+  var paPerms = perms['Perfis de Acesso']
+  var guPerms = perms['Gestão de Usuários']
+  var canViewProfiles = Array.isArray(paPerms) && paPerms.indexOf('visualizar') !== -1
+  var canViewUsers = Array.isArray(guPerms) && guPerms.indexOf('visualizar') !== -1
+  if (!canViewProfiles && !canViewUsers) {
+    throw new ForbiddenError('Permissão negada para visualizar perfis de acesso')
+  }
+  e.next()
+}, 'access_profiles')
+
+onRecordViewRequest((e) => {
+  if (e.hasSuperuserAuth()) {
+    e.next()
+    return
+  }
+  var auth = e.auth
+  if (!auth) {
+    throw new ForbiddenError('Autenticação necessária')
+  }
+
+  if (auth.getString('access_profile') === e.record.id) {
+    e.next()
+    return
+  }
+
+  var profileId = auth.getString('access_profile')
+  if (!profileId) {
+    throw new ForbiddenError('Perfil de acesso não vinculado')
+  }
+  var profile
+  try {
+    profile = $app.findRecordById('access_profiles', profileId)
+  } catch (_) {
+    throw new ForbiddenError('Perfil não encontrado')
+  }
+
+  var permsRaw = profile.get('permissions')
+  if (!permsRaw) {
+    throw new ForbiddenError('Sem permissões configuradas')
+  }
+  var perms = permsRaw
+  if (typeof perms === 'string') {
+    try {
+      perms = JSON.parse(perms)
+    } catch (_) {
+      perms = null
+    }
+  }
+  if (!perms || typeof perms !== 'object') {
+    throw new ForbiddenError('Permissões inválidas')
+  }
+
+  var paPerms = perms['Perfis de Acesso']
+  if (!Array.isArray(paPerms) || paPerms.indexOf('visualizar') === -1) {
+    throw new ForbiddenError('Permissão negada para visualizar perfis de acesso')
+  }
+  e.next()
+}, 'access_profiles')
