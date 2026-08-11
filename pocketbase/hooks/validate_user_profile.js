@@ -1,17 +1,18 @@
 onRecordCreateRequest((e) => {
   function normalizePerms(raw) {
-    if (!raw) return {}
+    if (raw === null || raw === undefined) return {}
     if (typeof raw === 'string') {
-      if (raw.trim() === '') return {}
+      var trimmed = raw.trim()
+      if (trimmed === '') return {}
       try {
-        var parsed = JSON.parse(raw)
+        var parsed = JSON.parse(trimmed)
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
         return null
       } catch (err) {
         return null
       }
     }
-    if (typeof raw === 'object' && !Array.isArray(raw)) return raw
+    if (typeof raw === 'object' && !Array.isArray(parsed)) return raw
     return null
   }
 
@@ -76,7 +77,7 @@ onRecordCreateRequest((e) => {
   e.record.set('profile_name', profileName)
 
   if (e.record.getString('status') === 'Ativo') {
-    var permsRaw = profile.get('permissions')
+    var permsRaw = profile.getString('permissions')
     var perms = normalizePerms(permsRaw)
     if (perms === null) {
       throw new BadRequestError('Formato de permissões inválido no perfil de acesso.')
@@ -106,11 +107,12 @@ onRecordCreateRequest((e) => {
 
 onRecordUpdateRequest((e) => {
   function normalizePerms(raw) {
-    if (!raw) return {}
+    if (raw === null || raw === undefined) return {}
     if (typeof raw === 'string') {
-      if (raw.trim() === '') return {}
+      var trimmed = raw.trim()
+      if (trimmed === '') return {}
       try {
-        var parsed = JSON.parse(raw)
+        var parsed = JSON.parse(trimmed)
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
         return null
       } catch (err) {
@@ -217,7 +219,7 @@ onRecordUpdateRequest((e) => {
   }
 
   if (e.record.getString('status') === 'Ativo') {
-    var permsRaw2 = newProfile.get('permissions')
+    var permsRaw2 = newProfile.getString('permissions')
     var perms2 = normalizePerms(permsRaw2)
     if (perms2 === null) {
       throw new BadRequestError('Formato de permissões inválido no perfil de acesso.')
