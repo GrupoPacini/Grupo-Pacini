@@ -1,67 +1,185 @@
-function validateAccessProfilePermissions(e) {
-  if (e.hasSuperuserAuth()) {
-    e.next()
-    return
-  }
+onRecordCreateRequest(
+  (e) => {
+    const auth = e.requestInfo().auth
+    if (!auth || e.hasSuperuserAuth()) {
+      e.next()
+      return
+    }
 
-  var permsRaw = e.record.get('permissions')
-  if (!permsRaw) {
-    e.next()
-    return
-  }
+    const collectionName = e.collection.name
 
-  var perms = permsRaw
-  if (typeof perms === 'string') {
+    let profile = null
     try {
-      perms = JSON.parse(perms)
-    } catch (_) {
-      throw new BadRequestError('Campo permissions deve ser um JSON válido')
-    }
-  }
-
-  if (!perms || typeof perms !== 'object' || Array.isArray(perms)) {
-    throw new BadRequestError('Campo permissions deve ser um objeto')
-  }
-
-  var validModules = {
-    Clientes: true,
-    Processos: true,
-    Licenças: true,
-    Playbooks: true,
-    'Gestão de Usuários': true,
-    'Perfis de Acesso': true,
-    'Modelos de Processo': true,
-    'Relatórios Financeiros': true,
-  }
-
-  var validActions = {
-    visualizar: true,
-    criar: true,
-    editar: true,
-    excluir: true,
-    gerenciar: true,
-  }
-
-  var keys = Object.keys(perms)
-  for (var i = 0; i < keys.length; i++) {
-    var moduleName = keys[i]
-    if (!validModules[moduleName]) {
-      throw new BadRequestError('Módulo desconhecido: ' + moduleName)
-    }
-    var actions = perms[moduleName]
-    if (!Array.isArray(actions)) {
-      throw new BadRequestError('Permissões do módulo ' + moduleName + ' devem ser um array')
-    }
-    for (var j = 0; j < actions.length; j++) {
-      if (!validActions[actions[j]]) {
-        throw new BadRequestError('Ação desconhecida: ' + actions[j] + ' no módulo ' + moduleName)
+      const profileId = auth.getString('access_profile')
+      if (profileId) {
+        profile = $app.findRecordById('access_profiles', profileId)
       }
+    } catch (err) {
+      e.next()
+      return
     }
-  }
 
-  e.next()
-}
+    if (!profile || profile.getBool('system')) {
+      e.next()
+      return
+    }
 
-onRecordCreateRequest(validateAccessProfilePermissions, 'access_profiles')
+    let permissions = {}
+    try {
+      const permStr = profile.getString('permissions')
+      if (permStr) {
+        permissions = JSON.parse(permStr)
+      }
+    } catch (err) {
+      e.next()
+      return
+    }
 
-onRecordUpdateRequest(validateAccessProfilePermissions, 'access_profiles')
+    const colPerm = permissions[collectionName]
+    if (colPerm && typeof colPerm === 'object' && colPerm.create === false) {
+      return e.forbiddenError('Você não tem permissão para criar registros em ' + collectionName)
+    }
+
+    e.next()
+  },
+  'clients',
+  'processes',
+  'licenses',
+  'playbooks',
+  'financial_transactions',
+  'financial_report_imports',
+  'process_models',
+  'process_stages',
+  'process_tasks',
+  'socios',
+  'client_cnaes',
+  'client_responsibles',
+  'client_events',
+  'client_contacts',
+  'process_model_stages',
+  'process_model_tasks',
+)
+
+onRecordUpdateRequest(
+  (e) => {
+    const auth = e.requestInfo().auth
+    if (!auth || e.hasSuperuserAuth()) {
+      e.next()
+      return
+    }
+
+    const collectionName = e.collection.name
+
+    let profile = null
+    try {
+      const profileId = auth.getString('access_profile')
+      if (profileId) {
+        profile = $app.findRecordById('access_profiles', profileId)
+      }
+    } catch (err) {
+      e.next()
+      return
+    }
+
+    if (!profile || profile.getBool('system')) {
+      e.next()
+      return
+    }
+
+    let permissions = {}
+    try {
+      const permStr = profile.getString('permissions')
+      if (permStr) {
+        permissions = JSON.parse(permStr)
+      }
+    } catch (err) {
+      e.next()
+      return
+    }
+
+    const colPerm = permissions[collectionName]
+    if (colPerm && typeof colPerm === 'object' && colPerm.update === false) {
+      return e.forbiddenError('Você não tem permissão para editar registros em ' + collectionName)
+    }
+
+    e.next()
+  },
+  'clients',
+  'processes',
+  'licenses',
+  'playbooks',
+  'financial_transactions',
+  'financial_report_imports',
+  'process_models',
+  'process_stages',
+  'process_tasks',
+  'socios',
+  'client_cnaes',
+  'client_responsibles',
+  'client_events',
+  'client_contacts',
+  'process_model_stages',
+  'process_model_tasks',
+)
+
+onRecordDeleteRequest(
+  (e) => {
+    const auth = e.requestInfo().auth
+    if (!auth || e.hasSuperuserAuth()) {
+      e.next()
+      return
+    }
+
+    const collectionName = e.collection.name
+
+    let profile = null
+    try {
+      const profileId = auth.getString('access_profile')
+      if (profileId) {
+        profile = $app.findRecordById('access_profiles', profileId)
+      }
+    } catch (err) {
+      e.next()
+      return
+    }
+
+    if (!profile || profile.getBool('system')) {
+      e.next()
+      return
+    }
+
+    let permissions = {}
+    try {
+      const permStr = profile.getString('permissions')
+      if (permStr) {
+        permissions = JSON.parse(permStr)
+      }
+    } catch (err) {
+      e.next()
+      return
+    }
+
+    const colPerm = permissions[collectionName]
+    if (colPerm && typeof colPerm === 'object' && colPerm['delete'] === false) {
+      return e.forbiddenError('Você não tem permissão para excluir registros em ' + collectionName)
+    }
+
+    e.next()
+  },
+  'clients',
+  'processes',
+  'licenses',
+  'playbooks',
+  'financial_transactions',
+  'financial_report_imports',
+  'process_models',
+  'process_stages',
+  'process_tasks',
+  'socios',
+  'client_cnaes',
+  'client_responsibles',
+  'client_events',
+  'client_contacts',
+  'process_model_stages',
+  'process_model_tasks',
+)
