@@ -12,10 +12,13 @@ onRecordCreateRequest((e) => {
       throw new BadRequestError('Empresa vinculada não encontrada.')
     }
 
-    try {
-      var clienteProfileAuto = $app.findFirstRecordByData('access_profiles', 'name', 'Cliente')
-      e.record.set('access_profile', clienteProfileAuto.id)
-    } catch (err) {}
+    var existingProfileId = e.record.getString('access_profile')
+    if (!existingProfileId) {
+      try {
+        var clienteProfileAuto = $app.findFirstRecordByData('access_profiles', 'name', 'Cliente')
+        e.record.set('access_profile', clienteProfileAuto.id)
+      } catch (err) {}
+    }
 
     e.record.set('department', '')
     e.record.set('role', 'Cliente')
@@ -75,10 +78,13 @@ onRecordUpdateRequest((e) => {
       throw new BadRequestError('Empresa vinculada não encontrada.')
     }
 
-    try {
-      var clienteProfileAuto = $app.findFirstRecordByData('access_profiles', 'name', 'Cliente')
-      e.record.set('access_profile', clienteProfileAuto.id)
-    } catch (err) {}
+    var existingProfileIdUpdate = e.record.getString('access_profile')
+    if (!existingProfileIdUpdate) {
+      try {
+        var clienteProfileAuto = $app.findFirstRecordByData('access_profiles', 'name', 'Cliente')
+        e.record.set('access_profile', clienteProfileAuto.id)
+      } catch (err) {}
+    }
 
     if (oldRole === 'admin') {
       var adminsCount = $app.findRecordsByFilter(
