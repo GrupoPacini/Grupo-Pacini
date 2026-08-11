@@ -31,6 +31,7 @@ export function useFinancialData(
   const [error, setError] = useState<Error | null>(null)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
+  const [clientAllTransactions, setClientAllTransactions] = useState<Transaction[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [imports, setImports] = useState<FinancialReportImport[]>([])
 
@@ -66,6 +67,7 @@ export function useFinancialData(
     if (!effectiveClient || effectiveClient === 'all') {
       setTransactions([])
       setAllTransactions([])
+      setClientAllTransactions([])
       setImports([])
       setLoading(false)
       setError(null)
@@ -136,6 +138,25 @@ export function useFinancialData(
         expand: 'client,imported_by',
       })
       setImports(importRecords as unknown as FinancialReportImport[])
+
+      const allClientTxRecords = await pb.collection('financial_transactions').getFullList({
+        filter: `client = "${effectiveClient}"`,
+        sort: 'date',
+      })
+      const allClientTx: Transaction[] = allClientTxRecords.map((r: any) => ({
+        id: r.id,
+        client: r.client,
+        date: r.date,
+        description: r.description || '',
+        category: r.category || 'Sem Categoria',
+        account: r.account || 'Principal',
+        project: r.project || 'Geral',
+        type: r.type as 'Receita' | 'Despesa',
+        value: Number(r.value) || 0,
+        status: r.status as 'Pago' | 'Pendente' | 'Atrasado',
+        financial_report_import: r.financial_report_import,
+      }))
+      setClientAllTransactions(allClientTx)
     } catch (err: any) {
       setError(err)
     } finally {
@@ -186,5 +207,6 @@ export function useFinancialData(
     imports,
     retry: fetchData,
     refreshImports,
+    clientAllTransactions,
   }
 }

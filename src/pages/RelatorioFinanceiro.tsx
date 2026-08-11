@@ -51,7 +51,8 @@ import {
   computeSaldoEvolution,
   computeAlerts,
   generateAnalysis,
-  computeSaldoFinal,
+  computeResultado,
+  computeSaldoFinalV2,
 } from '@/lib/financial-computations'
 import { exportToPDF, exportToExcel } from '@/lib/financial-export'
 
@@ -114,8 +115,17 @@ export default function RelatorioFinanceiro() {
     }
   }, [isCliente, clientId])
 
-  const { loading, error, transactions, allTransactions, clients, imports, retry, refreshImports } =
-    useFinancialData(appliedFilters, { isCliente, clientId })
+  const {
+    loading,
+    error,
+    transactions,
+    allTransactions,
+    clients,
+    imports,
+    retry,
+    refreshImports,
+    clientAllTransactions,
+  } = useFinancialData(appliedFilters, { isCliente, clientId })
 
   const isClientSelected = appliedFilters.cliente !== 'all' && Boolean(appliedFilters.cliente)
 
@@ -153,11 +163,10 @@ export default function RelatorioFinanceiro() {
     { label: 'Projeto', key: 'projeto' as const, options: filterOptions.projects },
   ]
 
-  const { receitasTotal, despesasTotal, resultado } = useMemo(() => {
-    const r = transactions.filter((t) => t.type === 'Receita').reduce((s, t) => s + t.value, 0)
-    const d = transactions.filter((t) => t.type === 'Despesa').reduce((s, t) => s + t.value, 0)
-    return { receitasTotal: r, despesasTotal: d, resultado: r - d }
-  }, [transactions])
+  const { receitasTotal, despesasTotal, resultado } = useMemo(
+    () => computeResultado(transactions),
+    [transactions],
+  )
 
   const receitasData = useMemo(
     () => groupByMonth(transactions.filter((t) => t.type === 'Receita')),
@@ -168,38 +177,16 @@ export default function RelatorioFinanceiro() {
     [transactions],
   )
   const saldoData = useMemo(() => computeSaldoEvolution(transactions), [transactions])
-  const openingBalance = useMemo(() => {
-    if (!isClientSelected) return null
-    const isAllMonths = appliedFilters.mes.includes('all') || appliedFilters.mes.length === 0
-    const selectedMonths = appliedFilters.mes.filter((m) => m !== 'all')
-    if (isAllMonths && appliedFilters.ano === 'all') {
-      const sorted = [...imports].sort((a, b) => {
-        if (a.year !== b.year) return a.year - b.year
-        return a.month - b.month
-      })
-      const first = sorted[0]
-      return first?.opening_balance != null ? first.opening_balance : null
-    }
-    if (isAllMonths) {
-      const year = Number(appliedFilters.ano)
-      const yearImports = imports.filter((i) => i.year === year)
-      const sorted = [...yearImports].sort((a, b) => a.month - b.month)
-      const first = sorted[0]
-      return first?.opening_balance != null ? first.opening_balance : null
-    }
-    if (appliedFilters.ano === 'all') return null
-    const year = Number(appliedFilters.ano)
-    const sortedMonths = selectedMonths.map(Number).sort((a, b) => a - b)
-    const firstMonth = sortedMonths[0]
-    const importRecord = imports.find((i) => i.month === firstMonth && i.year === year)
-    return importRecord?.opening_balance != null ? importRecord.opening_balance : null
-  }, [imports, appliedFilters, isClientSelected])
-
-  const saldoFinal = useMemo(
-    () => computeSaldoFinal(transactions, receitasTotal, despesasTotal, openingBalance),
-    [transactions, receitasTotal, despesasTotal, openingBalance],
+  const saldoFinalComputation = useMemo(
+    () =>
+      computeSaldoFinalV2(clientAllTransactions, imports, {
+        mes: appliedFilters.mes,
+        ano: appliedFilters.ano,
+      }),
+    [clientAllTransactions, imports, appliedFilters.mes, appliedFilters.ano],
   )
-  const saldoFinalUnavailable = saldoFinal === null
+  const saldoFinal = saldoFinalComputation.saldoFinal
+  const saldoFinalUnavailable = saldoFinalComputation.unavailable
   const saldoFinalResultColor =
     saldoFinal !== null
       ? saldoFinal > 0
