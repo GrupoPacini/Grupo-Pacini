@@ -9,7 +9,22 @@ onRecordListRequest(
       e.next()
       return
     }
-    if (auth.getString('role') !== 'Cliente') {
+
+    var profileId = auth.getString('access_profile')
+    if (!profileId) {
+      e.next()
+      return
+    }
+
+    var profile
+    try {
+      profile = $app.findRecordById('access_profiles', profileId)
+    } catch (_) {
+      e.next()
+      return
+    }
+
+    if (profile.getString('name') !== 'Cliente') {
       e.next()
       return
     }
@@ -36,7 +51,22 @@ onRecordViewRequest(
       e.next()
       return
     }
-    if (auth.getString('role') !== 'Cliente') {
+
+    var profileId = auth.getString('access_profile')
+    if (!profileId) {
+      e.next()
+      return
+    }
+
+    var profile
+    try {
+      profile = $app.findRecordById('access_profiles', profileId)
+    } catch (_) {
+      e.next()
+      return
+    }
+
+    if (profile.getString('name') !== 'Cliente') {
       e.next()
       return
     }
@@ -63,7 +93,22 @@ onRecordCreateRequest(
       e.next()
       return
     }
-    if (auth.getString('role') === 'Cliente') {
+
+    var profileId = auth.getString('access_profile')
+    if (!profileId) {
+      e.next()
+      return
+    }
+
+    var profile
+    try {
+      profile = $app.findRecordById('access_profiles', profileId)
+    } catch (_) {
+      e.next()
+      return
+    }
+
+    if (profile.getString('name') === 'Cliente') {
       throw new ForbiddenError('Clientes não têm permissão para criar registros financeiros.')
     }
     e.next()
@@ -83,7 +128,22 @@ onRecordUpdateRequest(
       e.next()
       return
     }
-    if (auth.getString('role') === 'Cliente') {
+
+    var profileId = auth.getString('access_profile')
+    if (!profileId) {
+      e.next()
+      return
+    }
+
+    var profile
+    try {
+      profile = $app.findRecordById('access_profiles', profileId)
+    } catch (_) {
+      e.next()
+      return
+    }
+
+    if (profile.getString('name') === 'Cliente') {
       throw new ForbiddenError('Clientes não têm permissão para alterar registros financeiros.')
     }
     e.next()
@@ -103,7 +163,22 @@ onRecordDeleteRequest(
       e.next()
       return
     }
-    if (auth.getString('role') === 'Cliente') {
+
+    var profileId = auth.getString('access_profile')
+    if (!profileId) {
+      e.next()
+      return
+    }
+
+    var profile
+    try {
+      profile = $app.findRecordById('access_profiles', profileId)
+    } catch (_) {
+      e.next()
+      return
+    }
+
+    if (profile.getString('name') === 'Cliente') {
       throw new ForbiddenError('Clientes não têm permissão para excluir registros financeiros.')
     }
     e.next()

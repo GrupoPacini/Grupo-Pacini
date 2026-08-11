@@ -4,10 +4,10 @@ import pb from '@/lib/pocketbase/client'
 interface AuthContextType {
   user: any
   isAuthenticated: boolean
-  role: string | null
   isAdmin: boolean
   isCliente: boolean
   clientId: string | null
+  profileName: string | null
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
   loading: boolean
@@ -22,25 +22,32 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
-  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
+  const [user, setUser] = useState<any>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
-  const role = user?.role ?? null
-  const isAdmin = role === 'admin'
-  const isCliente = role === 'Cliente'
+  const [profileName, setProfileName] = useState<string | null>(null)
+
+  const isAdmin = profileName === 'Administrador'
+  const isCliente = profileName === 'Cliente'
   const clientId = user?.client || null
 
   useEffect(() => {
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      setUser(pb.authStore.isValid ? record : null)
-      setIsAuthenticated(pb.authStore.isValid)
+      const valid = pb.authStore.isValid
+      setUser(valid ? record : null)
+      setIsAuthenticated(valid)
+      if (valid) {
+        setLoading(true)
+      } else {
+        setProfileName(null)
+        setLoading(false)
+      }
     })
 
     if (pb.authStore.isValid) {
       pb.collection('users')
         .authRefresh()
         .catch(() => pb.authStore.clear())
-        .finally(() => setLoading(false))
     } else {
       if (pb.authStore.record) pb.authStore.clear()
       setLoading(false)
@@ -49,6 +56,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       unsubscribe()
     }
   }, [])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setProfileName(null)
+      return
+    }
+    if (!user?.access_profile) {
+      setProfileName(null)
+      setLoading(false)
+      return
+    }
+    let active = true
+    setLoading(true)
+    pb.collection('access_profiles')
+      .getOne(user.access_profile)
+      .then((profile: any) => {
+        if (active) setProfileName(profile.name || null)
+      })
+      .catch(() => {
+        if (active) setProfileName(null)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [isAuthenticated, user])
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -69,10 +104,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         isAuthenticated,
-        role,
         isAdmin,
         isCliente,
         clientId,
+        profileName,
         signIn,
         signOut,
         loading,

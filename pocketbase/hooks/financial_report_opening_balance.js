@@ -6,31 +6,38 @@ routerAdd(
     var auth = e.auth
     if (!auth) return e.unauthorizedError('Autenticação necessária')
 
-    var userRole = auth.getString('role')
-    if (userRole === 'Cliente') {
+    var profileId = auth.getString('access_profile')
+    if (!profileId) {
+      return e.forbiddenError('Perfil de acesso não vinculado')
+    }
+    var profile
+    try {
+      profile = $app.findRecordById('access_profiles', profileId)
+    } catch (_) {
+      return e.forbiddenError('Perfil de acesso não encontrado')
+    }
+    var profileName = profile.getString('name')
+    if (profileName === 'Cliente') {
       return e.forbiddenError('Clientes não têm permissão para editar relatórios financeiros.')
     }
-    if (userRole !== 'admin') {
-      var profileId = auth.getString('access_profile')
-      if (profileId) {
+    if (profile.getString('status') !== 'active') {
+      return e.forbiddenError('Perfil de acesso inativo')
+    }
+    if (profileName !== 'Administrador') {
+      var permsRaw = profile.get('permissions')
+      var perms = permsRaw
+      if (typeof perms === 'string') {
         try {
-          var profile = $app.findRecordById('access_profiles', profileId)
-          if (profile && profile.getString('status') === 'active') {
-            var permsRaw = profile.get('permissions')
-            var perms = permsRaw
-            if (typeof perms === 'string') {
-              try {
-                perms = JSON.parse(perms)
-              } catch (_) {}
-            }
-            if (perms && typeof perms === 'object') {
-              var modulePerms = perms['Relatório Financeiro']
-              if (!Array.isArray(modulePerms) || modulePerms.indexOf('editar') === -1) {
-                return e.forbiddenError('Permissão negada para editar relatórios financeiros')
-              }
-            }
-          }
+          perms = JSON.parse(perms)
         } catch (_) {}
+      }
+      if (perms && typeof perms === 'object') {
+        var modulePerms = perms['Relatório Financeiro']
+        if (!Array.isArray(modulePerms) || modulePerms.indexOf('editar') === -1) {
+          return e.forbiddenError('Permissão negada para editar relatórios financeiros')
+        }
+      } else {
+        return e.forbiddenError('Permissão negada para editar relatórios financeiros')
       }
     }
 
