@@ -1,19 +1,17 @@
 import { useState } from 'react'
-import { useNavigate, Navigate, useLocation, Link } from 'react-router-dom'
+import { Navigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import pb from '@/lib/pocketbase/client'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const { signIn, isAuthenticated, loading, isCliente } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
   const { toast } = useToast()
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
@@ -44,11 +42,11 @@ export default function Login() {
         title: 'Erro de Autenticação',
         description: 'Credenciais inválidas. Verifique seu e-mail e senha.',
       })
-    } else {
-      const role = pb.authStore.record?.role
-      navigate(role === 'Cliente' ? '/relatorio-financeiro' : from, { replace: true })
+      setIsLoading(false)
     }
-    setIsLoading(false)
+    // On success, the AuthProvider loads the access_profile relation
+    // and sets isCliente. The isAuthenticated guard above handles
+    // redirection based on isCliente — no role check needed here.
   }
 
   return (
