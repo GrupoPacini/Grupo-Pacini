@@ -164,10 +164,11 @@ export default function RelatorioFinanceiro() {
     { label: 'Projeto', key: 'projeto' as const, options: filterOptions.projects },
   ]
 
-  const { receitasTotal, despesasTotal, resultado } = useMemo(
-    () => computeResultado(transactions),
-    [transactions],
-  )
+  const {
+    receitas: receitasTotal,
+    despesas: despesasTotal,
+    resultado,
+  } = useMemo(() => computeResultado(transactions), [transactions])
 
   const receitasData = useMemo(
     () => groupByMonth(transactions.filter((t) => t.type === 'Receita')),
