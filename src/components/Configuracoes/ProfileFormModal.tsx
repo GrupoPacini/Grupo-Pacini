@@ -24,7 +24,7 @@ import {
   updateAccessProfile,
   type AccessProfileRecord,
 } from '@/services/access-profiles'
-import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
 
 interface ProfileFormModalProps {
@@ -104,8 +104,25 @@ export function ProfileFormModal({
       onOpenChange(false)
       onSuccess()
     } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('[ProfileFormModal] Profile save error:', {
+          status: (err as any)?.status,
+          message: (err as any)?.message,
+          data: (err as any)?.response?.data,
+          raw: err,
+        })
+      }
       setFieldErrors(extractFieldErrors(err))
-      toast.error(isEditing ? 'Erro ao atualizar perfil' : 'Erro ao criar perfil')
+      const status = (err as any)?.status
+      if (status === 403) {
+        toast.error(
+          isEditing
+            ? 'Você não possui permissão para editar perfis.'
+            : 'Você não possui permissão para criar perfis.',
+        )
+      } else {
+        toast.error(getErrorMessage(err))
+      }
     } finally {
       setLoading(false)
     }

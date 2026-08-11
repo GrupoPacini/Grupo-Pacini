@@ -31,7 +31,13 @@ export const createAccessProfile = (data: {
   description?: string
   status: 'active' | 'inactive'
   created_by?: string | null
-}) => pb.collection('access_profiles').create(data)
+  permissions?: Record<string, string[]>
+}) =>
+  pb.collection('access_profiles').create({
+    permissions: {},
+    system: false,
+    ...data,
+  })
 
 export const updateAccessProfile = (
   id: string,

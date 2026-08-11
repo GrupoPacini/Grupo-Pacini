@@ -44,7 +44,10 @@ onRecordCreateRequest(
     if (profile.getString('status') !== 'active') {
       throw new ForbiddenError('Perfil de acesso inativo')
     }
-
+    if (profile.getString('name') === 'Administrador') {
+      e.next()
+      return
+    }
     var permsRaw = profile.get('permissions')
     if (!permsRaw) {
       throw new ForbiddenError('Sem permissões configuradas')
@@ -130,7 +133,10 @@ onRecordUpdateRequest(
     if (profile.getString('status') !== 'active') {
       throw new ForbiddenError('Perfil de acesso inativo')
     }
-
+    if (profile.getString('name') === 'Administrador') {
+      e.next()
+      return
+    }
     var permsRaw = profile.get('permissions')
     if (!permsRaw) {
       throw new ForbiddenError('Sem permissões configuradas')
@@ -211,7 +217,10 @@ onRecordDeleteRequest(
     if (profile.getString('status') !== 'active') {
       throw new ForbiddenError('Perfil de acesso inativo')
     }
-
+    if (profile.getString('name') === 'Administrador') {
+      e.next()
+      return
+    }
     var permsRaw = profile.get('permissions')
     if (!permsRaw) {
       throw new ForbiddenError('Sem permissões configuradas')
@@ -269,7 +278,10 @@ onRecordListRequest((e) => {
   if (profile.getString('status') !== 'active') {
     throw new ForbiddenError('Perfil inativo')
   }
-
+  if (profile.getString('name') === 'Administrador') {
+    e.next()
+    return
+  }
   var permsRaw = profile.get('permissions')
   if (!permsRaw) {
     throw new ForbiddenError('Sem permissões configuradas')
@@ -321,7 +333,10 @@ onRecordViewRequest((e) => {
   } catch (_) {
     throw new ForbiddenError('Perfil não encontrado')
   }
-
+  if (profile.getString('name') === 'Administrador') {
+    e.next()
+    return
+  }
   var permsRaw = profile.get('permissions')
   if (!permsRaw) {
     throw new ForbiddenError('Sem permissões configuradas')
