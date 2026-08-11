@@ -1,51 +1,67 @@
-onRecordValidate((e) => {
-  var permsStr = e.record.getString('permissions')
-
-  if (permsStr === '' || permsStr === 'null' || permsStr === 'undefined') {
-    return e.next()
+function validateAccessProfilePermissions(e) {
+  if (e.hasSuperuserAuth()) {
+    e.next()
+    return
   }
 
-  var perms
-  try {
-    perms = JSON.parse(permsStr)
-  } catch (_) {
-    throw new BadRequestError('Permissões inválidas: formato JSON inválido.')
+  var permsRaw = e.record.get('permissions')
+  if (!permsRaw) {
+    e.next()
+    return
   }
 
-  if (!perms || typeof perms !== 'object' || Array.isArray(perms)) {
-    throw new BadRequestError('Permissões inválidas: deve ser um objeto JSON.')
-  }
-
-  var keys = Object.keys(perms)
-  if (keys.length === 0) {
-    return e.next()
-  }
-
-  for (var i = 0; i < keys.length; i++) {
-    var val = perms[keys[i]]
-    if (
-      !Array.isArray(val) ||
-      !val.every(function (v) {
-        return typeof v === 'string'
-      })
-    ) {
-      throw new BadRequestError('Permissões inválidas: cada módulo deve ter um array de strings.')
+  var perms = permsRaw
+  if (typeof perms === 'string') {
+    try {
+      perms = JSON.parse(perms)
+    } catch (_) {
+      throw new BadRequestError('Campo permissions deve ser um JSON válido')
     }
   }
 
-  var name = e.record.getString('name')
-  if (name === 'Administrador') {
-    var locked = ['Configurações', 'Gestão de Usuários', 'Perfis de Acesso', 'Segurança']
-    for (var k = 0; k < locked.length; k++) {
-      var mod = locked[k]
-      var modVal = perms[mod]
-      if (!Array.isArray(modVal) || modVal.length === 0) {
-        throw new BadRequestError(
-          'Permissões inválidas: o perfil Administrador deve manter acesso a Configurações, Gestão de Usuários, Perfis de Acesso e Segurança.',
-        )
+  if (!perms || typeof perms !== 'object' || Array.isArray(perms)) {
+    throw new BadRequestError('Campo permissions deve ser um objeto')
+  }
+
+  var validModules = {
+    Clientes: true,
+    Processos: true,
+    Licenças: true,
+    Playbooks: true,
+    'Gestão de Usuários': true,
+    'Perfis de Acesso': true,
+    'Modelos de Processo': true,
+    'Relatórios Financeiros': true,
+  }
+
+  var validActions = {
+    visualizar: true,
+    criar: true,
+    editar: true,
+    excluir: true,
+    gerenciar: true,
+  }
+
+  var keys = Object.keys(perms)
+  for (var i = 0; i < keys.length; i++) {
+    var moduleName = keys[i]
+    if (!validModules[moduleName]) {
+      throw new BadRequestError('Módulo desconhecido: ' + moduleName)
+    }
+    var actions = perms[moduleName]
+    if (!Array.isArray(actions)) {
+      throw new BadRequestError('Permissões do módulo ' + moduleName + ' devem ser um array')
+    }
+    for (var j = 0; j < actions.length; j++) {
+      if (!validActions[actions[j]]) {
+        throw new BadRequestError('Ação desconhecida: ' + actions[j] + ' no módulo ' + moduleName)
       }
     }
   }
 
   e.next()
-}, 'access_profiles')
+}
+
+onRecordCreateRequest(validateAccessProfilePermissions, 'access_profiles')
+
+onRecordUpdateRequest(validateAccessProfilePermissions, 'access_profiles')
