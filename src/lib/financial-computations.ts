@@ -36,6 +36,10 @@ function formatMonthLabel(ym: string): string {
   return `${MONTH_NAMES[parseInt(month, 10) - 1]}/${year.slice(2)}`
 }
 
+function competenceLabel(mes: number, ano: number): string {
+  return formatMonthLabel(`${ano}-${String(mes).padStart(2, '0')}`)
+}
+
 export function groupByMonth(transactions: Transaction[]): EvolutionDataPoint[] {
   const map = new Map<string, number>()
   for (const t of transactions) {
@@ -149,19 +153,6 @@ export function generateAnalysis(
   return lines.join('\n')
 }
 
-export interface SaldoFinalComputation {
-  saldoFinal: number | null
-  openingBalance: number | null
-  resultado: number | null
-  lastCompetence: { month: number; year: number } | null
-  unavailable: boolean
-  divergence: {
-    previousSaldoFinal: number
-    currentOpeningBalance: number
-    difference: number
-  } | null
-}
-
 interface ImportLike {
   id?: string
   month: number
@@ -169,9 +160,8 @@ interface ImportLike {
   opening_balance?: number | null
 }
 
-function getPreviousCompetence(month: number, year: number): { month: number; year: number } {
-  if (month === 1) return { month: 12, year: year - 1 }
-  return { month: month - 1, year }
+function roundCurrency(value: number): number {
+  return Math.round(value * 100) / 100
 }
 
 function filterTxByCompetence(
@@ -185,8 +175,154 @@ function filterTxByCompetence(
   })
 }
 
-function roundCurrency(value: number): number {
-  return Math.round(value * 100) / 100
+function findImport(imports: ImportLike[], month: number, year: number): ImportLike | undefined {
+  return imports.find((im) => im.month === month && im.year === year)
+}
+
+export interface SaldoHistoryEntry {
+  mes: number
+  ano: number
+  saldoInicial: number | null
+  receitas: number
+  despesas: number
+  resultado: number
+  saldoFinal: number | null
+  divergencia: boolean
+  divergenciaDetail: {
+    openingBalance: number
+    expectedSaldoFinal: number
+    difference: number
+  } | null
+}
+
+export function computeSaldoHistory(
+  allClientTransactions: Transaction[],
+  imports: ImportLike[],
+): SaldoHistoryEntry[] {
+  const competences = new Map<string, { month: number; year: number }>()
+  for (const imp of imports) {
+    competences.set(`${imp.year}-${imp.month}`, { month: imp.month, year: imp.year })
+  }
+  for (const t of allClientTransactions) {
+    const parts = t.date.substring(0, 7).split('-')
+    const y = Number(parts[0])
+    const m = Number(parts[1])
+    competences.set(`${y}-${m}`, { month: m, year: y })
+  }
+
+  const sorted = Array.from(competences.values()).sort(
+    (a, b) => a.year - b.year || a.month - b.month,
+  )
+  if (sorted.length === 0) return []
+
+  let firstValidIdx = -1
+  for (let i = 0; i < sorted.length; i++) {
+    const imp = findImport(imports, sorted[i].month, sorted[i].year)
+    if (imp && imp.opening_balance != null) {
+      firstValidIdx = i
+      break
+    }
+  }
+
+  const result: SaldoHistoryEntry[] = []
+  let accumulated: number | null = null
+
+  for (let i = 0; i < sorted.length; i++) {
+    const comp = sorted[i]
+    const imp = findImport(imports, comp.month, comp.year)
+    const tx = filterTxByCompetence(allClientTransactions, comp.month, comp.year)
+    const { receitas, despesas, resultado } = computeResultado(tx)
+
+    if (firstValidIdx === -1 || i < firstValidIdx) {
+      result.push({
+        mes: comp.month,
+        ano: comp.year,
+        saldoInicial: imp?.opening_balance ?? null,
+        receitas,
+        despesas,
+        resultado,
+        saldoFinal: null,
+        divergencia: false,
+        divergenciaDetail: null,
+      })
+      continue
+    }
+
+    if (i === firstValidIdx) {
+      const saldoInicial = imp!.opening_balance!
+      accumulated = roundCurrency(saldoInicial + resultado)
+      result.push({
+        mes: comp.month,
+        ano: comp.year,
+        saldoInicial: roundCurrency(saldoInicial),
+        receitas,
+        despesas,
+        resultado,
+        saldoFinal: accumulated,
+        divergencia: false,
+        divergenciaDetail: null,
+      })
+    } else {
+      const openingBalance = imp?.opening_balance ?? null
+      const prevSaldoFinal = accumulated!
+      accumulated = roundCurrency(prevSaldoFinal + resultado)
+
+      let divergencia = false
+      let divergenciaDetail: SaldoHistoryEntry['divergenciaDetail'] = null
+      if (openingBalance != null) {
+        const diff = roundCurrency(openingBalance - prevSaldoFinal)
+        if (diff !== 0) {
+          divergencia = true
+          divergenciaDetail = {
+            openingBalance: roundCurrency(openingBalance),
+            expectedSaldoFinal: roundCurrency(prevSaldoFinal),
+            difference: diff,
+          }
+        }
+      }
+
+      result.push({
+        mes: comp.month,
+        ano: comp.year,
+        saldoInicial: openingBalance != null ? roundCurrency(openingBalance) : null,
+        receitas,
+        despesas,
+        resultado,
+        saldoFinal: accumulated,
+        divergencia,
+        divergenciaDetail,
+      })
+    }
+  }
+
+  return result
+}
+
+export function buildSaldoFinalChartData(history: SaldoHistoryEntry[]): EvolutionDataPoint[] {
+  const valid = history.filter((e) => e.saldoFinal !== null)
+  if (valid.length === 0) return []
+  const points: EvolutionDataPoint[] = []
+  const first = valid[0]
+  if (first.saldoInicial !== null) {
+    points.push({ label: competenceLabel(first.mes, first.ano), value: first.saldoInicial })
+  }
+  for (const e of valid) {
+    points.push({ label: competenceLabel(e.mes, e.ano), value: e.saldoFinal! })
+  }
+  return points
+}
+
+export interface SaldoFinalComputation {
+  saldoFinal: number | null
+  openingBalance: number | null
+  resultado: number | null
+  lastCompetence: { month: number; year: number } | null
+  unavailable: boolean
+  divergence: {
+    previousSaldoFinal: number
+    currentOpeningBalance: number
+    difference: number
+  } | null
 }
 
 export function computeSaldoFinalV2(
@@ -203,99 +339,52 @@ export function computeSaldoFinalV2(
     divergence: null,
   }
 
-  const allCompetences = new Map<string, { month: number; year: number }>()
-  for (const imp of imports) {
-    allCompetences.set(`${imp.year}-${imp.month}`, { month: imp.month, year: imp.year })
-  }
-  for (const t of allClientTransactions) {
-    const parts = t.date.substring(0, 7).split('-')
-    const y = Number(parts[0])
-    const m = Number(parts[1])
-    allCompetences.set(`${y}-${m}`, { month: m, year: y })
-  }
-
-  if (allCompetences.size === 0) return empty
-
-  const sortedCompetences = Array.from(allCompetences.values()).sort(
-    (a, b) => a.year - b.year || a.month - b.month,
-  )
+  const history = computeSaldoHistory(allClientTransactions, imports)
+  if (history.length === 0) return empty
 
   const isAllMonths = filters.mes.includes('all') || filters.mes.length === 0
   const isAllYears = filters.ano === 'all'
   const selectedMonths = filters.mes.filter((m) => m !== 'all').map(Number)
   const selectedYear = isAllYears ? null : Number(filters.ano)
 
-  let cutoff: { month: number; year: number } | null = null
-  for (const comp of sortedCompetences) {
-    if (selectedYear !== null && comp.year !== selectedYear) continue
-    if (!isAllMonths && !selectedMonths.includes(comp.month)) continue
-    if (
-      !cutoff ||
-      comp.year > cutoff.year ||
-      (comp.year === cutoff.year && comp.month > cutoff.month)
-    ) {
-      cutoff = comp
-    }
+  let cutoffIdx = -1
+  for (let i = 0; i < history.length; i++) {
+    const e = history[i]
+    if (selectedYear !== null && e.ano !== selectedYear) continue
+    if (!isAllMonths && !selectedMonths.includes(e.mes)) continue
+    cutoffIdx = i
   }
 
-  if (!cutoff) return empty
+  if (cutoffIdx === -1) return empty
 
-  const chain = sortedCompetences.filter(
-    (c) => c.year < cutoff!.year || (c.year === cutoff!.year && c.month <= cutoff!.month),
-  )
-
-  if (chain.length === 0) return empty
-
-  let firstIdx = -1
-  let firstOpeningBalance = 0
-  for (let i = 0; i < chain.length; i++) {
-    const imp = imports.find((im) => im.month === chain[i].month && im.year === chain[i].year)
-    if (imp && imp.opening_balance != null) {
-      firstIdx = i
-      firstOpeningBalance = imp.opening_balance
-      break
-    }
+  const cutoff = history[cutoffIdx]
+  if (cutoff.saldoFinal === null) {
+    return { ...empty, lastCompetence: { month: cutoff.mes, year: cutoff.ano } }
   }
 
-  if (firstIdx === -1) return empty
-
-  let accumulated = firstOpeningBalance
-  const accumulatedByIndex: number[] = []
-  for (let i = firstIdx; i < chain.length; i++) {
-    const tx = filterTxByCompetence(allClientTransactions, chain[i].month, chain[i].year)
-    const { resultado } = computeResultado(tx)
-    accumulated += resultado
-    accumulatedByIndex[i] = roundCurrency(accumulated)
+  let firstOpeningBalance: number | null = null
+  let totalResultado = 0
+  for (let i = 0; i <= cutoffIdx; i++) {
+    const e = history[i]
+    if (e.saldoFinal === null) continue
+    if (firstOpeningBalance === null) firstOpeningBalance = e.saldoInicial
+    totalResultado = roundCurrency(totalResultado + e.resultado)
   }
-
-  const lastIdx = chain.length - 1
-  const saldoFinal = accumulatedByIndex[lastIdx]
-  const totalResultado = saldoFinal - firstOpeningBalance
 
   let divergence: SaldoFinalComputation['divergence'] = null
-  if (lastIdx > firstIdx) {
-    const lastComp = chain[lastIdx]
-    const lastImport = imports.find(
-      (im) => im.month === lastComp.month && im.year === lastComp.year,
-    )
-    if (lastImport && lastImport.opening_balance != null) {
-      const prevAccumulated = accumulatedByIndex[lastIdx - 1] ?? firstOpeningBalance
-      const diff = roundCurrency(lastImport.opening_balance - prevAccumulated)
-      if (diff !== 0) {
-        divergence = {
-          previousSaldoFinal: roundCurrency(prevAccumulated),
-          currentOpeningBalance: roundCurrency(lastImport.opening_balance),
-          difference: diff,
-        }
-      }
+  if (cutoff.divergencia && cutoff.divergenciaDetail) {
+    divergence = {
+      previousSaldoFinal: cutoff.divergenciaDetail.expectedSaldoFinal,
+      currentOpeningBalance: cutoff.divergenciaDetail.openingBalance,
+      difference: cutoff.divergenciaDetail.difference,
     }
   }
 
   return {
-    saldoFinal,
+    saldoFinal: cutoff.saldoFinal,
     openingBalance: firstOpeningBalance,
-    resultado: roundCurrency(totalResultado),
-    lastCompetence: cutoff,
+    resultado: totalResultado,
+    lastCompetence: { month: cutoff.mes, year: cutoff.ano },
     unavailable: false,
     divergence,
   }
@@ -313,12 +402,15 @@ export function computeContinuityMap(
   allClientTransactions: Transaction[],
   imports: ImportLike[],
 ): Map<string, ContinuityStatus> {
+  const history = computeSaldoHistory(allClientTransactions, imports)
   const result = new Map<string, ContinuityStatus>()
 
-  for (const imp of imports) {
-    const key = imp.id || `${imp.year}-${imp.month}`
+  for (let i = 0; i < history.length; i++) {
+    const entry = history[i]
+    const imp = findImport(imports, entry.mes, entry.ano)
+    const key = imp?.id || `${entry.ano}-${entry.mes}`
 
-    if (imp.opening_balance == null) {
+    if (entry.saldoInicial === null) {
       result.set(key, {
         state: 'sem_referencia',
         previousCompetence: null,
@@ -329,34 +421,38 @@ export function computeContinuityMap(
       continue
     }
 
-    const prevComp = getPreviousCompetence(imp.month, imp.year)
-    const prevImport = imports.find((p) => p.month === prevComp.month && p.year === prevComp.year)
-
-    if (!prevImport || prevImport.opening_balance == null) {
+    if (i === 0 || history[i - 1].saldoFinal === null) {
+      const prevComp = i > 0 ? { month: history[i - 1].mes, year: history[i - 1].ano } : null
       result.set(key, {
         state: 'sem_referencia',
         previousCompetence: prevComp,
         previousSaldoFinal: null,
-        currentSaldoInicial: imp.opening_balance,
+        currentSaldoInicial: entry.saldoInicial,
         difference: null,
       })
       continue
     }
 
-    const currentSaldoInicial = imp.opening_balance
-    const prevTx = filterTxByCompetence(allClientTransactions, prevComp.month, prevComp.year)
-    const { resultado: prevResultado } = computeResultado(prevTx)
-    const prevSaldoFinal = prevImport.opening_balance + prevResultado
+    const prev = history[i - 1]
+    const prevSaldoFinal = prev.saldoFinal!
 
-    const diff = roundCurrency(currentSaldoInicial - prevSaldoFinal)
-
-    result.set(key, {
-      state: diff === 0 ? 'conciliado' : 'divergencia',
-      previousCompetence: prevComp,
-      previousSaldoFinal: roundCurrency(prevSaldoFinal),
-      currentSaldoInicial: roundCurrency(currentSaldoInicial),
-      difference: diff,
-    })
+    if (entry.divergencia && entry.divergenciaDetail) {
+      result.set(key, {
+        state: 'divergencia',
+        previousCompetence: { month: prev.mes, year: prev.ano },
+        previousSaldoFinal: roundCurrency(prevSaldoFinal),
+        currentSaldoInicial: entry.saldoInicial,
+        difference: entry.divergenciaDetail.difference,
+      })
+    } else {
+      result.set(key, {
+        state: 'conciliado',
+        previousCompetence: { month: prev.mes, year: prev.ano },
+        previousSaldoFinal: roundCurrency(prevSaldoFinal),
+        currentSaldoInicial: entry.saldoInicial,
+        difference: 0,
+      })
+    }
   }
 
   return result

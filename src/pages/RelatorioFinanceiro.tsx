@@ -54,6 +54,8 @@ import {
   computeResultado,
   computeSaldoFinalV2,
   computeContinuityMap,
+  computeSaldoHistory,
+  buildSaldoFinalChartData,
 } from '@/lib/financial-computations'
 import { exportToPDF, exportToExcel } from '@/lib/financial-export'
 
@@ -179,6 +181,11 @@ export default function RelatorioFinanceiro() {
     [transactions],
   )
   const saldoData = useMemo(() => computeSaldoEvolution(transactions), [transactions])
+  const saldoHistory = useMemo(
+    () => computeSaldoHistory(clientAllTransactions, imports),
+    [clientAllTransactions, imports],
+  )
+  const saldoFinalChartData = useMemo(() => buildSaldoFinalChartData(saldoHistory), [saldoHistory])
   const saldoFinalComputation = useMemo(
     () =>
       computeSaldoFinalV2(clientAllTransactions, imports, {
@@ -559,7 +566,7 @@ export default function RelatorioFinanceiro() {
                 icon={Landmark}
                 iconColor="text-purple-600"
                 bg="bg-purple-100 dark:bg-purple-900/20"
-                data={saldoFinalUnavailable ? null : saldoData}
+                data={saldoFinalUnavailable ? null : saldoFinalChartData}
                 state={dataState}
                 total={saldoFinal}
                 chartColor="hsl(var(--chart-3))"
