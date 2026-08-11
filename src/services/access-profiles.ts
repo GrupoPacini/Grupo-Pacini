@@ -20,6 +20,9 @@ export const getAccessProfiles = () =>
     expand: 'created_by',
   })
 
+export const getAccessProfile = (id: string) =>
+  pb.collection<AccessProfileRecord>('access_profiles').getOne(id)
+
 export const getActiveAccessProfiles = () =>
   pb.collection<AccessProfileRecord>('access_profiles').getFullList({
     filter: 'status = "active"',

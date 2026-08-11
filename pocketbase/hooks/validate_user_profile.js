@@ -1,4 +1,36 @@
 onRecordCreateRequest((e) => {
+  function normalizePerms(raw) {
+    if (!raw) return {}
+    if (typeof raw === 'string') {
+      if (raw.trim() === '') return {}
+      try {
+        var parsed = JSON.parse(raw)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
+        return null
+      } catch (err) {
+        return null
+      }
+    }
+    if (typeof raw === 'object' && !Array.isArray(raw)) return raw
+    return null
+  }
+
+  function hasAnyPerm(perms) {
+    if (!perms) return false
+    var keys = Object.keys(perms)
+    for (var i = 0; i < keys.length; i++) {
+      var arr = perms[keys[i]]
+      if (Array.isArray(arr) && arr.length > 0) return true
+    }
+    return false
+  }
+
+  function hasClienteFinPerm(perms) {
+    if (!perms) return false
+    var fin = perms['Relatório Financeiro']
+    return Array.isArray(fin) && fin.indexOf('visualizar') !== -1
+  }
+
   var profileId = e.record.getString('access_profile')
 
   if (!profileId) {
@@ -45,31 +77,22 @@ onRecordCreateRequest((e) => {
 
   if (e.record.getString('status') === 'Ativo') {
     var permsRaw = profile.get('permissions')
-    var hasAnyPerm = false
-    if (permsRaw) {
-      var perms = permsRaw
-      if (typeof perms === 'string') {
-        try {
-          perms = JSON.parse(perms)
-        } catch (_) {
-          perms = null
-        }
-      }
-      if (perms && typeof perms === 'object' && !Array.isArray(perms)) {
-        var pKeys = Object.keys(perms)
-        for (var pi = 0; pi < pKeys.length; pi++) {
-          var arr = perms[pKeys[pi]]
-          if (Array.isArray(arr) && arr.length > 0) {
-            hasAnyPerm = true
-            break
-          }
-        }
-      }
+    var perms = normalizePerms(permsRaw)
+    if (perms === null) {
+      throw new BadRequestError('Formato de permissões inválido no perfil de acesso.')
     }
-    if (!hasAnyPerm) {
+
+    var hasPerm = false
+    if (profileName === 'Cliente') {
+      hasPerm = hasClienteFinPerm(perms)
+    } else {
+      hasPerm = hasAnyPerm(perms)
+    }
+
+    if (!hasPerm) {
       if (profileName === 'Cliente') {
         throw new BadRequestError(
-          'O Perfil Cliente ainda não possui permissões configuradas. Acesse Perfis de Acesso > Cliente > Configurar Permissões antes de criar o usuário.',
+          'O Perfil Cliente não possui a permissão "Relatório Financeiro - visualizar". Acesse Perfis de Acesso > Cliente > Configurar Permissões antes de criar o usuário.',
         )
       }
       throw new BadRequestError(
@@ -82,6 +105,38 @@ onRecordCreateRequest((e) => {
 }, 'users')
 
 onRecordUpdateRequest((e) => {
+  function normalizePerms(raw) {
+    if (!raw) return {}
+    if (typeof raw === 'string') {
+      if (raw.trim() === '') return {}
+      try {
+        var parsed = JSON.parse(raw)
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
+        return null
+      } catch (err) {
+        return null
+      }
+    }
+    if (typeof raw === 'object' && !Array.isArray(raw)) return raw
+    return null
+  }
+
+  function hasAnyPerm(perms) {
+    if (!perms) return false
+    var keys = Object.keys(perms)
+    for (var i = 0; i < keys.length; i++) {
+      var arr = perms[keys[i]]
+      if (Array.isArray(arr) && arr.length > 0) return true
+    }
+    return false
+  }
+
+  function hasClienteFinPerm(perms) {
+    if (!perms) return false
+    var fin = perms['Relatório Financeiro']
+    return Array.isArray(fin) && fin.indexOf('visualizar') !== -1
+  }
+
   var newProfileId = e.record.getString('access_profile')
   var oldProfileId = e.record.original().getString('access_profile')
 
@@ -163,31 +218,22 @@ onRecordUpdateRequest((e) => {
 
   if (e.record.getString('status') === 'Ativo') {
     var permsRaw2 = newProfile.get('permissions')
-    var hasAnyPerm2 = false
-    if (permsRaw2) {
-      var perms2 = permsRaw2
-      if (typeof perms2 === 'string') {
-        try {
-          perms2 = JSON.parse(perms2)
-        } catch (_) {
-          perms2 = null
-        }
-      }
-      if (perms2 && typeof perms2 === 'object' && !Array.isArray(perms2)) {
-        var pKeys2 = Object.keys(perms2)
-        for (var pj = 0; pj < pKeys2.length; pj++) {
-          var arr2 = perms2[pKeys2[pj]]
-          if (Array.isArray(arr2) && arr2.length > 0) {
-            hasAnyPerm2 = true
-            break
-          }
-        }
-      }
+    var perms2 = normalizePerms(permsRaw2)
+    if (perms2 === null) {
+      throw new BadRequestError('Formato de permissões inválido no perfil de acesso.')
     }
-    if (!hasAnyPerm2) {
+
+    var hasPerm2 = false
+    if (newProfileName === 'Cliente') {
+      hasPerm2 = hasClienteFinPerm(perms2)
+    } else {
+      hasPerm2 = hasAnyPerm(perms2)
+    }
+
+    if (!hasPerm2) {
       if (newProfileName === 'Cliente') {
         throw new BadRequestError(
-          'O Perfil Cliente ainda não possui permissões configuradas. Acesse Perfis de Acesso > Cliente > Configurar Permissões antes de criar o usuário.',
+          'O Perfil Cliente não possui a permissão "Relatório Financeiro - visualizar". Acesse Perfis de Acesso > Cliente > Configurar Permissões antes de criar o usuário.',
         )
       }
       throw new BadRequestError(

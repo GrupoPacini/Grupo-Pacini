@@ -21,7 +21,11 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Loader2, RotateCcw } from 'lucide-react'
-import { updateAccessProfile, type AccessProfileRecord } from '@/services/access-profiles'
+import {
+  updateAccessProfile,
+  getAccessProfile,
+  type AccessProfileRecord,
+} from '@/services/access-profiles'
 import {
   MODULE_CONFIGS,
   LOCKED_ADMIN_MODULES,
@@ -87,7 +91,7 @@ export function ProfilePermissionsConfigModal({
   const isLocked = (mod: string) => isAdmin && LOCKED_ADMIN_MODULES.includes(mod)
   const isDirty = JSON.stringify(permissions) !== JSON.stringify(initial)
   const totalActions = Object.values(permissions).reduce((s, a) => s + a.length, 0)
-  const canSave = totalActions > 0 && isDirty
+  const canSave = isCliente ? totalActions > 0 : totalActions > 0 && isDirty
   const allChecked = effectiveModules.every((c) => {
     const perms = permissions[c.module] || []
     return c.actions.every((a) => perms.includes(a))
@@ -132,6 +136,12 @@ export function ProfilePermissionsConfigModal({
     setLoading(true)
     try {
       await updateAccessProfile(profile.id, { permissions })
+      const refreshed = await getAccessProfile(profile.id)
+      const refreshedPerms = normalizePermissions(refreshed.permissions)
+      if (JSON.stringify(refreshedPerms) !== JSON.stringify(permissions)) {
+        toast.error('As permissões persistidas não conferem com o enviado. Tente novamente.')
+        return
+      }
       toast.success('Permissões atualizadas com sucesso')
       setShowConfirm(false)
       onOpenChange(false)
