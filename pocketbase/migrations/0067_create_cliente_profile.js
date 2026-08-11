@@ -13,26 +13,23 @@ migrate(
       )
       cliente.set('status', 'active')
       cliente.set('system', true)
-      cliente.set(
-        'permissions',
-        JSON.stringify({
-          Dashboard: ['visualizar'],
-          Clientes: [],
-          Processos: [],
-          Licenças: [],
-          Renovações: [],
-          Playbooks: [],
-          'Assistente IA': ['utilizar'],
-          Configurações: [],
-          'Gestão de Usuários': [],
-          'Perfis de Acesso': [],
-          Auditoria: [],
-          Integrações: [],
-          'Preferências do Sistema': [],
-          Segurança: [],
-          'Relatório Financeiro': ['visualizar'],
-        }),
-      )
+      cliente.set('permissions', {
+        Dashboard: ['visualizar'],
+        Clientes: [],
+        Processos: [],
+        Licenças: [],
+        Renovações: [],
+        Playbooks: [],
+        'Assistente IA': ['utilizar'],
+        Configurações: [],
+        'Gestão de Usuários': [],
+        'Perfis de Acesso': [],
+        Auditoria: [],
+        Integrações: [],
+        'Preferências do Sistema': [],
+        Segurança: [],
+        'Relatório Financeiro': ['visualizar'],
+      })
       app.save(cliente)
     }
   },
