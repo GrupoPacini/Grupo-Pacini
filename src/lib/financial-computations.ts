@@ -337,15 +337,10 @@ export function filterSaldoHistoryUntilSelectedCompetence(
 export function buildSaldoFinalChartData(history: SaldoHistoryEntry[]): EvolutionDataPoint[] {
   const valid = history.filter((e) => e.saldoFinal !== null)
   if (valid.length === 0) return []
-  const points: EvolutionDataPoint[] = []
-  const first = valid[0]
-  if (first.saldoInicial !== null) {
-    points.push({ label: competenceLabel(first.mes, first.ano), value: first.saldoInicial })
-  }
-  for (const e of valid) {
-    points.push({ label: competenceLabel(e.mes, e.ano), value: e.saldoFinal! })
-  }
-  return points
+  return valid.map((e) => ({
+    label: competenceLabel(e.mes, e.ano),
+    value: e.saldoFinal!,
+  }))
 }
 
 export interface SaldoFinalComputation {
