@@ -1,5 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Bar, BarChart, XAxis, YAxis, Tooltip } from 'recharts'
 import { ChartContainer } from '@/components/ui/chart'
 import { ChartStateDisplay } from './ChartStateDisplay'
@@ -8,6 +15,7 @@ import {
   formatBRL,
   formatDateBR,
   getDayOfMonth,
+  MONTHS,
   type DataState,
   type Transaction,
 } from '@/lib/financial-utils'
@@ -22,6 +30,26 @@ interface DailyCashFlowPoint {
 interface DailyCashFlowCardProps {
   transactions: Transaction[]
   state: DataState
+}
+
+interface Competence {
+  value: string
+  label: string
+}
+
+function extractCompetences(transactions: Transaction[]): Competence[] {
+  const map = new Map<string, string>()
+  for (const t of transactions) {
+    const ym = t.date.split('T')[0].split(' ')[0].substring(0, 7)
+    if (!map.has(ym)) {
+      const [y, m] = ym.split('-')
+      const label = `${MONTHS.find((mo) => mo.value === String(Number(m)))?.label || m}/${y}`
+      map.set(ym, label)
+    }
+  }
+  return Array.from(map, ([value, label]) => ({ value, label })).sort((a, b) =>
+    a.value.localeCompare(b.value),
+  )
 }
 
 function aggregateDaily(transactions: Transaction[]): DailyCashFlowPoint[] {
@@ -83,20 +111,61 @@ const chartConfig = {
 }
 
 export function DailyCashFlowCard({ transactions, state }: DailyCashFlowCardProps) {
-  const data = useMemo(() => aggregateDaily(transactions), [transactions])
+  const [selectedCompetence, setSelectedCompetence] = useState('')
+
+  const competences = useMemo(() => extractCompetences(transactions), [transactions])
+
+  const effectiveCompetence = useMemo(() => {
+    if (competences.length === 0) return ''
+    if (selectedCompetence && competences.some((c) => c.value === selectedCompetence)) {
+      return selectedCompetence
+    }
+    return competences[competences.length - 1].value
+  }, [competences, selectedCompetence])
+
+  const scopedTransactions = useMemo(() => {
+    if (!effectiveCompetence) return []
+    return transactions.filter((t) => {
+      const ym = t.date.split('T')[0].split(' ')[0].substring(0, 7)
+      return ym === effectiveCompetence
+    })
+  }, [transactions, effectiveCompetence])
+
+  const data = useMemo(() => aggregateDaily(scopedTransactions), [scopedTransactions])
   const hasData = state === 'ready' && data.length > 0
 
   return (
     <Card className="border-t-4 border-t-accent shadow-sm">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <CalendarDays size={18} className="text-primary" />
-          <div>
-            <CardTitle className="text-base font-semibold">Fluxo de Caixa Diário</CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
-              Entradas e saídas dia a dia
-            </CardDescription>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={18} className="text-primary shrink-0" />
+            <div>
+              <CardTitle className="text-base font-semibold">Fluxo de Caixa Diário</CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Entradas e saídas dia a dia
+              </CardDescription>
+            </div>
           </div>
+          {competences.length > 0 && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                Competência
+              </span>
+              <Select value={effectiveCompetence} onValueChange={setSelectedCompetence}>
+                <SelectTrigger className="h-8 w-auto min-w-[130px] text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {competences.map((c) => (
+                    <SelectItem key={c.value} value={c.value} className="text-xs">
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
