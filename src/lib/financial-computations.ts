@@ -298,6 +298,42 @@ export function computeSaldoHistory(
   return result
 }
 
+export function filterSaldoHistoryUntilSelectedCompetence(
+  history: SaldoHistoryEntry[],
+  filters: { mes: string[]; ano: string },
+): SaldoHistoryEntry[] {
+  const isAllMonths = filters.mes.includes('all') || filters.mes.length === 0
+  const isAllYears = filters.ano === 'all'
+
+  if (isAllMonths && isAllYears) return history
+
+  const selectedMonths = isAllMonths
+    ? ([] as number[])
+    : filters.mes.filter((m) => m !== 'all').map(Number)
+  const selectedYear = isAllYears ? null : Number(filters.ano)
+
+  let cutoffYear: number
+  let cutoffMonth: number
+
+  if (selectedYear !== null && selectedMonths.length > 0) {
+    cutoffYear = selectedYear
+    cutoffMonth = Math.max(...selectedMonths)
+  } else if (selectedYear !== null) {
+    cutoffYear = selectedYear
+    cutoffMonth = 12
+  } else {
+    const matching = history.filter((e) => selectedMonths.includes(e.mes))
+    if (matching.length === 0) return history
+    const maxEntry = matching.reduce((max, e) =>
+      e.ano > max.ano || (e.ano === max.ano && e.mes > max.mes) ? e : max,
+    )
+    cutoffYear = maxEntry.ano
+    cutoffMonth = maxEntry.mes
+  }
+
+  return history.filter((e) => e.ano < cutoffYear || (e.ano === cutoffYear && e.mes <= cutoffMonth))
+}
+
 export function buildSaldoFinalChartData(history: SaldoHistoryEntry[]): EvolutionDataPoint[] {
   const valid = history.filter((e) => e.saldoFinal !== null)
   if (valid.length === 0) return []

@@ -55,6 +55,7 @@ import {
   computeSaldoFinalV2,
   computeContinuityMap,
   computeSaldoHistory,
+  filterSaldoHistoryUntilSelectedCompetence,
   buildSaldoFinalChartData,
 } from '@/lib/financial-computations'
 import { exportToPDF, exportToExcel } from '@/lib/financial-export'
@@ -185,7 +186,18 @@ export default function RelatorioFinanceiro() {
     () => computeSaldoHistory(clientAllTransactions, imports),
     [clientAllTransactions, imports],
   )
-  const saldoFinalChartData = useMemo(() => buildSaldoFinalChartData(saldoHistory), [saldoHistory])
+  const filteredSaldoHistory = useMemo(
+    () =>
+      filterSaldoHistoryUntilSelectedCompetence(saldoHistory, {
+        mes: appliedFilters.mes,
+        ano: appliedFilters.ano,
+      }),
+    [saldoHistory, appliedFilters.mes, appliedFilters.ano],
+  )
+  const saldoFinalChartData = useMemo(
+    () => buildSaldoFinalChartData(filteredSaldoHistory),
+    [filteredSaldoHistory],
+  )
   const saldoFinalComputation = useMemo(
     () =>
       computeSaldoFinalV2(clientAllTransactions, imports, {
