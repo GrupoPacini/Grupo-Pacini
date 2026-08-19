@@ -100,7 +100,7 @@ export default function Clientes() {
         )
           return false
       }
-      if (statusFilter !== 'all' && getClientStatusLabel(c) !== statusFilter) return false
+      if (statusFilter !== 'all' && getClientStatusLabel(c as any) !== statusFilter) return false
       if (regimeFilter !== 'all' && c.tax_regime !== regimeFilter) return false
       return true
     })
@@ -299,8 +299,8 @@ export default function Clientes() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getClientStatusBadgeClass(c)}>
-                            {getClientStatusLabel(c)}
+                          <Badge variant="outline" className={getClientStatusBadgeClass(c as any)}>
+                            {getClientStatusLabel(c as any)}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -381,7 +381,7 @@ export default function Clientes() {
       <StatusChangeDialog
         open={statusDialogOpen}
         onOpenChange={setStatusDialogOpen}
-        client={statusTarget}
+        client={statusTarget as any}
         onSuccess={loadData}
       />
 

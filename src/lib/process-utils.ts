@@ -113,6 +113,15 @@ export function isActiveStatus(status: string): boolean {
   return status !== 'Concluído' && status !== 'Cancelado'
 }
 
+export function isProcessActive(status: string): boolean {
+  return isActiveStatus(status)
+}
+
+export function isProcessDelayed(status: string, dueDate: string | null | undefined): boolean {
+  if (!isActiveStatus(status)) return false
+  return isOverdue(dueDate)
+}
+
 export function processStatusBadge(status: string): string {
   switch (status) {
     case 'Concluído':

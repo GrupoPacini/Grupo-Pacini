@@ -384,7 +384,6 @@ export function StageFormDialog({
                         >
                           <Checkbox
                             checked={form.dependencies.includes(s.id)}
-                            readOnly
                             className="pointer-events-none"
                           />
                           <span className="flex-1">{s.name}</span>

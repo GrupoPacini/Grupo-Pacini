@@ -56,19 +56,13 @@ export default function Login() {
 
       <Card className="w-full max-w-md z-10 shadow-2xl border-none animate-fade-in-up">
         <CardHeader className="space-y-3 text-center pb-8">
-          <div className="mx-auto mb-3">
+          <div className="mx-auto mb-2 flex justify-center">
             <img
-              src="/visual-edits/logo-principal-azul-7414e51e.png"
-              alt="Grupo Pacini"
-              className="h-14 w-auto"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
+              src="/LOGO PRINCIPAL -  AZUL-e7ee8.png"
+              alt="Grupo Pacini - Inteligência Contábil"
+              className="h-28 w-auto max-w-full object-contain"
             />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-primary">
-            Grupo Pacini
-          </CardTitle>
           <CardDescription className="text-muted-foreground">
             Acesse o portal de gestão contábil
           </CardDescription>

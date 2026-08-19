@@ -48,7 +48,7 @@ function getImporterName(imp: FinancialReportImport): string {
 function formatDateBR(dateStr: string): string {
   if (!dateStr) return '—'
   const d = new Date(dateStr)
-  if (isNaN(d)) return dateStr
+  if (isNaN(d.getTime())) return dateStr
   return d.toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit',

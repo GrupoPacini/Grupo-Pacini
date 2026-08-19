@@ -201,16 +201,18 @@ export default function Layout() {
             collapsed && 'lg:justify-center lg:p-4',
           )}
         >
-          <div className="flex items-center">
+          <div className="flex items-center justify-center w-full">
             <img
-              src="/visual-edits/logo-horizontal-branco-58a558cd.png"
+              src="/LOGO PRINCIPAL - BRANCO-31527.png"
               alt="Grupo Pacini"
-              className={cn('h-10 w-auto', collapsed && 'lg:hidden')}
+              className={cn('h-16 w-auto object-contain mx-auto', collapsed && 'lg:hidden')}
             />
             {collapsed && (
-              <div className="hidden lg:flex w-10 h-10 rounded-lg bg-accent items-center justify-center text-lg font-bold text-primary">
-                P
-              </div>
+              <img
+                src="/LOGO PRINCIPAL - BRANCO-31527.png"
+                alt="Grupo Pacini"
+                className="hidden lg:block h-10 w-auto object-contain"
+              />
             )}
           </div>
           <button

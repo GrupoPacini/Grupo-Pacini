@@ -322,7 +322,6 @@ export function TaskFormDialog({
                       >
                         <Checkbox
                           checked={form.dependency.includes(t.id)}
-                          readOnly
                           className="pointer-events-none"
                         />
                         <span className="flex-1">{t.name}</span>

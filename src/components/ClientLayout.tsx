@@ -49,11 +49,11 @@ export function ClientLayout() {
         )}
       >
         <div className="flex items-center justify-between p-6">
-          <div className="flex items-center">
+          <div className="flex items-center justify-center w-full">
             <img
-              src="/visual-edits/logo-horizontal-branco-1c243594.png"
+              src="/LOGO PRINCIPAL - BRANCO-31527.png"
               alt="Grupo Pacini"
-              className="h-10 w-auto"
+              className="h-16 w-auto object-contain mx-auto"
             />
           </div>
           <button

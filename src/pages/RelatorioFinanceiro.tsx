@@ -628,16 +628,16 @@ export default function RelatorioFinanceiro() {
         (!isCliente || clientValid === true) &&
         cardVisible('Relatórios Importados') && (
           <ImportedReportsTable
-            imports={imports}
-            clients={clients}
+            imports={imports as any}
+            clients={clients as any}
             loading={loading}
             canDelete={canDeleteImport}
             canEdit={canEditImport}
             canReimport={canReimport}
             onView={handleView}
             onReimport={handleReimport}
-            onEditOpeningBalance={setEditOpeningBalanceTarget}
-            onDelete={setDeleteTarget}
+            onEditOpeningBalance={setEditOpeningBalanceTarget as any}
+            onDelete={setDeleteTarget as any}
             continuityMap={continuityMap}
           />
         )}
@@ -656,8 +656,8 @@ export default function RelatorioFinanceiro() {
         <DeleteReportDialog
           open={!!deleteTarget}
           onOpenChange={(v) => !v && setDeleteTarget(null)}
-          importRecord={deleteTarget}
-          clients={clients}
+          importRecord={deleteTarget as any}
+          clients={clients as any}
           loading={deleting}
           onConfirm={handleDeleteConfirm}
         />
@@ -667,8 +667,8 @@ export default function RelatorioFinanceiro() {
         <EditOpeningBalanceDialog
           open={!!editOpeningBalanceTarget}
           onOpenChange={(v) => !v && setEditOpeningBalanceTarget(null)}
-          importRecord={editOpeningBalanceTarget}
-          clients={clients}
+          importRecord={editOpeningBalanceTarget as any}
+          clients={clients as any}
           onUpdated={handleOpeningBalanceUpdated}
         />
       )}
