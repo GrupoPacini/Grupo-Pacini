@@ -58,7 +58,7 @@ export default function Login() {
         <CardHeader className="space-y-3 text-center pb-8">
           <div className="mx-auto mb-2 flex justify-center">
             <img
-              src="/LOGO PRINCIPAL -  AZUL-e7ee8.png"
+              src="/logo-pacini-azul.png"
               alt="Grupo Pacini - Inteligência Contábil"
               className="h-28 w-auto max-w-full object-contain"
             />

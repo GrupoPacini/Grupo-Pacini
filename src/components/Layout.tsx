@@ -203,13 +203,13 @@ export default function Layout() {
         >
           <div className="flex items-center justify-center w-full">
             <img
-              src="/LOGO PRINCIPAL - BRANCO-31527.png"
+              src="/logo-pacini-branco.png"
               alt="Grupo Pacini"
               className={cn('h-16 w-auto object-contain mx-auto', collapsed && 'lg:hidden')}
             />
             {collapsed && (
               <img
-                src="/LOGO PRINCIPAL - BRANCO-31527.png"
+                src="/logo-pacini-branco.png"
                 alt="Grupo Pacini"
                 className="hidden lg:block h-10 w-auto object-contain"
               />
