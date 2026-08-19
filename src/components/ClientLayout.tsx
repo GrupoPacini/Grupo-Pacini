@@ -50,7 +50,11 @@ export function ClientLayout() {
       >
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center">
-            <img src="/pacini-logo.svg" alt="Grupo Pacini" className="h-10 w-auto" />
+            <img
+              src="/visual-edits/logo-horizontal-branco-1c243594.png"
+              alt="Grupo Pacini"
+              className="h-10 w-auto"
+            />
           </div>
           <button
             className="lg:hidden text-primary-foreground/70"
