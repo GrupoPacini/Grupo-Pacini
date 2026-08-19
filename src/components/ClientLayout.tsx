@@ -51,7 +51,7 @@ export function ClientLayout() {
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center justify-center w-full">
             <img
-              src="/logo-pacini-branco.png"
+              src="/visual-edits/logo-horizontal-branco-1c243594.png"
               alt="Grupo Pacini"
               className="h-16 w-auto object-contain mx-auto"
             />
