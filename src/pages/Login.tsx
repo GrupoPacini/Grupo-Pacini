@@ -58,7 +58,7 @@ export default function Login() {
         <CardHeader className="space-y-3 text-center pb-8">
           <div className="mx-auto mb-3">
             <img
-              src="/pacini-logo.svg"
+              src="/visual-edits/logo-principal-azul-7414e51e.png"
               alt="Grupo Pacini"
               className="h-14 w-auto"
               onError={(e) => {
