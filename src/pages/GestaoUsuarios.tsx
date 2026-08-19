@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Settings, ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -8,10 +8,7 @@ import { getUsers, type UserRecord } from '@/services/users'
 import { getDepartments, type DepartmentRecord } from '@/services/departments'
 import { getActiveAccessProfiles, type AccessProfileRecord } from '@/services/access-profiles'
 import { toast } from 'sonner'
-import { StatsCards } from '@/components/Configuracoes/StatsCards'
-import { PermissionCards } from '@/components/Configuracoes/PermissionCards'
 import { UserManagement } from '@/components/Configuracoes/UserManagement'
-import { PermissionsModal } from '@/components/Configuracoes/PermissionsModal'
 
 export default function GestaoUsuarios() {
   const { user, isAdmin, loading: authLoading } = useAuth()
@@ -19,7 +16,6 @@ export default function GestaoUsuarios() {
   const [departments, setDepartments] = useState<DepartmentRecord[]>([])
   const [profiles, setProfiles] = useState<AccessProfileRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [permissionsRole, setPermissionsRole] = useState<'admin' | 'colaborador' | null>(null)
 
   const loadData = useCallback(async () => {
     try {
@@ -39,16 +35,6 @@ export default function GestaoUsuarios() {
   }, [loadData])
 
   useRealtime('users', () => loadData())
-
-  const stats = useMemo(() => {
-    const admins = users.filter((u) => u.expand?.access_profile?.name === 'Administrador').length
-    const colaboradores = users.filter((u) => {
-      const name = u.expand?.access_profile?.name
-      return name && name !== 'Administrador' && name !== 'Cliente'
-    }).length
-    const total = users.length
-    return { total, admins, colaboradores, ativos: total }
-  }, [users])
 
   if (authLoading) {
     return (
@@ -81,19 +67,6 @@ export default function GestaoUsuarios() {
         </p>
       </div>
 
-      <StatsCards
-        total={stats.total}
-        admins={stats.admins}
-        colaboradores={stats.colaboradores}
-        ativos={stats.ativos}
-      />
-
-      <PermissionCards
-        adminCount={stats.admins}
-        colaboradorCount={stats.colaboradores}
-        onViewPermissions={setPermissionsRole}
-      />
-
       <UserManagement
         users={users}
         departments={departments}
@@ -101,14 +74,6 @@ export default function GestaoUsuarios() {
         currentUserId={user?.id || ''}
         loading={loading}
         onRefresh={loadData}
-      />
-
-      <PermissionsModal
-        open={permissionsRole !== null}
-        onOpenChange={(open) => {
-          if (!open) setPermissionsRole(null)
-        }}
-        role={permissionsRole}
       />
     </div>
   )

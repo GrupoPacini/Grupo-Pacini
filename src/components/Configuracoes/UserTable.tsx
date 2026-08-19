@@ -57,17 +57,17 @@ export function UserTable({ users, loading, onAction, currentUserId }: UserTable
 
   return (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="min-w-[900px]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="pl-6">Usuário</TableHead>
-            <TableHead>E-mail</TableHead>
-            <TableHead>Perfil de Acesso</TableHead>
-            <TableHead>Empresa Vinculada</TableHead>
-            <TableHead>Departamento</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Último acesso</TableHead>
-            <TableHead className="text-right pr-6">Ações</TableHead>
+            <TableHead className="pl-6 min-w-[180px]">Usuário</TableHead>
+            <TableHead className="min-w-[200px]">E-mail</TableHead>
+            <TableHead className="min-w-[150px]">Perfil de Acesso</TableHead>
+            <TableHead className="min-w-[160px]">Empresa Vinculada</TableHead>
+            <TableHead className="min-w-[140px]">Departamento</TableHead>
+            <TableHead className="min-w-[140px]">Status</TableHead>
+            <TableHead className="min-w-[150px]">Último acesso</TableHead>
+            <TableHead className="text-right pr-6 min-w-[90px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -120,7 +120,7 @@ export function UserTable({ users, loading, onAction, currentUserId }: UserTable
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
                 </TableCell>
-                <TableCell className="py-4 text-muted-foreground text-sm max-w-[200px] truncate">
+                <TableCell className="py-4 text-muted-foreground text-sm max-w-[200px] truncate whitespace-nowrap">
                   {clientName}
                 </TableCell>
                 <TableCell className="py-4 text-muted-foreground text-sm">{deptName}</TableCell>

@@ -203,7 +203,7 @@ export default function Layout() {
         >
           <div className="flex items-center">
             <img
-              src="/pacini-logo.svg"
+              src="/visual-edits/logo-horizontal-branco-58a558cd.png"
               alt="Grupo Pacini"
               className={cn('h-10 w-auto', collapsed && 'lg:hidden')}
             />

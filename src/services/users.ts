@@ -22,11 +22,7 @@ export interface UserRecord {
   }
 }
 
-export const getUsers = () =>
-  pb.collection<UserRecord>('users').getFullList({
-    sort: 'name',
-    expand: 'department,access_profile,client',
-  })
+export const getUsers = () => pb.send<UserRecord[]>('/backend/v1/admin/users-full', {})
 
 export const updateUserStatus = (id: string, status: string) =>
   pb.collection('users').update(id, { status })
